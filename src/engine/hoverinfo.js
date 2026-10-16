@@ -194,7 +194,7 @@ showHoverInfo(null);
 function updateHoverInfo(mouse) {
   if (++hoverFrame % 4) return;
   placeHoverPanel();
-  const blocked = !mouse || dialogueOpen || settingsOpen || inventoryOpen;
+  const blocked = !mouse || dialogueOpen || settingsOpen;
   const info = blocked ? null : findHovered(mouse);
   const key = info ? info.kind + '|' + info.name + '|' + info.desc : '';
   if (key === hoveredInfo) return;

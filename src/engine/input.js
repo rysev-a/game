@@ -9,7 +9,7 @@ let viewDragging = false;
 
 const keys = {};
 window.addEventListener('keydown', (e) => {
-  if (settingsOpen || dialogueOpen || inventoryOpen) return; // в меню, в разговоре и с раскрытым инвентарем играть нельзя
+  if (settingsOpen || dialogueOpen) return; // в меню и в разговоре играть нельзя; раскрытый инвентарь игре не мешает
   keys[e.code] = true;
   if (e.code === 'KeyE' && !e.repeat) onInteract(); // все действия — клавишей E
   if (e.code === 'KeyP' && !e.repeat) rainManual = !rainOn;
@@ -55,7 +55,7 @@ renderer.domElement.addEventListener('mousedown', (e) => {
   if (e.button === 1) {
     e.preventDefault(); // без «автопрокрутки» браузера
     viewDragging = true;
-  } else if (e.button === 0 && !settingsOpen && !dialogueOpen && !inventoryOpen) {
+  } else if (e.button === 0 && !settingsOpen && !dialogueOpen) {
     pickHovered(); // клик по подсвеченной вещи — в инвентарь
   }
 });
