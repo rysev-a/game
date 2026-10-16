@@ -3,7 +3,8 @@
 // Как в 3D-шутерах: пока оружие в руках, мышь захвачена (Pointer Lock) — курсора нет, движение мыши влево-вправо
 // крутит камеру, и герой поворачивается вместе с ней; вверх-вниз — наклон прицела (aimPitch в
 // src/engine/weapons.js): заряд летит чуть выше или чуть ниже. Камера опускается ниже, как за плечом,
-// и следует за наклоном. Перед героем — перекрестие: куда полетит выстрел; красное — заряд попадет в цель.
+// и следует за наклоном. Перекрестия нет — стреляют на глаз (оно есть только от первого лица). Герой
+// поворачивается вместе с мышью сразу, без сглаживания (src/player/player.js): выстрел летит ровно по взгляду
 //   Захват: достали оружие (Q, R) или кликнули по сцене в боевом режиме.
 //   Отпустить: убрать оружие, открыть инвентарь, карту, меню, разговор. Esc — выйти из боевого режима
 //   совсем: оружие убирается, мышь отпускается (escapeCombat ниже).
@@ -121,8 +122,6 @@ crosshair.innerHTML =
   '<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' +
   '<circle cx="11" cy="11" r="6" stroke-width="1.5"/><path d="M11 1v5M11 16v5M1 11h5M16 11h5"/></svg>';
 document.body.appendChild(crosshair);
-const crosshairPoint = new THREE.Vector3();
-const crosshairDist = 14; // где рисовать перекрестие, если цели впереди нет
 
 function updateMouseLook() {
   if (mouseLookActive() && !mouseLookAllowed()) releaseMouseLook(); // сел в машину, открыл меню, убрал оружие
@@ -135,35 +134,7 @@ function updateMouseLook() {
   }
   if (firstPersonOn()) return updateFirstPersonAim();
   aimPitch = Math.max(-aimPitchMax, Math.min(aimPitchMax, aimPitch)); // вышли из вида от первого лица
-  // Куда полетит выстрел: по взгляду героя, с тем же доводом, что у оружия (assistTarget в weapons.js)
-  const w = WEAPONS[heroWeapon.id];
-  const m = muzzleAt(w, playerHeading);
-  const t = assistTarget(w, playerHeading);
-  let x, z, d;
-  if (t) {
-    d = Math.hypot(t.x - m.x, t.z - m.z);
-    x = t.x;
-    z = t.z;
-  } else {
-    d = crosshairDist;
-    x = m.x - Math.sin(playerHeading) * d;
-    z = m.z - Math.cos(playerHeading) * d;
-  }
-  const y = m.y + aimSlope() * d;
-  const onTarget = t && y >= 0 && y <= t.height;
-  cityGroup.updateMatrixWorld();
-  camera.updateMatrixWorld();
-  crosshairPoint.set(x, Math.max(0, y), z);
-  cityGroup.localToWorld(crosshairPoint); // мир → сцена (город крутится вокруг игрока)
-  crosshairPoint.project(camera);
-  if (crosshairPoint.z > 1) {
-    crosshair.style.display = 'none';
-    return;
-  }
-  crosshair.style.display = 'block';
-  crosshair.style.color = onTarget ? '#ff5a4a' : 'rgba(255,255,255,0.9)';
-  crosshair.style.transform =
-    'translate(' + ((crosshairPoint.x + 1) / 2) * window.innerWidth + 'px,' + ((1 - crosshairPoint.y) / 2) * window.innerHeight + 'px)';
+  crosshair.style.display = 'none'; // от третьего лица перекрестия нет: стреляют на глаз
 }
 
 // ---------- Вид от первого лица ----------
