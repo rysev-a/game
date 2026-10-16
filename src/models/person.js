@@ -59,6 +59,8 @@
 //   cape, capeOpacity, capeGlow — плащ (полупрозрачный — голограмма) со светящимися искрами;
 //   jets — реактивные струи у пояса; antennas — антенны за головой; shoeTip — цветной носок ботинка;
 //   gauntletColor, gauntletRing — цвет перчаток gauntlets и светящееся кольцо; bulk: 1.5 — массивнее (робот)
+//   Телосложение: height: 1.2 — выше (тянется вся фигура, голова остается круглой), width: 0.8 — худее
+//   или 1.2 — шире; belly: 0..1.3 — живот (толстяк), руки разводятся шире; head: 0.85 — размер головы
 //   bag: 'backpack' | 'tote', bagColor — рюкзак за спиной или сумка в левой руке
 //   cane: true          — трость в правой руке; stoop: 0..0.3 — сутулость (наклон корпуса)
 //   dress: false        — женщина без юбки (в брюках)
@@ -151,6 +153,10 @@ function createWalkingMan(options = {}) {
       gauntletColor: 0x8a9096,
       gauntletRing: null,
       bulk: 1,
+      height: 1,
+      width: 1,
+      belly: 0,
+      head: 1,
       bag: null, // 'backpack' | 'tote'
       bagColor: 0x5a4632,
       cane: false,
@@ -223,15 +229,17 @@ function createWalkingMan(options = {}) {
   }
 
   const root = new THREE.Group();
-  root.scale.setScalar(o.scale);
+  // Рост и ширина тянут всю фигуру; голову ниже растягиваем обратно, чтобы она осталась круглой
+  root.scale.set(o.scale * o.width, o.scale * o.height, o.scale * o.width);
   const hips = new THREE.Group(); // качается вверх при ходьбе
   root.add(hips);
 
   // ---------- Ноги: вращается группа-«бедро», граненая нога сужается к щиколотке ----------
+  const KL = K * (1 + 0.3 * o.belly); // у толстяка ноги толще и стоят шире
   function makeLeg(sideX) {
     const leg = new THREE.Group();
     leg.position.set(sideX, 0.95, 0);
-    at(prism(0.13 * K, 0.84, 0.15 * K, o.pantsColor, 0.19 * K, 0.2 * K), 0, -0.42, 0, leg);
+    at(prism(0.13 * KL, 0.84, 0.15 * KL, o.pantsColor, 0.19 * KL, 0.2 * KL), 0, -0.42, 0, leg);
     // Ботинок или кроссовок: носок вперед
     if (o.sneakers) {
       at(part(0.15, 0.1, 0.28, o.sneakerColor, 0.13, 0.2), 0, -0.86, -0.05, leg);
@@ -248,12 +256,12 @@ function createWalkingMan(options = {}) {
     if (o.neon !== null) at(glow(0.014, 0.5, 0.03), sideX > 0 ? 0.085 : -0.085, -0.5, -0.02, leg);
     return leg;
   }
-  const legL = makeLeg(-0.1 * K);
-  const legR = makeLeg(0.1 * K);
+  const legL = makeLeg(-0.1 * KL);
+  const legR = makeLeg(0.1 * KL);
   hips.add(legL);
   hips.add(legR);
   // Таз связывает ноги с корпусом
-  at(prism(0.38 * K, 0.14, 0.22 * K, o.pantsColor, 0.4 * K, 0.24 * K), 0, 0.98, 0, hips);
+  at(prism(0.38 * KL, 0.14, 0.22 * KL, o.pantsColor, 0.4 * KL, 0.24 * KL), 0, 0.98, 0, hips);
 
   // ---------- Корпус с руками и головой ----------
   const body = new THREE.Group();
@@ -269,6 +277,21 @@ function createWalkingMan(options = {}) {
   at(prism(waistW, chestY1 - chestY0, 0.24 * K, torsoColor, chestW, 0.28 * K), 0, (chestY0 + chestY1) / 2, 0, body);
   at(prism(chestW, 0.14, 0.28 * K, torsoColor, 0.24 * K, 0.2 * K), 0, chestY1 + 0.07, 0, body);
   const shoulder = chestW / 2; // где крепятся руки
+  // Живот толстяка: граненый овал на поясе выпирает вперед и в стороны
+  if (o.belly > 0) {
+    const b = o.belly;
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 6), personMat(torsoColor));
+    belly.scale.set(chestW / 2 + 0.05 * b, 0.3 + 0.06 * b, 0.16 * K + 0.16 * b);
+    belly.rotation.y = Math.PI / 8;
+    at(belly, 0, 1.16, -0.05 * b, body);
+  }
+  // Перед живота на высоте y (чуть снаружи граней): на нем лежат знаки, когда живот закрывает грудь
+  const bellyFrontZ = (y) => {
+    const b = o.belly;
+    const t = (y - 1.16) / (0.3 + 0.06 * b);
+    return -0.05 * b - (0.16 * K + 0.16 * b) * Math.sqrt(Math.max(0, 1 - t * t)) - 0.01;
+  };
+  const armSplay = 0.28 + 0.3 * o.belly; // руки разведены, у толстяка — шире, чтобы не тонули в животе
   // Шея
   at(prism(0.1 * K, 0.12, 0.1 * K, o.helmet !== null ? personShade(o.helmet, 0.25) : o.skinColor, 0.1 * K, 0.1 * K), 0, 1.68, 0, body);
 
@@ -375,10 +398,11 @@ function createWalkingMan(options = {}) {
   if (o.emblem !== null) {
     // Светящийся знак на груди: треугольник (Магнит) или шестиугольник (Гидра)
     const sides = o.emblemShape === 'hex' ? 6 : 3;
-    const em = new THREE.Mesh(new THREE.CircleGeometry(0.06 * K, sides), new THREE.MeshBasicMaterial({ color: o.emblem }));
+    const em = new THREE.Mesh(new THREE.CircleGeometry(0.06 * K, sides), new THREE.MeshBasicMaterial({ color: o.emblem, side: THREE.DoubleSide }));
     em.userData.noFlash = true;
     if (sides === 3) em.rotation.z = Math.PI / 2;
-    at(em, 0, 1.4, frontZ(0, 1.4) - 0.012, body);
+    if (o.belly > 0) at(em, 0, 1.2, bellyFrontZ(1.2), body);
+    else at(em, 0, 1.4, frontZ(0, 1.4) - 0.012, body);
   }
   if (o.pads !== null) {
     // Наплечники брони, с метками
@@ -444,7 +468,7 @@ function createWalkingMan(options = {}) {
     const arm = new THREE.Group();
     arm.position.set(side * (shoulder + 0.02 * K), 1.56, 0);
     const inner = new THREE.Group();
-    inner.rotation.z = side * 0.28; // руки разведены, как на листе
+    inner.rotation.z = side * armSplay; // руки разведены, как на листе
     arm.add(inner);
     // Локоть: предплечье с кистью — отдельная группа fore, ее можно согнуть (setAim('rifle'))
     const fore = new THREE.Group();
@@ -519,6 +543,7 @@ function createWalkingMan(options = {}) {
   const jawH = 0.15;
   const headColor = o.mask !== null ? o.mask : o.skinColor;
   // Лицо чуть «светится» своим цветом: грани головы под разными углами не уходят в темные пятна, как на листе
+  const headStart = body.children.length; // все, что добавлено отсюда до юбки, — голова и головные уборы
   const headMat = new LitMaterial({ color: headColor, emissive: new THREE.Color(headColor).multiplyScalar(0.28) });
   const dome = new THREE.Mesh(new THREE.SphereGeometry(headR, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), headMat);
   const jaw = new THREE.Mesh(new THREE.CylinderGeometry(headR, chinR, jawH, 8), headMat);
@@ -673,6 +698,16 @@ function createWalkingMan(options = {}) {
     body.add(beanie);
   }
 
+  // Голова в своей группе с опорой на шее: снимаем растяжение роста и ширины, задаем размер головы
+  const head = new THREE.Group();
+  head.position.y = 1.68;
+  head.scale.set(o.head / o.width, o.head / o.height, o.head / o.width);
+  body.children.slice(headStart).forEach((m) => {
+    m.position.y -= head.position.y;
+    head.add(m);
+  });
+  body.add(head);
+
   // ---------- Юбка и полы пальто: висят на бедрах и не качаются вместе с ногами ----------
   if (skirt) {
     const long = skirt === 'long';
@@ -821,8 +856,8 @@ function createWalkingMan(options = {}) {
     R.inner.scale.y = L.inner.scale.y = 1;
     armR.rotation.set(aiming ? 1.5 : 0, 0, 0);
     armL.rotation.set(0, 0, 0);
-    R.inner.rotation.z = aiming ? 0 : 0.28;
-    L.inner.rotation.z = -0.28;
+    R.inner.rotation.z = aiming ? 0 : armSplay;
+    L.inner.rotation.z = -armSplay;
   };
 
   // Поза «сидит»: таз опускается на высоту сиденья, ноги вытянуты вперед, руки на коленях
@@ -931,58 +966,68 @@ const PERSON_PRESETS = {
     coat: true, coatColor: 0x262a36, shirtColor: 0x2a3a6a, pantsColor: 0x24305a, tie: true, tieColor: 0x9a9ca0,
     hairColor: 0xc8c8c4, skinColor: 0xe0b48a,
   },
-  // Помощники Барона — по листу docs/art/bosses.png (номер — порядок на листе)
-  // Б1. Вспышка (сверхскорость): белый костюм курьера, оранжевые полосы, шлем с оранжевым визором
+  // Помощники Барона — по листу docs/art/bosses.png (номер — порядок на листе). У каждого свое телосложение
+  // (рост, ширина, живот) и ядовито-яркие цвета на черном, чтобы издалека было видно: это враг
+  // Б1. Вспышка (сверхскорость): худой и высокий бегун, кислотно-желтый костюм, красные полосы и визор
   flash: {
-    helmet: 0xe4e8ec, visor: 0xff7a2a, shirtColor: 0xdfe4e8, pantsColor: 0xd4dade, stripes: 0xff7a2a,
-    shoeColor: 0x3a3e44, shoeTip: 0xff7a2a, gloves: 0xc8ced4, belt: 0x9aa4ae, skinColor: 0xc8946a,
+    height: 1.16, width: 0.8, head: 0.92,
+    helmet: 0x16161a, visor: 0xff2a14, shirtColor: 0xd8f000, pantsColor: 0x16161a, stripes: 0xff2a14,
+    shoeColor: 0x16161a, shoeTip: 0xd8f000, gloves: 0x16161a, belt: 0xff2a14, skinColor: 0xc8946a,
   },
-  // Б2. Эхо (копии-иллюзии): светлый костюм, голографический полупрозрачный плащ, темный визор
+  // Б2. Эхо (копии-иллюзии): маленький, кислотно-розовый, голографический бирюзовый плащ, бирюзовый визор
   echo: {
-    helmet: 0xe8ecf0, visor: 0x2a3440, shirtColor: 0xe4e8ec, pantsColor: 0x8a9cb0, coat: true, coatColor: 0xd8dde4,
-    cape: 0xb8a8e0, capeOpacity: 0.45, capeGlow: 0x9ee8e0, shoeColor: 0xb8c4d0, gloves: 0xc8ced4, skinColor: 0xc8946a,
+    scale: 0.8, width: 1.05, head: 1.12,
+    helmet: 0x1a1020, visor: 0x1affe8, shirtColor: 0xff1aa8, pantsColor: 0x2a0a24, coat: true, coatColor: 0xe0148f,
+    cape: 0x1affe8, capeOpacity: 0.45, capeGlow: 0xff7ae0, shoeColor: 0x1a1020, gloves: 0x1a1020, skinColor: 0xc8946a,
   },
-  // Б3. Сокол (летает): серый летный костюм, голубые очки, крылья с желтыми вставками, реактивные струи
+  // Б3. Сокол (летает): высокий и поджарый, кроваво-красный летный костюм, черные крылья с желтым
   falcon: {
-    shirtColor: 0x7a8694, pantsColor: 0x5e6874, hairColor: 0x3a3e44, goggles: true, wings: 0x8a96a4,
-    pads: 0x8a96a4, padMark: 0xf0c43a, belt: 0xf0c43a, jets: 0x6ad8ff, shoeColor: 0x4a525c, skinColor: 0xd9a27a,
+    height: 1.12, width: 0.84,
+    shirtColor: 0xd0101e, pantsColor: 0x1a0a0c, hairColor: 0x16161a, goggles: true, wings: 0x1e1012,
+    pads: 0x1e1012, padMark: 0xffd400, belt: 0xffd400, jets: 0xff7a1a, shoeColor: 0x16161a, skinColor: 0xd9a27a,
   },
-  // Б4. Магнит (притягивает железо): темный экзоскелет, красный знак на груди, перчатки с синими кольцами
+  // Б4. Магнит (притягивает железо): широкий квадратный крепыш, багровый экзоскелет, синие кольца и знак
   magnet: {
-    helmet: 0x3a424c, visor: 0x8ad8f0, shirtColor: 0x2e353e, pantsColor: 0x3e4650, pads: 0x4a525c, padMark: 0xe04a3a,
-    emblem: 0xe04a3a, emblemShape: 'triangle', gauntlets: true, gauntletColor: 0x2e353e, gauntletRing: 0x6ac8f0,
-    shoeColor: 0x24282e, skinColor: 0xc8946a,
+    bulk: 1.4, width: 1.12, height: 0.94, head: 0.9,
+    helmet: 0x16161a, visor: 0x2ad4ff, shirtColor: 0xa00c1a, pantsColor: 0x1a1a1e, pads: 0x16161a, padMark: 0x2ad4ff,
+    emblem: 0x2ad4ff, emblemShape: 'triangle', gauntlets: true, gauntletColor: 0xa00c1a, gauntletRing: 0x2ad4ff,
+    shoeColor: 0x16161a, skinColor: 0xc8946a,
   },
-  // Б5. Тень (невидимость): черный костюм, темный плащ с фиолетовыми искрами, фиолетовый визор
+  // Б5. Тень (невидимость): самый высокий и тощий, маленькая голова, черный костюм, ядовито-фиолетовые искры
   shadow: {
-    helmet: 0x1e2228, visor: 0x9a6ae8, shirtColor: 0x1e2228, pantsColor: 0x262a32, gloves: 0x1c1c20,
-    cape: 0x3a3448, capeGlow: 0x9a6ae8, shoeColor: 0x1c1e22, skinColor: 0xc8946a,
+    height: 1.26, width: 0.7, head: 0.82,
+    helmet: 0x0e0e12, visor: 0xc02aff, shirtColor: 0x141018, pantsColor: 0x0e0e12, gloves: 0x0e0e12,
+    cape: 0x5a0a9a, capeGlow: 0xd04aff, shoeColor: 0x0e0e12, skinColor: 0xc8946a,
   },
-  // Б6. Туча (погода): серый длинный плащ, белые волосы, антенны за спиной, молнии на ботинках
+  // Б6. Туча (погода): очень толстый, грозово-фиолетовый плащ, бирюзовая рубашка на животе, белые волосы
   cloud: {
-    coat: true, coatColor: 0x5e6874, shirtColor: 0x3a424c, pantsColor: 0x4a525c, hair: 'long', hairColor: 0xd8dade,
-    antennas: 0x2a2e34, shoeColor: 0x3a3e44, shoeTip: 0xd8e8f0, watch: true, skinColor: 0xe0b48a,
+    belly: 1.1, bulk: 1.15, height: 0.94,
+    coat: true, coatColor: 0x6a1ab8, shirtColor: 0x1affd0, pantsColor: 0x2a0a4a, hair: 'long', hairColor: 0xf0f4f8,
+    antennas: 0x16161a, shoeColor: 0x16161a, shoeTip: 0x1affd0, watch: true, skinColor: 0xe0b48a,
   },
-  // Б7. Искра (электроника): черный костюм с зелеными светящимися линиями, кибер-визор
+  // Б7. Искра (электроника): низкий и коренастый, кислотно-зеленая куртка, желтые светящиеся линии
   spark: {
-    shirtColor: 0x1e2428, pantsColor: 0x1a1e22, neon: 0x5ae8a0, goggles: true, hairColor: 0x2a2e34, jacket: 0x262c30,
-    skinColor: 0xd9a27a,
+    scale: 0.78, width: 1.12, head: 1.1,
+    shirtColor: 0x141414, pantsColor: 0x141414, neon: 0xeaff00, goggles: true, hairColor: 0x39ff14, hair: 'spiky',
+    jacket: 0x2ee01a, skinColor: 0xd9a27a,
   },
-  // Б8. Шепот (гипноз голосом): белый костюм, серый шарф, седые волосы
+  // Б8. Шепот (гипноз голосом): худой и длинный, алый плащ, черный шарф, бледная кожа, белые волосы
   whisper: {
-    coat: true, coatColor: 0xeeeee6, shirtColor: 0xe4e4dc, pantsColor: 0xd8d8d0, scarf: 0xb0b4b8, hairColor: 0xb8bcc0,
-    shoeColor: 0x2a2c30, skinColor: 0xe0b48a,
+    height: 1.18, width: 0.76, head: 0.9,
+    coat: true, coatColor: 0xd0142a, shirtColor: 0x16161a, pantsColor: 0x16161a, scarf: 0x0e0e12, hairColor: 0xf4f4f0,
+    shoeColor: 0x0e0e12, skinColor: 0xe8dccc,
   },
-  // Б9. Глыба (сверхсила и броня): робот-громила в серой броне, красный визор
+  // Б9. Глыба (сверхсила и броня): огромный широкий и тучный робот, огненно-оранжевая броня, желтый визор
   block: {
-    helmet: 0x5a626c, visor: 0xe04a3a, shirtColor: 0x9aa4ae, pantsColor: 0x7a848e, bulk: 1.55, scale: 1.12,
-    pads: 0xa8b0b8, padMark: 0xe04a3a, gauntlets: true, gauntletColor: 0x8a949e, belt: 0x5a626c, shoeColor: 0x5a626c,
-    skinColor: 0x5a626c,
+    bulk: 1.6, scale: 1.2, width: 1.08, belly: 0.7, head: 0.8,
+    helmet: 0x1e1e22, visor: 0xffe01a, shirtColor: 0xff4a0a, pantsColor: 0x2a2a30, pads: 0x1e1e22, padMark: 0xffe01a,
+    gauntlets: true, gauntletColor: 0xff4a0a, belt: 0x1e1e22, shoeColor: 0x1e1e22, skinColor: 0x1e1e22,
   },
-  // Б10. Гидра (регенерация): зеленая наноброня, светящийся шестиугольник на груди, зеленый визор
+  // Б10. Гидра (регенерация): очень толстая туша, ядовито-зеленая наноброня, розовый светящийся шестиугольник
   hydra: {
-    helmet: 0x2e6a4a, visor: 0x7ae8a0, shirtColor: 0x2e7a52, pantsColor: 0x246044, emblem: 0x8af0b0, emblemShape: 'hex',
-    neon: 0x6ae08a, gloves: 0x2e6a4a, shoeColor: 0x1e4a34, skinColor: 0xc8946a,
+    belly: 1.3, bulk: 1.3, width: 1.06, height: 0.9, head: 0.9,
+    helmet: 0x0e3a12, visor: 0xff2a9a, shirtColor: 0x4aff2a, pantsColor: 0x0e3a12, emblem: 0xff2a9a, emblemShape: 'hex',
+    neon: 0xff2a9a, gloves: 0x0e3a12, shoeColor: 0x0e2a10, skinColor: 0xc8946a,
   },
 
   // Прохожие и типы
