@@ -42,6 +42,7 @@ function animate(now = performance.now()) {
   updateRotationKeys();
   const controls = readControls();
   const move = updateWalking(controls);
+  updateClickMove(); // ходьба кликом: дошли, уперлись, вход в дверь
   updateDriving(controls);
   updatePushing(controls);
   updateCarMeshes();

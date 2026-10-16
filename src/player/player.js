@@ -104,6 +104,12 @@ function updateWalking(c) {
     const f = (c.up ? 1 : 0) - (c.down ? 1 : 0);
     const speed = playerSpeed * (isRunning() ? combatRunFactor : 1);
     let fwd = f > 0 ? speed : f < 0 ? -speed * playerBackFactor : 0;
+    // Ходьба кликом по земле (src/player/click-move.js): сам поворачивает к точке и идет
+    const auto = clickMoveSteer(c);
+    if (auto) {
+      turn = auto.turn;
+      fwd = auto.go ? auto.step : 0;
+    }
     let sideSpeed = strafe * speed * playerStrafeFactor;
     if (fwd && sideSpeed) {
       fwd *= Math.SQRT1_2; // по диагонали не быстрее, чем прямо
