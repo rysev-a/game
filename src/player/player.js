@@ -118,8 +118,9 @@ function updateWalking(c) {
     const strafe = inCombatMode() ? side : 0;
     if (!strafe) turn = -side * playerTurnRate; // налево — плюс, как у машины
     // В боевом режиме герой поворачивается вслед за камерой (стрелки ←/→ или зажатое колесо мыши)
-    // От первого лица (src/engine/mouse-look.js) — сразу, без сглаживания: взгляд и есть направление героя
-    if (firstPersonOn()) playerHeading = -worldRotation;
+    // Мышь захвачена (src/engine/mouse-look.js, от первого и от третьего лица) — сразу, без сглаживания:
+    // взгляд и есть направление героя, выстрел летит ровно туда, куда повернули мышь
+    if (firstPersonOn() || mouseLookActive()) playerHeading = -worldRotation;
     else if (inCombatMode()) {
       const d = -worldRotation - playerHeading;
       playerHeading += Math.atan2(Math.sin(d), Math.cos(d)) * 0.3;
