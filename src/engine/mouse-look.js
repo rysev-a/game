@@ -5,7 +5,8 @@
 // src/engine/weapons.js): заряд летит чуть выше или чуть ниже. Камера опускается ниже, как за плечом,
 // и следует за наклоном. Перед героем — перекрестие: куда полетит выстрел; красное — заряд попадет в цель.
 //   Захват: достали оружие (Q, R) или кликнули по сцене в боевом режиме.
-//   Отпустить: Esc (так устроены браузеры), убрать оружие, открыть инвентарь, карту, меню, разговор.
+//   Отпустить: убрать оружие, открыть инвентарь, карту, меню, разговор. Esc — выйти из боевого режима
+//   совсем: оружие убирается, мышь отпускается (escapeCombat ниже).
 //   Колесо мыши в боевом режиме меняет оружие (src/engine/input.js).
 // updateMouseLook() — раз в кадр из главного цикла, после камеры (src/engine/game.js).
 //
@@ -37,9 +38,28 @@ function requestMouseLook() {
   if (r && r.catch) r.catch(() => {}); // браузер может отказать (например, сразу после Esc) — захватим по клику
 }
 
+let mouseLookReleasing = false; // мышь отпускает сама игра (убрали оружие, открыли окно), а не Esc
 function releaseMouseLook() {
-  if (mouseLookActive()) document.exitPointerLock();
+  if (!mouseLookActive()) return;
+  mouseLookReleasing = true;
+  document.exitPointerLock();
 }
+
+// ESC — ВЫЙТИ ИЗ БОЕВОГО РЕЖИМА: оружие убирается, мышь отпускается, камера возвращается за спину.
+// Сначала Esc закрывает то, что открыто поверх игры (меню, инвентарь, карта, разговор), и отменяет
+// вещь в руке (armedItem, src/player/equipment.js) — тогда из боя не выходим
+function escapeCombat() {
+  if (heroWeapon.id && mouseLookAllowed() && !(typeof armedItem !== 'undefined' && armedItem)) holsterWeapon();
+}
+// Мышь не захвачена (после отказа браузера или на старте) — Esc приходит обычной клавишей. Ловим
+// в фазе захвата, пока обработчики меню и инвентаря его не закрыли: состояние окон — до нажатия
+window.addEventListener(
+  'keydown',
+  (e) => {
+    if (e.code === 'Escape' && !e.repeat) escapeCombat();
+  },
+  true,
+);
 
 // Достали или сменили оружие клавишей — сразу захватываем мышь (обработчик оружия в weapons.js уже отработал)
 window.addEventListener('keydown', (e) => {
@@ -49,13 +69,20 @@ window.addEventListener('keydown', (e) => {
     else releaseMouseLook();
   }
 });
-// Клик по сцене в боевом режиме без захвата (например, после Esc) — снова захватить
+// Клик по сцене в боевом режиме без захвата (браузер не дал захватить сразу) — захватить
 renderer.domElement.addEventListener('mousedown', (e) => {
   if (e.button === 0) requestMouseLook();
 });
 
 document.addEventListener('pointerlockchange', () => {
-  if (!mouseLookActive()) aimPitch = 0; // отпустили — прицел снова горизонтальный
+  if (!mouseLookActive()) {
+    aimPitch = 0; // отпустили — прицел снова горизонтальный
+    // Захваченную мышь браузер отпускает по Esc сам, и клавиша до страницы не доходит. Если отпустила
+    // не игра и окно не потеряло фокус (переключились в другую программу) — это Esc: выходим из боя
+    const byGame = mouseLookReleasing;
+    mouseLookReleasing = false;
+    if (!byGame) setTimeout(() => document.hasFocus() && !mouseLookActive() && escapeCombat(), 60);
+  }
   if (typeof updateWeaponHud === 'function') updateWeaponHud(); // подсказка на панели оружия
   updateMouseHint();
 });
