@@ -959,14 +959,114 @@ function stopChargeSound() {
   chargeHum = null;
 }
 
+// ---------- Записанные звуки (audio/weapons/) ----------
+// Набор звуков, у которого есть запись, играет файл; пока файл не загрузился (или не грузится — игра открыта
+// как файл, без сервера) — синтез из playWeaponSound. Громкость — та же группа «Звуки» в настройках.
+//   shot — файл на каждый выстрел (одновременно не больше трех, старый затихает)
+//   loop — файл звучит по кругу, пока идут выстрелы, и затихает, когда стрельба прекратилась;
+//          from/to — кусок файла для круга, start — файл, который звучит один раз в начале очереди
+const WEAPON_SAMPLES = {
+  pulse: { loop: 'impulse', from: 0.3, to: 21.3, vol: 0.8 }, // импульсный лазер
+  flame: { loop: 'fire_2', start: 'fire', vol: 0.7 }, // плазменный огнемет
+  plasma: { shot: 'plasma_gun', vol: 0.8 }, // плазмомет
+  shotgun: { shot: 'shotgun', vol: 1 }, // дробовик
+};
+const weaponSampleFiles = {}; // имя файла → ArrayBuffer, потом AudioBuffer
+for (const s of Object.values(WEAPON_SAMPLES)) {
+  for (const name of [s.shot, s.loop, s.start]) {
+    if (!name || name in weaponSampleFiles) continue;
+    weaponSampleFiles[name] = null;
+    fetch('audio/weapons/' + name + '.mp3')
+      .then((r) => (r.ok ? r.arrayBuffer() : null))
+      .then((b) => b && (weaponSampleFiles[name] = b))
+      .catch(() => {});
+  }
+}
+function weaponSample(ctx, name) {
+  const f = weaponSampleFiles[name];
+  if (!f) return null;
+  if (f instanceof ArrayBuffer) {
+    weaponSampleFiles[name] = 'decoding';
+    ctx.decodeAudioData(f).then((buf) => (weaponSampleFiles[name] = buf), () => (weaponSampleFiles[name] = null));
+    return null;
+  }
+  return f === 'decoding' ? null : f;
+}
+const weaponVoices = {}; // набор → звучащие выстрелы
+const weaponLoops = {}; // набор → { g, srcs, timer }
+const fadeOut = (ctx, g, srcs, tail = 0.08) => {
+  const t = ctx.currentTime;
+  g.gain.cancelScheduledValues(t);
+  g.gain.setTargetAtTime(0, t, tail / 3);
+  for (const s of srcs) s.stop(t + tail * 2);
+};
+// Сыграть запись для набора kind; false — записи нет или она еще не готова
+function playWeaponSample(ctx, kind, gain) {
+  const s = WEAPON_SAMPLES[kind];
+  if (!s) return false;
+  const vol = gain * (s.vol || 1);
+  const play = (buf, offset = 0, loop = null) => {
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    if (loop) {
+      src.loop = true;
+      src.loopStart = loop.from || 0;
+      src.loopEnd = Math.min(loop.to || buf.duration, buf.duration);
+    }
+    src.start(ctx.currentTime, offset);
+    return src;
+  };
+  if (s.shot) {
+    const buf = weaponSample(ctx, s.shot);
+    if (!buf) return false;
+    const g = ctx.createGain();
+    g.gain.value = vol;
+    g.connect(ctx.destination);
+    const src = play(buf);
+    src.connect(g);
+    const voices = (weaponVoices[kind] = weaponVoices[kind] || []);
+    const voice = { g, src };
+    voices.push(voice);
+    src.onended = () => voices.includes(voice) && voices.splice(voices.indexOf(voice), 1);
+    if (voices.length > 3) {
+      const old = voices.shift();
+      fadeOut(ctx, old.g, [old.src]);
+    }
+    return true;
+  }
+  const buf = weaponSample(ctx, s.loop);
+  if (!buf) return false;
+  let l = weaponLoops[kind];
+  if (!l) {
+    const g = ctx.createGain();
+    g.connect(ctx.destination);
+    const srcs = [play(buf, s.from || 0, s)];
+    const startBuf = s.start && weaponSample(ctx, s.start);
+    if (startBuf) srcs.push(play(startBuf));
+    for (const src of srcs) src.connect(g);
+    l = weaponLoops[kind] = { g, srcs, timer: 0 };
+  }
+  l.g.gain.setValueAtTime(vol, ctx.currentTime); // громкость могли поменять посреди очереди
+  // Нет нового выстрела 0,3 с — очередь кончилась, звук затихает
+  clearTimeout(l.timer);
+  l.timer = setTimeout(() => {
+    fadeOut(ctx, l.g, l.srcs, 0.15);
+    delete weaponLoops[kind];
+  }, 300);
+  return true;
+}
+
 function playWeaponSound(kind) {
   if (typeof muted !== 'undefined' && (muted || !audioUnlocked)) return;
   if (!weaponCtx) weaponCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (weaponCtx.state === 'suspended') weaponCtx.resume();
   const ctx = weaponCtx;
+  for (const name in weaponSampleFiles) weaponSample(ctx, name); // загруженные файлы — сразу в декодирование
+  const gain = typeof effectsGain === 'function' ? effectsGain() : 1;
+  if (playWeaponSample(ctx, kind, gain)) return;
   const now = ctx.currentTime;
   const out = ctx.createGain();
-  out.gain.value = 0.35 * (typeof effectsGain === 'function' ? effectsGain() : 1);
+  out.gain.value = 0.35 * gain;
   out.connect(ctx.destination);
   const tone = (type, f0, f1, dur, vol, delay = 0) => {
     const o = ctx.createOscillator();

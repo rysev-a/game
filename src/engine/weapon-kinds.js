@@ -181,7 +181,9 @@ WEAPON_KINDS.stream = {
       const v = st.speed * (0.85 + Math.random() * 0.3);
       plasmaBlobs.push({ w, x: s.x, y: s.y, z: s.z, vx: dx * v, vz: dz * v, vy: -0.004 + (s.slope || 0) * v, life: st.life, max: st.life, m, phase: Math.random() * 6 });
     }
-    if (flameSoundCount++ % 4 === 0) playWeaponSound('flame');
+    // Запись огнемета держится, пока идут выстрелы, — ее продлевает каждый; синтез — на каждый четвертый
+    if (WEAPON_SAMPLES.flame && weaponSampleFiles[WEAPON_SAMPLES.flame.loop] instanceof AudioBuffer) playWeaponSound('flame');
+    else if (flameSoundCount++ % 4 === 0) playWeaponSound('flame');
   },
   update() {
     for (let i = plasmaBlobs.length - 1; i >= 0; i--) {
