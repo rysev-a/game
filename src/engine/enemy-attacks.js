@@ -8,7 +8,10 @@
 //             'spit'   — плевок жидкостью по дуге (на земле остается горящая лужа), 'fire' — капля пламени,
 //             'plasma' — зеленый сгусток плазмы (светится, по площади area)
 //   zapHero(from, damage)  — разряд молнией: мгновенно, от точки from { x, y, z } до героя
-//   heroIsTarget()         — можно ли сейчас бить героя (не за рулем, не в здании, не лежит)
+//   heroIsTarget()         — можно ли сейчас бить героя (не за рулем, не в здании, не лежит). Бронемашина
+//                            (БТР, car.kind.armored) — тоже цель: попадания роботов бьют по ней (damageVehicle,
+//                            src/world/vehicles.js), биосущества броню не берут
+//   enemyAttackerKind      — вид того, кто сейчас бьет ('robot' | 'bio'): существо ставит его на время удара
 //   heroWakePoint          — где герой приходит в себя, если здоровье кончилось (null — там же, где упал)
 //   updateEnemyAttacks()   — раз в кадр из главного цикла (src/engine/game.js)
 //
@@ -23,8 +26,12 @@ const heroRadius = 0.45;
 const enemyShots = [];
 const enemyFx = []; // молнии, вспышки взрывов, лужи
 
+let enemyAttackerKind = null;
+const heroArmored = () => !!(drivingCar && drivingCar.kind && drivingCar.kind.armored);
 const heroIsTarget = () =>
-  !drivingCar && !(typeof insideBuilding === 'function' && insideBuilding()) && performance.now() > heroDownUntil;
+  (!drivingCar || heroArmored()) && !(typeof insideBuilding === 'function' && insideBuilding()) && performance.now() > heroDownUntil;
+// Радиус попадания: герой — тонкий, бронемашина — широкая
+const heroHitRadius = () => (heroArmored() ? drivingCar.half.w + 0.3 : heroRadius);
 
 // Красная вспышка по краям экрана при попадании
 const heroHurtEl = document.createElement('div');
@@ -39,6 +46,10 @@ document.body.appendChild(heroDownEl);
 
 function hitHero(hit) {
   if (!heroIsTarget()) return 0;
+  if (heroArmored()) {
+    const robot = hit.robot !== undefined ? hit.robot : enemyAttackerKind === 'robot';
+    return robot ? damageVehicle(drivingCar, hit.damage) : 0; // клыки и плевки броню не берут
+  }
   const dmg = Math.max(1, Math.round(hit.damage));
   heroStats.hp = Math.max(0, heroStats.hp - dmg);
   heroLastHurt = performance.now();
@@ -86,7 +97,7 @@ const shotGeo = {
 };
 
 function fireEnemyShot(o) {
-  const s = Object.assign({ speed: 0.5, damage: 5, type: 'kinetic', area: 0, life: 120, gravity: 0 }, o);
+  const s = Object.assign({ speed: 0.5, damage: 5, type: 'kinetic', area: 0, life: 120, gravity: 0, robot: enemyAttackerKind === 'robot' }, o);
   const dx = s.tx - s.x;
   const dz = s.tz - s.z;
   const dy = (s.ty ?? 1.2) - s.y;
@@ -141,9 +152,9 @@ function shotBlocked(x, y, z) {
   return false;
 }
 
-function explodeAt(x, z, area, damage, type) {
+function explodeAt(x, z, area, damage, type, robot) {
   spawnBlast(x, z, area, type === 'plasma' ? 0x6aff7a : type === 'fire' ? 0xff7a2a : 0xffc060);
-  if (heroIsTarget() && Math.hypot(playerWorldX - x, playerWorldZ - z) < area + heroRadius) hitHero({ damage, type, x, z });
+  if (heroIsTarget() && Math.hypot(playerWorldX - x, playerWorldZ - z) < area + heroHitRadius()) hitHero({ damage, type, x, z, robot });
 }
 
 function spawnBlast(x, z, r, color) {
@@ -186,7 +197,7 @@ function zapHero(from, damage) {
     enemyFx.push({ m: line, life: 10, max: 10 });
   }
   if (typeof playWeaponSound === 'function') playWeaponSound('arc');
-  return hitHero({ damage, type: 'electric', x: from.x, z: from.z });
+  return hitHero({ damage, type: 'electric', x: from.x, z: from.z, robot: true });
 }
 
 function updateEnemyAttacks() {
@@ -206,13 +217,13 @@ function updateEnemyAttacks() {
     if (s.kind === 'plasma') s.mesh.rotation.y += 0.3;
     if (s.kind === 'rocket' && s.age % 3 === 0) spawnBlast(s.x, s.z, 0.08, 0x9aa0a4); // дымный след
     let done = s.age > s.life;
-    const nearHero = Math.hypot(s.x - playerWorldX, s.z - playerWorldZ) < heroRadius + (s.kind === 'fire' ? 0.5 : 0.15) && s.y < 2.1;
+    const nearHero = Math.hypot(s.x - playerWorldX, s.z - playerWorldZ) < heroHitRadius() + (s.kind === 'fire' ? 0.5 : 0.15) && s.y < 2.1;
     if (nearHero && heroIsTarget()) {
-      if (s.area) explodeAt(s.x, s.z, s.area, s.damage, s.type);
-      else hitHero({ damage: s.damage, type: s.type, x: s.x - s.vx * 10, z: s.z - s.vz * 10, burn: s.kind === 'fire' ? 60 : 0 });
+      if (s.area) explodeAt(s.x, s.z, s.area, s.damage, s.type, s.robot);
+      else hitHero({ damage: s.damage, type: s.type, x: s.x - s.vx * 10, z: s.z - s.vz * 10, burn: s.kind === 'fire' ? 60 : 0, robot: s.robot });
       done = true;
     } else if (shotBlocked(s.x, s.y, s.z)) {
-      if (s.area) explodeAt(s.x, s.z, s.area, s.damage, s.type);
+      if (s.area) explodeAt(s.x, s.z, s.area, s.damage, s.type, s.robot);
       if (s.kind === 'spit') spawnPuddle(s.x, s.z);
       done = true;
     }
@@ -229,7 +240,7 @@ function updateEnemyAttacks() {
       f.m.scale.setScalar(Math.min(f.r, f.m.scale.x + 0.06));
       f.m.material.opacity = Math.min(0.85, k * 3);
       if (f.life % 20 === 0 && heroIsTarget() && Math.hypot(playerWorldX - f.x, playerWorldZ - f.z) < f.r + heroRadius * 0.5) {
-        hitHero({ damage: 3, type: 'fire', x: f.x, z: f.z });
+        hitHero({ damage: 3, type: 'fire', x: f.x, z: f.z, robot: false });
       }
     } else {
       if (f.grow) f.m.scale.setScalar(1 + (1 - k) * f.grow);
@@ -244,7 +255,7 @@ function updateEnemyAttacks() {
   // Горит: каждые 0,25 с понемногу огнем
   if (heroBurn > 0) {
     heroBurn--;
-    if (heroBurn % 20 === 0) hitHero({ damage: 1, type: 'fire' });
+    if (heroBurn % 20 === 0) hitHero({ damage: 1, type: 'fire', robot: false });
   }
   // Вне боя здоровье тихо восстанавливается
   const now = performance.now();

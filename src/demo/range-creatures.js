@@ -242,7 +242,7 @@ let penLab = null;
     cityGroup.add(pivot);
     const ob = { x: start.x, z: start.z, hx: c.r * 0.6, hz: c.r * 0.6 };
     const shape = addObstacle(ob);
-    shape.creature = true; // свои снаряды сквозь него пролетают
+    shape.creature = c.kind || true; // свои снаряды сквозь него пролетают; БТР наезжает на биосущества
 
     const s = {
       heading: 0, // лицом на север: выходит из ворот к калитке
@@ -311,7 +311,9 @@ let penLab = null;
         a.t++;
         const def = a.def;
         if (a.t >= def.charge && a.shot < def.shots && (a.t - def.charge) % (def.every || 1) === 0) {
+          enemyAttackerKind = c.kind; // броня БТР держит удары биосуществ, но не роботов
           def.fire(model, t, a.shot);
+          enemyAttackerKind = null;
           a.shot++;
           s.strike = 1;
         }

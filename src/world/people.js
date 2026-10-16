@@ -94,7 +94,7 @@ function addNpc(seg, gender, kind = 'passerby') {
 // Прохожего задерживают машина, игрок или другой прохожий на пути
 function npcBlocked(self, x, z) {
   for (const c of cars) {
-    if (circleHitsShape(x, z, 0.5, carShape(c.x, c.z, c.heading))) return true;
+    if (circleHitsShape(x, z, 0.5, carShape(c.x, c.z, c.heading, c.half))) return true;
   }
   if (!insideBuilding() && Math.hypot(x - playerWorldX, z - playerWorldZ) < 1) return true;
   for (const o of npcs) {

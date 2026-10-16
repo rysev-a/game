@@ -24,11 +24,12 @@ function addObstacle(o) {
   return shape;
 }
 
-function carShape(x, z, heading) {
+// half — полуразмеры кузова (у каждой машины свои: car.half; по умолчанию — обычная легковушка)
+function carShape(x, z, heading, half = carHalf) {
   const cs = Math.cos(heading);
   const sn = Math.sin(heading);
   // u — вправо от машины, v — вперед
-  return { x, z, ux: cs, uz: -sn, vx: -sn, vz: -cs, hu: carHalf.w, hv: carHalf.l };
+  return { x, z, ux: cs, uz: -sn, vx: -sn, vz: -cs, hu: half.w, hv: half.l };
 }
 
 function shapesOverlap(a, b) {
@@ -82,8 +83,8 @@ function insideWorld(s) {
 // Можно ли поставить машину car в позу (x, z, heading). Препятствия, с которыми
 // она уже пересекается (например, при спавне), игнорируем — иначе не выехать
 function carFree(car, x, z, heading) {
-  const now = carShape(car.x, car.z, car.heading);
-  const next = carShape(x, z, heading);
+  const now = carShape(car.x, car.z, car.heading, car.half);
+  const next = carShape(x, z, heading, car.half);
   if (!insideWorld(next) && insideWorld(now)) return false;
   for (const t of nearbyTrees(x, z)) {
     const r = 0.45 * t.s;
@@ -94,11 +95,12 @@ function carFree(car, x, z, heading) {
     if (circleHitsShape(n.x, n.z, 0.45, next) && !circleHitsShape(n.x, n.z, 0.45, now)) return false;
   }
   for (const s of obstacleShapes) {
+    if (car.crush && s.creature === 'bio') continue; // БТР наезжает на биосущество (давит его, src/player/driving.js)
     if (shapesOverlap(next, s) && !shapesOverlap(now, s)) return false;
   }
   for (const o of cars) {
     if (o === car) continue;
-    const os = carShape(o.x, o.z, o.heading);
+    const os = carShape(o.x, o.z, o.heading, o.half);
     if (shapesOverlap(next, os) && !shapesOverlap(now, os)) return false;
   }
   return true;
@@ -119,7 +121,7 @@ function blockedOutside(x, z, r = 0.45) {
     if (Math.abs(x - s.x) < s.hu + r && Math.abs(z - s.z) < s.hv + r) return true;
   }
   for (const c of cars) {
-    const s = carShape(c.x, c.z, c.heading);
+    const s = carShape(c.x, c.z, c.heading, c.half);
     const lu = (x - s.x) * s.ux + (z - s.z) * s.uz;
     const lv = (x - s.x) * s.vx + (z - s.z) * s.vz;
     if (Math.abs(lu) < s.hu + r && Math.abs(lv) < s.hv + r) return true;

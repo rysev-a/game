@@ -8,6 +8,13 @@
 //   3. все вместе — плазмомет, он поражает всех.
 // После третьего шага обучение можно пройти заново. Виды и иммунитеты — ENEMY_KINDS (src/engine/combat.js),
 // существа и лаборатория — src/demo/range-creatures.js. Подключается после него.
+//
+//   startPenWave({ wave: ['hound', ...], intro, done }) — выпустить свою волну (испытание БТР, src/demo/race.js);
+//                                                          шаг обучения при этом не меняется
+//   penWaveRunning() — идет ли сейчас обучение или своя волна
+
+let startPenWave = null;
+let penWaveRunning = () => false;
 
 {
   const STAGES = [
@@ -59,6 +66,7 @@
     alive: 0,
     nextAt: 0, // когда выпустить следующего (performance.now)
     door: 0, // 0..1 — насколько открыты ворота
+    custom: null, // своя волна вместо шага обучения
   };
 
   // Оружие шага: в ячейку оружия (если его нет — сначала в инвентарь) и сразу в руки
@@ -83,11 +91,28 @@
   const onGone = () => {
     tut.alive--;
     if (tut.queue.length || tut.alive > 0) return;
-    const st = STAGES[tut.stage];
     tut.fighting = false;
+    if (tut.custom) {
+      showToast(tut.custom.done, 5000);
+      tut.custom = null;
+      return;
+    }
+    const st = STAGES[tut.stage];
     tut.stage = (tut.stage + 1) % STAGES.length;
     showToast(st.done, 5000);
   };
+
+  startPenWave = (st) => {
+    if (tut.fighting) return false;
+    tut.custom = st;
+    tut.fighting = true;
+    tut.queue = st.wave.slice();
+    tut.alive = 0;
+    tut.nextAt = performance.now() + 1500;
+    if (st.intro) showToast(st.intro, 6000);
+    return true;
+  };
+  penWaveRunning = () => tut.fighting;
 
   addInteractable({
     priority: 2,
