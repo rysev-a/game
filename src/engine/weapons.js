@@ -210,6 +210,8 @@ const aimRaycaster = new THREE.Raycaster();
 const aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -1.3);
 const aimPoint = new THREE.Vector3();
 function mouseAimPoint() {
+  // На телефоне целится кнопка огня с прицелом-гироскопом (src/engine/touch.js): touchAim — его точка или null
+  if (heroWeapon.touchAim) return heroWeapon.touchAim();
   if (typeof pickMouse === 'undefined' || !pickMouse) return null;
   aimRaycaster.setFromCamera(pickMouse, camera);
   const meshes = combatTargets.filter((t) => !t.dead && t.mesh).map((t) => t.mesh);

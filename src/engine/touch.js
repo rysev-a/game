@@ -13,6 +13,7 @@
 //                         и значок оружия: касание — лента оружия, листается свайпом
 //   слева внизу         — значок инвентаря (раскрывает его на весь экран) и тонкие полоски жизни и эликсира
 //   справа внизу        — мелко дата и время: 01.01.2030 - 15:20
+//   наклон телефона     — гироскоп: точная доводка прицела, пока оружие в руках (выключается в настройках)
 //
 // Кнопки не дублируют логику игры: они шлют те же keydown/keyup, что и клавиатура, поэтому всё,
 // что висит на клавишах (src/engine/input.js, weapons.js, driving.js, inventory.js, dialogue.js), работает само.
@@ -213,7 +214,10 @@ if (touchUI) {
     if (heroWeapon.id) {
       const w = WEAPONS[heroWeapon.id];
       heroWeapon.holdAt = performance.now();
+      const gyroAim = heroWeapon.touchAim;
+      heroWeapon.touchAim = null; // касание целится в точку под пальцем, а не в прицел гироскопа
       if (!w.charge && !w.spinUp) fireWeapon(mouseAimPoint()); // с зарядом и раскруткой — кнопкой огня
+      heroWeapon.touchAim = gyroAim;
     }
   }
 
@@ -333,7 +337,30 @@ if (touchUI) {
     return b;
   }
 
-  const btnFire = addButton('tbFire', '🎯', 'KeyK', true); // K — огонь по взгляду с доводом (src/engine/weapons.js)
+  // Огонь: зажатая кнопка — как зажатая левая кнопка мыши, а целится она в прицел гироскопа (ниже).
+  // Без гироскопа прицела нет — стреляет по взгляду с доводом, как клавиша K
+  const btnFire = document.createElement('button');
+  btnFire.id = 'tbFire';
+  btnFire.className = 'touchBtn';
+  btnFire.textContent = '🎯';
+  btnFire.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    btnFire.setPointerCapture(e.pointerId);
+    if (!heroWeapon.id || !canPlay()) return;
+    btnFire.classList.add('down');
+    heroWeapon.mouseHeld = true;
+    heroWeapon.holdAt = performance.now();
+    const w = WEAPONS[heroWeapon.id];
+    if (!w.charge && !w.spinUp) fireWeapon(mouseAimPoint()); // с накоплением — когда отпустят, пулемет — когда раскрутится
+  });
+  const fireUp = () => {
+    btnFire.classList.remove('down');
+    heroWeapon.mouseHeld = false;
+  };
+  btnFire.addEventListener('pointerup', fireUp);
+  btnFire.addEventListener('pointercancel', fireUp);
+  btnFire.addEventListener('contextmenu', (e) => e.preventDefault());
+  pad.appendChild(btnFire);
   addButton('tbAct', '✋', 'KeyE', false); // E — действие
   addButton('tbJump', '⤒', 'Space', true);
   const btnExit = addButton('tbExit', '🚪', 'KeyF', false); // F — выйти из машины / отпустить толкаемую
@@ -498,6 +525,111 @@ if (touchUI) {
     handEl.appendChild(name);
   }
 
+
+  // ---------- Гироскоп: доводка прицела наклоном телефона ----------
+  // Пальцем справа — грубый разворот камеры и героя, наклоном телефона — точная доводка. Пока оружие в руках,
+  // на земле перед героем горит прицел: повернули телефон (как руль или как камеру влево-вправо) — прицел
+  // ушел в сторону от взгляда героя, не дальше gyroMaxYaw. Кнопка огня стреляет в прицел. Возле цели прицел
+  // слегка «прилипает» к ней. Оружие убрали — прицел плавно возвращается по центру.
+  // На iPhone датчик дает данные только после разрешения (спрашиваем при первом касании).
+  // Выключается в настройках, а без датчика (компьютер, отказ) огонь по взгляду с доводом, как раньше
+  const gyroSensitivity = 1.3; // во сколько раз прицел поворачивается сильнее телефона
+  const gyroMaxYaw = 0.7; // рад: дальше от взгляда прицел не уходит
+  const gyroSnap = 0.07; // рад: ближе к цели — прицел на ней
+  const gyroAimDistance = 14; // где прицел, если цели нет (не дальше дальности оружия)
+  let gyroOn = true;
+  try {
+    gyroOn = localStorage.getItem('game.gyro') !== 'off';
+  } catch (e) {
+    // не страшно: гироскоп включен
+  }
+  let gyroActive = false; // датчик прислал хоть что-то
+  let gyroYaw = 0; // насколько прицел повернут от взгляда героя (плюс — налево, как heading)
+  let gyroLastT = 0;
+
+  window.addEventListener('devicemotion', (e) => {
+    const r = e.rotationRate;
+    const now = performance.now();
+    const dt = gyroLastT ? Math.min(0.1, (now - gyroLastT) / 1000) : 0;
+    gyroLastT = now;
+    if (!r || r.alpha === null || r.beta === null) return;
+    gyroActive = true;
+    if (!gyroOn || !heroWeapon.id || !canPlay()) {
+      gyroYaw *= 0.9; // без оружия прицел возвращается по центру
+      return;
+    }
+    // Горизонтально ось x телефона смотрит вверх (поворот 90°) или вниз (270°): повернуть телефон влево
+    // вокруг нее — прицел влево. И «руль» (поворот вокруг оси экрана z) против часовой — тоже влево
+    const angle = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
+    const pan = angle === 90 ? r.beta : angle === 270 || angle === -90 ? -r.beta : r.gamma;
+    const rate = ((pan + r.alpha) * Math.PI) / 180; // град/с → рад/с
+    gyroYaw = Math.max(-gyroMaxYaw, Math.min(gyroMaxYaw, gyroYaw + rate * dt * gyroSensitivity));
+  });
+
+  function requestGyro() {
+    const DM = window.DeviceMotionEvent;
+    if (gyroOn && DM && typeof DM.requestPermission === 'function') DM.requestPermission().catch(() => {});
+  }
+
+  // Прицел: светящееся кольцо на земле (светится — поэтому MeshBasicMaterial, а не LitMaterial)
+  const reticle = new THREE.Mesh(
+    new THREE.RingGeometry(0.9, 1.3, 28),
+    new THREE.MeshBasicMaterial({ color: 0xff3a3a, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide }),
+  );
+  reticle.rotation.x = -Math.PI / 2;
+  reticle.renderOrder = 5;
+  reticle.visible = false;
+  cityGroup.add(reticle);
+  const reticleDot = new THREE.Mesh(new THREE.CircleGeometry(0.25, 12), reticle.material);
+  reticle.add(reticleDot);
+
+  // Точка прицела в мире или null (гироскопа нет или выключен — тогда огонь по взгляду с доводом)
+  function gyroAimPoint() {
+    if (!gyroOn || !gyroActive || !heroWeapon.id) return null;
+    const w = WEAPONS[heroWeapon.id];
+    const heading = playerHeading + gyroYaw;
+    let best = null;
+    let bestDa = gyroSnap;
+    for (const t of combatTargets) {
+      if (t.dead) continue;
+      const dx = t.x - playerWorldX;
+      const dz = t.z - playerWorldZ;
+      const d = Math.hypot(dx, dz);
+      if (d > w.range || d < 0.5) continue;
+      let da = Math.atan2(-dx, -dz) - heading;
+      da = Math.abs(Math.atan2(Math.sin(da), Math.cos(da)));
+      if (da < bestDa) (bestDa = da), (best = t);
+    }
+    if (best) return { x: best.x, z: best.z };
+    const d = Math.min(gyroAimDistance, w.range);
+    return { x: playerWorldX - Math.sin(heading) * d, z: playerWorldZ - Math.cos(heading) * d };
+  }
+  heroWeapon.touchAim = gyroAimPoint;
+
+  function updateReticle() {
+    const p = gyroAimPoint();
+    reticle.visible = !!p;
+    if (p) reticle.position.set(p.x, 0.06, p.z);
+  }
+
+  // Выключатель в настройках
+  const gyroRow = document.createElement('label');
+  gyroRow.className = 'check';
+  gyroRow.innerHTML = '<input type="checkbox" /> Гироскоп: доводка прицела наклоном';
+  const gyroToggle = gyroRow.querySelector('input');
+  gyroToggle.checked = gyroOn;
+  gyroToggle.addEventListener('change', () => {
+    gyroOn = gyroToggle.checked;
+    gyroYaw = 0;
+    requestGyro(); // касание по галочке — подходящий момент спросить разрешение на iPhone
+    try {
+      localStorage.setItem('game.gyro', gyroOn ? 'on' : 'off');
+    } catch (e) {
+      // не запомнится — не страшно
+    }
+  });
+  settingsMenu.insertBefore(gyroRow, settingsMenu.querySelector('.hint'));
+
   const rotateNote = document.createElement('div');
   rotateNote.id = 'rotateNote';
   rotateNote.innerHTML = '<div><span class="big">⟳</span>Поверните телефон горизонтально</div>';
@@ -514,7 +646,14 @@ if (touchUI) {
     const r = req.call(root);
     if (r && r.then) r.then(lock).catch(() => {});
   }
-  window.addEventListener('touchend', lockLandscape, { once: true });
+  window.addEventListener(
+    'touchend',
+    () => {
+      lockLandscape();
+      requestGyro();
+    },
+    { once: true },
+  );
 
   // Раз в кадр: какие кнопки нужны, значок оружия, полоски, часы, раскрыт ли инвентарь
   let padState = '';
@@ -543,6 +682,7 @@ if (touchUI) {
     if (t !== clockShownTouch) clockEl.textContent = clockShownTouch = t;
     document.body.classList.toggle('invOpen', inventoryOpen);
     if (inventoryOpen) updateHand();
+    updateReticle();
     requestAnimationFrame(updateTouchPad);
   }
   updateTouchPad();
