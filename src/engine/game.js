@@ -23,8 +23,15 @@ function updatePrompt() {
   promptEl.style.display = promptText ? 'block' : 'none';
 }
 
-function animate() {
+// Игра рассчитана на 60 кадров в секунду: движение считается за кадр, поэтому на мониторах
+// с частотой выше 60 Гц лишние кадры пропускаем, иначе все ускоряется
+const frameMs = 1000 / 60;
+let lastTick = -Infinity;
+
+function animate(now = performance.now()) {
   requestAnimationFrame(animate);
+  if (now - lastTick < frameMs - 1) return;
+  lastTick = Math.max(lastTick + frameMs, now - frameMs);
 
   updateRotationKeys();
   const controls = readControls();
