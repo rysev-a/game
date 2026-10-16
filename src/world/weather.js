@@ -1,5 +1,5 @@
 // src/world/weather.js
-// ПОГОДА: дождь (капли-штрихи в «коробке» вокруг камеры, круги на земле, темнее небо и туман),
+// ПОГОДА: дождь (капли-штрихи в «коробке» вокруг камеры, круги на земле — кроме телефона, темнее небо и туман),
 // просветление после дождя и расписание.
 
 // ДОЖДЬ. Капли — штрихи (LineSegments) в «коробке» вокруг камеры: коробка
@@ -83,7 +83,8 @@ function updateRain() {
   rainTint.style.opacity = (0.22 * weather).toFixed(3);
 
   const active = weather > 0.01;
-  rain.visible = ripples.visible = active;
+  rain.visible = active;
+  ripples.visible = active && !touchUI; // на телефоне кругов на земле нет: только капли
   if (!active) return;
 
   // Коробка дождя: растет с зумом и высотой камеры, чтобы покрывать весь вид
@@ -115,6 +116,7 @@ function updateRain() {
   rainGeo.attributes.position.needsUpdate = true;
 
   // Круги на земле: растут и гаснут, потом возникают в новом месте
+  if (!ripples.visible) return;
   ripples.count = Math.ceil(rippleCount * weather);
   for (let i = 0; i < ripples.count; i++) {
     const r = rippleData[i];
