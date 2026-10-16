@@ -6,7 +6,7 @@
 //                      floors: [{ solids }], people: [], minimapRange })
 // Координаты внутри этажа — локальные (центр комнаты в x = 0, z = floorZ[floor]).
 const interiors = [];
-const doorRadius = 3.5; // на каком расстоянии от двери/лестницы работает R
+const doorRadius = 3.5; // на каком расстоянии от двери/лестницы работает E
 
 function registerInterior(def) {
   def.people = def.people || [];
@@ -79,7 +79,7 @@ function addInteriorDoor(def, { outside, door, enterLabel, exitLabel }) {
   });
 }
 
-// Лестницы: одинаково на всех этажах, R переносит на соседний (вверх с 1 этажа, вниз со 2)
+// Лестницы: одинаково на всех этажах, E переносит на соседний (вверх с 1 этажа, вниз со 2)
 function addInteriorStairs(def, stairs) {
   const here = (st) => {
     const ci = currentInterior();
@@ -89,7 +89,7 @@ function addInteriorStairs(def, stairs) {
     addInteractable({
       priority: 1,
       near: () => here(st),
-      prompt: () => (currentInterior().floor === 0 ? 'R — подняться на 2 этаж' : 'R — спуститься на 1 этаж'),
+      prompt: () => (currentInterior().floor === 0 ? 'E — подняться на 2 этаж' : 'E — спуститься на 1 этаж'),
       act: () => {
         const ci = currentInterior();
         const to = ci.floor === 0 ? 1 : 0;

@@ -219,9 +219,7 @@ minimap.addEventListener('mousemove', (e) => {
 // Строка под картой: подсказка, а при наведении — во что обойдется поездка
 function updateTravelHud() {
   let text = mmDefaultInfo;
-  if (document.pointerLockElement === renderer.domElement) {
-    text = 'Мышь захвачена видом: Esc — освободить и кликать по карте';
-  } else if (insideBuilding()) {
+  if (insideBuilding()) {
     text = 'В здании карта только показывает';
   } else if (mmHover) {
     const w = minimapUVToWorld(mmHover.u, mmHover.v); // игрок идет — точка под мышью смещается вместе с миром

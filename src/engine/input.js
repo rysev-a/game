@@ -1,22 +1,22 @@
 // src/engine/input.js
-// Ввод: клавиши, полный экран, захват мыши (вращение вида и наклон горизонта), колесо — зум.
+// Ввод: клавиши, полный экран, мышь (зажатое колесо — вращение вида и наклон горизонта, наведение
+// и клик — взять вещь), колесо — зум.
 
-// ВИД МЫШЬЮ. По умолчанию играем кнопками: ↑/W — вперед, ↓/S — назад, ←/A и →/D — поворот, камера
-// поворачивается вместе с игроком. Кнопка-глаз (или V) включает поворот вида мышью: клик по сцене
-// захватывает мышь, и тогда она вращает камеру и наклоняет горизонт. Выключили глаз — снова только кнопки.
-let viewLookActive = false;
+// ВИД МЫШЬЮ. Играем кнопками: W/S — вперед/назад, A/D — поворот, камера поворачивается вместе
+// с игроком. Пока зажато колесо мыши, движение мыши вращает камеру и наклоняет горизонт; отпустили —
+// после паузы камера сама встает за игрока (как после стрелок, cameraHoldFrames в src/player/player.js).
+let viewDragging = false;
 
 const keys = {};
 window.addEventListener('keydown', (e) => {
-  if (e.code === 'KeyV' && !e.repeat && !settingsOpen && !dialogueOpen && !inventoryOpen) setViewLook(!viewLookActive);
   if (settingsOpen || dialogueOpen || inventoryOpen) return; // в меню, в разговоре и с раскрытым инвентарем играть нельзя
   keys[e.code] = true;
-  if (e.code === 'KeyR' && !e.repeat) onInteract();
+  if (e.code === 'KeyE' && !e.repeat) onInteract(); // все действия — клавишей E
   if (e.code === 'KeyP' && !e.repeat) rainManual = !rainOn;
 });
 window.addEventListener('keyup', (e) => (keys[e.code] = false));
 
-// ПОЛНЫЙ ЭКРАН И ВРАЩЕНИЕ МЫШЬЮ
+// ПОЛНЫЙ ЭКРАН И МЫШЬ
 const fullscreenBtn = document.getElementById('fullscreenBtn');
 const mouseHint = document.getElementById('mouseHint');
 const getFullscreenElement = () =>
@@ -37,60 +37,54 @@ fullscreenBtn.addEventListener('click', () => {
 });
 
 function updateMouseHint() {
-  const locked = document.pointerLockElement === renderer.domElement;
-  mouseHint.style.display = locked ? 'none' : 'block';
-  mouseHint.textContent = viewLookActive
-    ? 'Вид мышью: клик по экрану — захват мыши, Esc — освободить. Глаз (V) — выключить'
-    : 'W/S — вперед/назад · A/D — поворот · Q/E — шаги в стороны · R — действие · стрелки — камера · Глаз (V) — вид мышью';
+  mouseHint.style.display = 'block';
+  mouseHint.textContent =
+    'W/S — вперед/назад · A/D — поворот · E — действие · зажатое колесо мыши или стрелки — камера · клик по вещи — взять';
 }
 updateMouseHint();
 
 function onFullscreenChange() {
   isFullscreen = Boolean(getFullscreenElement());
   fullscreenBtn.textContent = isFullscreen ? '✕ Выйти из полного экрана' : '⛶ На весь экран';
-  updateMouseHint();
 }
 document.addEventListener('fullscreenchange', onFullscreenChange);
 document.addEventListener('webkitfullscreenchange', onFullscreenChange);
 
-// Клик по сцене (когда глаз включен) захватывает мышь (Pointer Lock);
-// после этого мышью можно вращать камеру и менять наклон горизонта
-const eyeBtn = document.getElementById('eyeBtn');
-eyeBtn.appendChild(pixelIcon('eye'));
-
-function setViewLook(on) {
-  viewLookActive = on;
-  eyeBtn.classList.toggle('active', on);
-  if (on) {
-    // Нажатие — это действие пользователя, поэтому мышь можно захватить сразу
-    if (document.pointerLockElement !== renderer.domElement) {
-      const request = renderer.domElement.requestPointerLock();
-      if (request && request.catch) request.catch(() => {});
-    }
-  } else if (document.exitPointerLock) {
-    document.exitPointerLock();
-  }
-  updateMouseHint();
-}
-eyeBtn.addEventListener('click', () => setViewLook(!viewLookActive));
-
-renderer.domElement.addEventListener('click', () => {
-  if (viewLookActive && document.pointerLockElement !== renderer.domElement) {
-    const request = renderer.domElement.requestPointerLock();
-    if (request && request.catch) request.catch(() => {});
+// Зажатое колесо на сцене — вращаем вид (на миникарте зажатое колесо двигает карту, src/engine/minimap.js)
+renderer.domElement.addEventListener('mousedown', (e) => {
+  if (e.button === 1) {
+    e.preventDefault(); // без «автопрокрутки» браузера
+    viewDragging = true;
+  } else if (e.button === 0 && !settingsOpen && !dialogueOpen && !inventoryOpen) {
+    pickHovered(); // клик по подсвеченной вещи — в инвентарь
   }
 });
-document.addEventListener('pointerlockchange', updateMouseHint);
+document.addEventListener('mouseup', (e) => {
+  if (e.button === 1) viewDragging = false;
+});
+window.addEventListener('blur', () => (viewDragging = false));
+
+// Где курсор над сценой (-1..1) — по нему ищем вещь под мышью (updatePickHover в src/engine/interact.js)
+let pickMouse = null;
+renderer.domElement.addEventListener('mousemove', (e) => {
+  pickMouse = pickMouse || new THREE.Vector2();
+  pickMouse.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
+});
+renderer.domElement.addEventListener('mouseleave', () => (pickMouse = null));
 
 document.addEventListener('mousemove', (e) => {
-  if (viewLookActive && document.pointerLockElement === renderer.domElement) {
-    worldRotation += e.movementX * mouseSensitivity;
-    // Мышь вверх — камера поднимается (как R), вниз — опускается (как F)
-    cameraHeight = Math.min(
-      Math.max(cameraHeight - e.movementY * mouseTiltSensitivity, cameraHeightMin),
-      cameraHeightMax,
-    );
+  if (!viewDragging) return;
+  if (!(e.buttons & 4)) {
+    viewDragging = false; // отпустили где-то вне окна
+    return;
   }
+  worldRotation += e.movementX * mouseSensitivity;
+  // Мышь вверх — камера поднимается (как ↑), вниз — опускается (как ↓)
+  cameraHeight = Math.min(
+    Math.max(cameraHeight - e.movementY * mouseTiltSensitivity, cameraHeightMin),
+    cameraHeightMax,
+  );
+  cameraHoldFrames = cameraHoldDelay; // пока крутим и чуть после — камера не возвращается за игроком
 });
 
 // Колесо мыши — масштаб: вверх — ближе, вниз — дальше

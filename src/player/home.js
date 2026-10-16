@@ -13,7 +13,7 @@ const homeW = 18; // размеры дома — одни и те же снар�
 const homeD = 12;
 const homeFloorZ = [3000, 3600]; // центры комнат 1 и 2 этажа по Z (x = 0)
 const homeStairsX = -7.6; // ось лестницы (у западной стены)
-const homeStairs = [{ x: -5.4, z: 4.2 }]; // точка у подножия лестницы, R (одинаково на обоих этажах)
+const homeStairs = [{ x: -5.4, z: 4.2 }]; // точка у подножия лестницы, E (одинаково на обоих этажах)
 const homeGaragePoint = { x: 8.0, z: 2.5 }; // 1 этаж: у двери в гараж (на восточной стене)
 
 const homePickups = []; // вещи, лежащие в доме: { id, floor, x, z, y, mesh }
@@ -226,7 +226,15 @@ home.floors.forEach((floor, i) => {
 });
 addInteriorStairs(homeInterior, homeStairs);
 
-// Вещи: подсвечены вращением и покачиванием, R — взять в инвентарь
+// Вещи: подсвечены вращением и покачиванием, E рядом — взять в инвентарь. Можно и мышью:
+// навести (вещь подсветится) и кликнуть — на том же этаже дома (src/engine/interact.js)
+function takeHomePickup(p) {
+  if (!addItem(p.id)) return;
+  p.mesh.visible = false;
+  removeInteractable(p.interactable);
+  p.interactable = null;
+}
+
 function makePickupInteractable(p) {
   return addInteractable({
     priority: 2,
@@ -237,13 +245,8 @@ function makePickupInteractable(p) {
         Math.hypot(playerWorldX - p.x, playerWorldZ - homeFloorZ[p.floor] - p.z) < 2.4
       );
     },
-    prompt: () => 'R — взять: ' + ITEMS[p.id].name,
-    act: () => {
-      if (!addItem(p.id)) return;
-      p.mesh.visible = false;
-      removeInteractable(p.interactable);
-      p.interactable = null;
-    },
+    prompt: () => 'E — взять: ' + ITEMS[p.id].name,
+    act: () => takeHomePickup(p),
   });
 }
 
@@ -251,6 +254,14 @@ for (const p of home.floors.flatMap((f) => f.pickups)) {
   p.baseY = p.y;
   homePickups.push(p);
   p.interactable = makePickupInteractable(p);
+  addPickable({
+    mesh: p.mesh,
+    canPick: () => {
+      const ci = currentInterior();
+      return !!ci && ci.def === homeInterior && ci.floor === p.floor && !hasItem(p.id);
+    },
+    pick: () => takeHomePickup(p),
+  });
 }
 
 // После загрузки сохранения: взятые вещи (они есть в инвентаре) исчезают, остальные лежат на месте
@@ -356,7 +367,7 @@ function buildHomeExterior(info) {
   addInteractable({
     priority: 3,
     near: () => !insideBuilding() && Math.hypot(playerWorldX - garage.button.x, playerWorldZ - garage.button.z) < 2.4,
-    prompt: () => (garage.open ? 'R — закрыть дверь гаража' : 'R — открыть дверь гаража'),
+    prompt: () => (garage.open ? 'E — закрыть дверь гаража' : 'E — открыть дверь гаража'),
     act: () => (garage.open = !garage.open),
   });
 
@@ -369,7 +380,7 @@ function buildHomeExterior(info) {
   addInteractable({
     priority: 3,
     near: () => !insideBuilding() && Math.hypot(playerWorldX - garage.insidePoint.x, playerWorldZ - garage.insidePoint.z) < 2.3,
-    prompt: () => 'R — войти в дом',
+    prompt: () => 'E — войти в дом',
     act: () => {
       playerWorldX = homeGaragePoint.x - 1.2;
       playerWorldZ = homeFloorZ[0] + homeGaragePoint.z;
@@ -385,7 +396,7 @@ function buildHomeExterior(info) {
         Math.hypot(playerWorldX - homeGaragePoint.x, playerWorldZ - homeFloorZ[0] - homeGaragePoint.z) < 2.3
       );
     },
-    prompt: () => 'R — выйти в гараж',
+    prompt: () => 'E — выйти в гараж',
     act: () => {
       playerWorldX = garage.insidePoint.x + 1.0;
       playerWorldZ = garage.insidePoint.z;
@@ -409,8 +420,8 @@ function buildHomeExterior(info) {
   addInteriorDoor(homeInterior, {
     outside: doorOutside,
     door: home.door,
-    enterLabel: 'R — войти в дом',
-    exitLabel: 'R — выйти из дома',
+    enterLabel: 'E — войти в дом',
+    exitLabel: 'E — выйти из дома',
   });
   return { doorOutside, garageCenterX: cx, frontZ };
 }

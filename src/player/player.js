@@ -13,7 +13,6 @@ let playerYaw = 0; // куда повернут человечек (в экра�
 let playerHeading = 0; // куда смотрит игрок в мире (как heading у машины: плюс — налево)
 const playerTurnRate = 0.05; // поворот за кадр (рад)
 const playerBackFactor = 0.6; // назад идем медленнее
-const playerStrafeFactor = 0.8; // шаги боком чуть медленнее, чем вперед
 
 
 // НАСТРОЙКИ ПОЗИЦИОНИРОВАНИЯ
@@ -40,8 +39,8 @@ let playerWorldZ = 0;
 let worldRotation = 0;
 
 // КЛАВИШИ УПРАВЛЕНИЯ
-//   W / S — вперед / назад      A / D — поворот (налево / направо)      Q / E — шаги влево / вправо
-//   R — действие               F — выйти из машины / отпустить   стрелки — камера (←→ вращать, ↑↓ наклон)
+//   W / S — вперед / назад      A / D — поворот (налево / направо)
+//   E — действие               F — выйти из машины / отпустить   стрелки — камера (←→ вращать, ↑↓ наклон)
 // За рулем и при толкании машины A/D — руль: left/right
 function readControls() {
   return {
@@ -49,15 +48,13 @@ function readControls() {
     down: keys['KeyS'],
     left: keys['KeyA'], // руль машины
     right: keys['KeyD'],
-    turnLeft: keys['KeyA'], // пешком A/D поворачивают…
+    turnLeft: keys['KeyA'], // пешком A/D поворачивают
     turnRight: keys['KeyD'],
-    strafeLeft: keys['KeyQ'], // …а Q/E шагают боком
-    strafeRight: keys['KeyE'],
   };
 }
 
-// КАМЕРА СТРЕЛКАМИ: ←/→ крутят вид. Пока крутите (и еще чуть-чуть после), камера не возвращается
-// за игроком; потом, если глаз (вид мышью) выключен, плавно встает обратно за спину
+// КАМЕРА СТРЕЛКАМИ: ←/→ крутят вид (или зажатое колесо мыши, src/engine/input.js). Пока крутите
+// (и еще чуть-чуть после), камера не возвращается за игроком; потом плавно встает обратно за спину
 const cameraHoldDelay = 90; // кадров паузы после последнего нажатия стрелки
 let cameraHoldFrames = 0;
 function updateRotationKeys() {
@@ -73,31 +70,23 @@ function updateRotationKeys() {
   cameraHoldFrames = held ? cameraHoldDelay : Math.max(0, cameraHoldFrames - 1);
 }
 
-// ХОДЬБА ПЕШКОМ. A/D поворачивают игрока на месте, W/S — вперед/назад вдоль взгляда (назад медленнее),
-// Q/E — шаг в сторону (боком). Камера поворачивается вместе с игроком (followCamera из src/player/driving.js),
+// ХОДЬБА ПЕШКОМ. A/D поворачивают игрока на месте, W/S — вперед/назад вдоль взгляда (назад медленнее).
+// Камера поворачивается вместе с игроком (followCamera из src/player/driving.js),
 // так что он смотрит «вверх по экрану». Возвращает { moving, dir, turn } для анимации шагов
 function updateWalking(c) {
   let vx = 0;
   let vz = 0;
-  let dir = 1; // 1 — шагает вперед/вбок, −1 — пятится назад
+  let dir = 1; // 1 — шагает вперед, −1 — пятится назад
   let turn = 0;
   const onFoot = !drivingCar && !pushingCar;
   if (onFoot) {
     turn = ((c.turnLeft ? 1 : 0) - (c.turnRight ? 1 : 0)) * playerTurnRate; // налево — плюс, как у машины
     const f = (c.up ? 1 : 0) - (c.down ? 1 : 0);
-    const side = (c.strafeRight ? 1 : 0) - (c.strafeLeft ? 1 : 0);
     const fwd = f > 0 ? playerSpeed : f < 0 ? -playerSpeed * playerBackFactor : 0;
-    const lateral = side * playerSpeed * playerStrafeFactor;
-    // Вперед в мире — (−sin h, −cos h), вправо — (cos h, −sin h), как у машины
-    vx = -Math.sin(playerHeading + turn) * fwd + Math.cos(playerHeading + turn) * lateral;
-    vz = -Math.cos(playerHeading + turn) * fwd - Math.sin(playerHeading + turn) * lateral;
-    const len = Math.hypot(vx, vz);
-    if (len > playerSpeed) {
-      // по диагонали не быстрее, чем прямо
-      vx *= playerSpeed / len;
-      vz *= playerSpeed / len;
-    }
-    if (f < 0 && side === 0) dir = -1;
+    // Вперед в мире — (−sin h, −cos h), как у машины
+    vx = -Math.sin(playerHeading + turn) * fwd;
+    vz = -Math.cos(playerHeading + turn) * fwd;
+    if (f < 0) dir = -1;
   }
   playerHeading += turn;
   if (onFoot) followCamera({ heading: playerHeading }, turn);
@@ -150,8 +139,8 @@ function updatePlayerBody(move) {
     player.updateWalk(walkPhase, walkAmp);
     return;
   }
-  // Человечек смотрит туда же, куда игрок. Когда камера идет за ним (вид кнопками), на экране это
-  // «вверх»; если вид повернут мышью, человечек развернут относительно экрана
+  // Человечек смотрит туда же, куда игрок. Когда камера идет за ним, на экране это «вверх»;
+  // если вид повернут (стрелками или колесом мыши), человечек развернут относительно экрана
   playerYaw = playerHeading + worldRotation;
   player.rotation.y = playerYaw;
 
