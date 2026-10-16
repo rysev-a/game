@@ -51,12 +51,23 @@ function releaseMouseLook() {
 function escapeCombat() {
   if (heroWeapon.id && mouseLookAllowed() && !(typeof armedItem !== 'undefined' && armedItem)) holsterWeapon();
 }
-// Мышь не захвачена (после отказа браузера или на старте) — Esc приходит обычной клавишей. Ловим
-// в фазе захвата, пока обработчики меню и инвентаря его не закрыли: состояние окон — до нажатия
+// ESC ПО ПОРЯДКУ: закрыть открытое (меню, инвентарь, карту, разговор, историю версий) → отменить вещь в руке →
+// выйти из боя → а если ничего этого нет — открыть меню настроек (еще Esc — закрыть, src/engine/settings.js).
+// Мышь не захвачена — Esc приходит обычной клавишей. Ловим в фазе захвата, пока обработчики меню
+// и инвентаря его не закрыли: состояние окон — до нажатия
+const escOverlayOpen = () =>
+  settingsOpen || inventoryOpen || dialogueOpen || (typeof mapFull !== 'undefined' && mapFull.open) ||
+  historyEl.classList.contains('on') || (typeof armedItem !== 'undefined' && !!armedItem);
 window.addEventListener(
   'keydown',
   (e) => {
-    if (e.code === 'Escape' && !e.repeat) escapeCombat();
+    if (e.code !== 'Escape' || e.repeat) return;
+    if (!escOverlayOpen() && !heroWeapon.id) {
+      setSettingsOpen(true);
+      e.stopImmediatePropagation(); // иначе обработчик меню тут же закроет его тем же нажатием
+      return;
+    }
+    escapeCombat();
   },
   true,
 );
