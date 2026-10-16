@@ -7,7 +7,7 @@
 //   слева               — джойстик: стоит на месте, очерчен кругами; берется касанием его круга. Вверх/вниз — W/S, влево/вправо — A/D
 //                         (за рулем — руль). В боевом режиме: отклонили до упора — бег, чуть-чуть — шаг (Shift)
 //   правая часть экрана — провести пальцем: вращать камеру и наклонять горизонт (как зажатое колесо мыши);
-//                         два пальца — масштаб; короткое касание — что это (панель слева), взять вещь,
+//                         два пальца — масштаб; короткое касание — что это (сканер справа сверху, гаснет сам; с оружием в руках его нет), взять вещь,
 //                         а с оружием в руках — выстрел в эту точку
 //   кнопки справа внизу — действие (E), огонь (зажать — очередь / накопление заряда), выйти из машины (F)
 //                         и значок оружия: касание — лента оружия, листается свайпом
@@ -77,9 +77,14 @@ if (touchUI) {
     body.touch #weaponHud { top: 8px !important; bottom: auto !important; left: 50% !important; right: auto !important;
       transform: translateX(-50%); min-width: 140px !important; padding: 4px 8px !important; font-size: 11px !important; }
     body.touch #weaponHud > div:nth-child(2), body.touch #weaponHint { display: none; }
-    /* «Что это» — слева сверху: справа внизу кнопки */
-    body.touch #infoPanel { left: max(10px, env(safe-area-inset-left)); right: auto; top: 10px !important; width: 180px;
-      font-size: 11px; padding: 6px 8px 8px; }
+    /* Сканер (панель «что это») — маленький и полупрозрачный справа сверху, рядом с кнопками; только по касанию
+       объекта, а в боевом режиме (оружие в руках) не появляется вовсе */
+    body.touch #infoPanel {
+      left: auto; right: max(104px, calc(env(safe-area-inset-right) + 96px)); top: 8px !important; width: 160px;
+      font-size: 10px; line-height: 1.3; padding: 4px 6px 5px; opacity: 0.72; border-width: 1px;
+    }
+    body.touch #infoPanel #ipName { font-size: 12px; letter-spacing: 0; }
+    body.touch #infoPanel.empty, body.touch.armed #infoPanel { display: none; }
     body.touch #fuel { bottom: 34px; left: 12px; font-size: 13px; padding: 4px 8px; }
     body.touch #dialogue { bottom: 12px; }
     body.touch #prompt { bottom: 40px; font-size: 13px; }
@@ -227,9 +232,17 @@ if (touchUI) {
   const toNdc = (x, y) => new THREE.Vector2((x / window.innerWidth) * 2 - 1, -(y / window.innerHeight) * 2 + 1);
 
   // Короткое касание сцены: показать, что это, взять вещь, а с оружием — выстрелить туда
+  // Сканер (панель «что это») на телефоне не висит: появляется по касанию объекта и через scanShowMs гаснет
+  const scanShowMs = 4000;
+  let scanTimer = 0;
   function onTap(x, y) {
     if (!canPlay()) return;
     pickMouse = toNdc(x, y);
+    clearTimeout(scanTimer);
+    const tapped = pickMouse;
+    scanTimer = setTimeout(() => {
+      if (pickMouse === tapped) pickMouse = null;
+    }, scanShowMs);
     updatePickHover(pickMouse);
     if (pickHovered()) return;
     if (heroWeapon.id) {
@@ -730,6 +743,7 @@ if (touchUI) {
     if (inventoryOpen) updateHand();
     updateReticle();
     updateGuns();
+    document.body.classList.toggle('armed', !!heroWeapon.id);
     requestAnimationFrame(updateTouchPad);
   }
   updateTouchPad();
