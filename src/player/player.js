@@ -3,7 +3,7 @@
 // Здесь же: состояние игрока в мире (playerWorldX/Z, вращение вида), ходьба с коллизиями,
 // прыжок, анимация шагов и камера.
 
-const player = createPerson('geek');
+const player = createPerson('maxim');
 player.position.set(0, 0, 0);
 scene.add(player);
 

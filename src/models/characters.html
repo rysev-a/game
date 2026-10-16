@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Персонажи</title>
+    <style>
+      body { margin: 0; overflow: hidden; background: #eceff2; }
+    </style>
+  </head>
+  <body>
+    <!-- Все 20 персонажей сюжета в том же порядке, что на листе docs/art/characters.png -->
+    <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+    <script src="../engine/materials.js"></script>
+    <script src="person.js"></script>
+    <script>
+      const CAST = [
+        'maxim', 'denis', 'anna', 'vera', 'stern',
+        'baron', 'lyudmila', 'semyon', 'oleg', 'mihalych',
+        'rustam', 'nikolay', 'gromov', 'flash', 'echo',
+        'shadow', 'falcon', 'magnet', 'cloud', 'spark',
+      ];
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xeceff2);
+      scene.add(new THREE.HemisphereLight(0xffffff, 0xb0aa9e, 0.72));
+      const sun = new THREE.DirectionalLight(0xfff4e0, 0.38);
+      sun.position.set(-18, 40, -30);
+      scene.add(sun);
+
+      const colW = 2.2;
+      const rowH = 2.9;
+      const lineup = CAST.map((name, i) => {
+        const m = createPerson(name);
+        m.position.set(-(i % 5 - 2) * colW, -Math.floor(i / 5) * rowH, 0);
+        m.rotation.y = 0.25; // чуть вполоборота, чтобы были видны грани
+        m.updateWalk(0, 0);
+        scene.add(m);
+        return m;
+      });
+
+      const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
+      camera.position.set(0, 1 - 1.5 * rowH, -30);
+      camera.lookAt(0, 1 - 1.5 * rowH, 0);
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      document.body.appendChild(renderer.domElement);
+      // Вся сетка 5 x 4 помещается в окно с полями
+      function resize() {
+        const w = window.innerWidth, h = window.innerHeight;
+        const gridW = 5 * colW, gridH = 4 * rowH;
+        const k = Math.max(gridW / w, gridH / h);
+        camera.left = (-w * k) / 2; camera.right = (w * k) / 2;
+        camera.top = (h * k) / 2; camera.bottom = (-h * k) / 2;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      }
+      resize();
+      window.addEventListener('resize', resize);
+      (function loop() {
+        requestAnimationFrame(loop);
+        renderer.render(scene, camera);
+      })();
+    </script>
+  </body>
+</html>

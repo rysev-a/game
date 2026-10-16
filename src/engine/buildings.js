@@ -194,7 +194,11 @@ function placeBuilding(id, { x, z, heading = 0, full = true } = {}) {
 }
 
 // Внешность жильца: пол, кожа и его opts поверх пресета вида (PERSON_PRESETS)
-const personOptions = (w) => Object.assign({ gender: w.gender || 'male', skinColor: 0xf0c8a0 }, w.opts || {});
+// Цвет кожи по умолчанию — только если набор персонажа (PERSON_PRESETS) его не задает
+const personOptions = (w) => {
+  const preset = PERSON_PRESETS[w.type] || {};
+  return Object.assign({ gender: w.gender || preset.gender || 'male' }, 'skinColor' in preset ? {} : { skinColor: 0xf0c8a0 }, w.opts || {});
+};
 
 // Жильцы зданий с собственным разговором (talk) важнее обычного «Как дела?» (у того priority 1)
 const storyPersonNear = () => {

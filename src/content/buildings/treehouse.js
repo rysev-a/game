@@ -155,7 +155,7 @@ defineBuilding('grandma_house', {
       door: { x: 0, z: grandmaD / 2 + 2.8 },
       people: full
         ? [{
-            x: 3.2, z: grandmaD / 2 + 3.2, yaw: Math.PI, type: 'elder', gender: 'female', opts: { dressColor: 0x6a4a8a },
+            x: 3.2, z: grandmaD / 2 + 3.2, yaw: Math.PI, type: 'anna', gender: 'female',
             name: 'Анна Петровна', title: 'бабушка Веры',
             talk: simpleTalk('Анна Петровна — бабушка Веры', {
               hello: 'Максимушка... Ты же совсем не изменился. Только похудел.',
