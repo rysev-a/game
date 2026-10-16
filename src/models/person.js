@@ -649,9 +649,9 @@ function createWalkingMan(options = {}) {
   // осях героя (стоит, смотрит в -Z); в оси корпуса их переводит toBody. Хват на модели: рукоять — 0,45
   // от торца приклада, цевье — 0,7 (src/models/weapons.js)
   const RIFLE_YAW = -0.45;
-  const RIFLE_AT = [0.24, 1.44, -0.02];
-  const RIFLE_GRIP_R = [0.24, 1.3, -0.47];
-  const RIFLE_GRIP_L = [0.22, 1.33, -0.72];
+  const RIFLE_AT = [0.24, 1.34, 0.12];
+  const RIFLE_GRIP_R = [0.24, 1.2, -0.33];
+  const RIFLE_GRIP_L = [0.22, 1.23, -0.58];
   const toBody = ([x, y, z]) => [
     x * Math.cos(-RIFLE_YAW) + z * Math.sin(-RIFLE_YAW),
     y,

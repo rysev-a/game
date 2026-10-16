@@ -1,23 +1,24 @@
 // src/player/equipment.js
 // СНАРЯЖЕНИЕ ГЕРОЯ и НИЖНЯЯ ПАНЕЛЬ, как в классических играх (docs/mechanics/equipment.md).
 // Внизу по центру экрана: здоровье, сколько эликсира с собой и ячейки того, что сейчас на герое:
-//   браслет · броня · ботинки · оружие ×3
+//   браслет · броня · ботинки · оружие ×5
 // Надеть: открыть инвентарь (I) и кликнуть по вещи — она уходит из сетки в свою ячейку (если ячейка
 // занята — вещи меняются местами). Снять: клик по ячейке внизу — вещь возвращается в инвентарь.
 // Подобранное оружие само встает в свободную ячейку оружия. R переключает оружие только между этими
-// тремя ячейками, Q достает / убирает то, что в активной ячейке.
+// пятью ячейками, Q достает / убирает то, что в активной ячейке.
 // Браслет — надеваемый прибор (src/player/devices.js): ячейка показывает прибор на запястье.
 // Броня и ботинки — вещи с ITEMS[id].slot = 'armor' | 'boots' (их пока нет, ячейки пустые).
 //
 // API:
 //   heroStats              — { hp, maxHp, elixir }; после изменения — renderEquipHud()
-//   heroEquip              — { armor, boots, weapons: [id|null ×3], active } (браслет — в heroDevices)
+//   heroEquip              — { armor, boots, weapons: [id|null ×5], active } (браслет — в heroDevices)
 //   equipSlotOf(id)        — 'bracelet' | 'armor' | 'boots' | 'weapon' | null
 //   isEquipped(id), equipItem(id), unequipSlot(slot, i)
 //   weaponSlotIds()        — оружие в ячейках по порядку (без пустых)
 
 const heroStats = { hp: 100, maxHp: 100, elixir: 0 };
-const heroEquip = { armor: null, boots: null, weapons: [null, null, null], active: 0 };
+const WEAPON_SLOTS = 5; // ячеек оружия на нижней панели
+const heroEquip = { armor: null, boots: null, weapons: Array(WEAPON_SLOTS).fill(null), active: 0 };
 
 // Прибор на запястье (браслет возврата) — это ячейка «браслет»
 const wristDevice = () => heroDevices.worn.find((id) => /^wrist/.test(DEVICES[id].wear || ''));
@@ -138,7 +139,7 @@ function applyEquip(data) {
   const ok = (id) => (id && ITEMS[id] ? id : null);
   heroEquip.armor = ok(data && data.armor);
   heroEquip.boots = ok(data && data.boots);
-  heroEquip.weapons = [0, 1, 2].map((i) => ok(data && data.weapons && data.weapons[i]));
+  heroEquip.weapons = [...Array(WEAPON_SLOTS).keys()].map((i) => ok(data && data.weapons && data.weapons[i]));
   heroEquip.active = (data && data.active) || 0;
   // Надетое не лежит в сетке (в старых сохранениях вещь могла быть и там, и на герое)
   inventory.items = inventory.items.filter((id) => !isEquipped(id));

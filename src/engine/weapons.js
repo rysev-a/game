@@ -12,7 +12,7 @@
 //
 // Управление:
 //   Q — достать / убрать оружие (из активной ячейки оружия на нижней панели, src/player/equipment.js)
-//   R — следующее оружие из трех ячеек оружия (по кругу); без оружия в руках — достает первое
+//   R — следующее оружие из пяти ячеек оружия (по кругу); без оружия в руках — достает первое
 //   ЛКМ — выстрел туда, где курсор (герой разворачивается корпусом к точке, камера не дергается);
 //         зажать — очередь. У оружия с накоплением (charge, импульсный лазер) зажать — копить заряд,
 //         отпустить — выстрел. Клик по вещи, которую можно взять, по-прежнему берет вещь
@@ -36,13 +36,16 @@ const WEAPONS = {};
 //   aimAssist — довод при стрельбе по взгляду (радианы), color — цвет заряда
 //   hold — как держат: 'hand' (пистолет, одна вытянутая рука) | 'rifle' (винтовка двумя руками)
 //   muzzle: { forward, right, up } — где дуло относительно героя (откуда вылетает заряд)
-//   bolt — как выглядит заряд: 'pulse' (короткий светящийся брусок) | 'wave' (электромагнитная волна:
+//   bolt — как выглядит заряд: 'pulse' (короткий светящийся брусок) | 'orb' (светящийся шар плазмы) |
+//          'tracer' (тонкий трассер пули) | 'wave' (электромагнитная волна:
 //          две синусоиды — вертикальная и горизонтальная — вокруг светящейся оси; wave: { length,
 //          amplitude, wavelength })
 //   charge: { time, min, damage: [от, до], push: [от, до], stagger: [от, до], scale: [от, до] } — выстрел
 //         с накоплением: пока кнопка зажата, заряд растет от 0 до 1 за time секунд; отпустили — выстрел,
 //         урон, толчок, шатание и толщина заряда — между «от» и «до» по набранному заряду. Меньше min — не
 //         выстрелит. Полный заряд — удар 'blast'
+//   spinUp — секунды раскрутки (пулемет): зажал — стволы раскручиваются (userData.spin модели), стрельба
+//         начинается, когда раскрутились; отпустил — медленно останавливаются
 //   effects — что попадание делает с целью (состояния из src/engine/combat.js): { stagger, freeze, ... },
 //   push — сила толчка от попадания, hitFx — вспышка попадания ('spark' | 'microburst')
 //   model() — модель в руке (src/models/weapons.js), sound — набор звуков (см. playWeaponSound)
@@ -124,6 +127,8 @@ const heroWeapon = {
   cooldown: 0, // кадров до следующего выстрела
   sinceShot: 999, // кадров после последнего выстрела
   mouseHeld: false,
+  spin: 0, // раскрутка стволов 0..1 (оружие со spinUp)
+  spinAt: 0,
   charge: 0, // набранный заряд 0..1 (оружие с charge)
   charging: false,
   aimHeading: 0, // куда развернут корпус при стрельбе (как playerHeading)
@@ -160,6 +165,7 @@ function holsterWeapon(quiet = false) {
   heroWeapon.mouseHeld = false;
   heroWeapon.aimFrames = 0;
   stopCharge();
+  heroWeapon.spin = 0;
   player.setAim(false);
   if (!quiet) playWeaponSound('holster');
   updateWeaponHud();
@@ -179,7 +185,7 @@ function toggleWeapon() {
   else showToast('Оружия нет. В ДЕМО оно лежит в тире и на столе предметов');
 }
 
-// Следующее оружие из трех ячеек оружия по кругу (R). Одно оружие — подсказка, что сменить не на что
+// Следующее оружие из пяти ячеек оружия по кругу (R). Одно оружие — подсказка, что сменить не на что
 function nextWeapon() {
   const ids = weaponSlotIds();
   if (!ids.length) return toggleWeapon();
@@ -333,6 +339,27 @@ function updateCharge(w) {
   else playWeaponSound('dry'); // отпустили слишком рано — заряд рассеялся
 }
 
+// ---------- Раскрутка стволов (пулемет) ----------
+// Зажали — стволы раскручиваются за spinUp секунд (по часам), раскрутились — очередь; отпустили — стволы
+// останавливаются вдвое медленнее, и если отпустить ненадолго, стрелять можно сразу
+function updateSpin(w) {
+  const now = performance.now();
+  const dt = Math.min(0.1, (now - (heroWeapon.spinAt || now)) / 1000);
+  heroWeapon.spinAt = now;
+  const held = (heroWeapon.mouseHeld || keys['KeyK']) && canUseWeapon();
+  const before = heroWeapon.spin;
+  heroWeapon.spin = Math.max(0, Math.min(1, heroWeapon.spin + (held ? dt / w.spinUp : -dt / (w.spinUp * 2))));
+  if (held && before === 0) playWeaponSound('spinup');
+  if (held && heroWeapon.spin >= 1) fireWeapon(heroWeapon.mouseHeld ? mouseAimPoint() : null);
+  else if (held) {
+    // Пока раскручивается — корпус уже смотрит на цель
+    heroWeapon.aimHeading = aimHeadingFor(w, heroWeapon.mouseHeld ? mouseAimPoint() : null).heading;
+    heroWeapon.aimFrames = 45;
+  }
+  const spin = heroWeapon.mesh && heroWeapon.mesh.userData.spin;
+  if (spin) spin.rotation.z += heroWeapon.spin * 0.7;
+}
+
 function stopCharge() {
   heroWeapon.charging = false;
   heroWeapon.charge = 0;
@@ -343,20 +370,31 @@ function stopCharge() {
 const boltGeoCore = new THREE.BoxGeometry(0.06, 0.06, 1.1);
 const boltGeoGlow = new THREE.BoxGeometry(0.18, 0.18, 1.5);
 
-function spawnBolt(w, x, y, z, dx, dz) {
+// Шар плазмы: белое ядро и большое цветное свечение. Трассер: тонкая длинная нить
+const boltGeos = {
+  pulse: [boltGeoCore, boltGeoGlow],
+  orb: [new THREE.SphereGeometry(0.12, 10, 8), new THREE.SphereGeometry(0.32, 12, 10)],
+  tracer: [new THREE.BoxGeometry(0.03, 0.03, 1.3), new THREE.BoxGeometry(0.07, 0.07, 1.6)],
+};
+
+// Заряд; range — своя дальность (дробинки разлетаются на разное расстояние). Возвращает заряд
+function spawnBolt(w, x, y, z, dx, dz, range = w.range) {
   if (w.bolt === 'wave') return spawnWaveBolt(w, x, y, z, dx, dz);
+  const [core, glow] = boltGeos[w.bolt] || boltGeos.pulse;
   const mesh = new THREE.Group();
-  mesh.add(new THREE.Mesh(boltGeoCore, new THREE.MeshBasicMaterial({ color: 0xffffff })));
+  mesh.add(new THREE.Mesh(core, new THREE.MeshBasicMaterial({ color: w.bolt === 'tracer' ? 0xfff2c0 : 0xffffff })));
   mesh.add(
     new THREE.Mesh(
-      boltGeoGlow,
+      glow,
       new THREE.MeshBasicMaterial({ color: w.color, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }),
     ),
   );
   mesh.position.set(x, y, z);
   mesh.rotation.y = Math.atan2(dx, dz);
   cityGroup.add(mesh);
-  weaponBolts.push({ w, x, y, z, dx, dz, traveled: 0, mesh });
+  const b = { w, x, y, z, dx, dz, traveled: 0, range, mesh };
+  weaponBolts.push(b);
+  return b;
 }
 
 // Волна: голова заряда — в начале координат, хвост тянется назад по -Z на length. Геометрия и материалы
@@ -452,12 +490,12 @@ function updateBolts() {
       const t = targetAt(b.x, b.z, b.y);
       if (t) {
         weaponHit(b.w, t, b.x, b.y, b.z, b.dx, b.dz);
-        playWeaponSound('hit');
+        if (!b.w.quietHit) playWeaponSound('hit');
         done = true;
       } else if (boltBlocked(b.x, b.z)) {
         spawnWeaponFx(b.x, b.y, b.z, b.w.color, 0.15, 8, 1.15);
         done = true;
-      } else if (b.traveled >= b.w.range) {
+      } else if (b.traveled >= (b.range || b.w.range)) {
         done = true;
       }
     }
@@ -516,6 +554,7 @@ function updateWeapons() {
   if (heroWeapon.cooldown > 0) heroWeapon.cooldown--;
   heroWeapon.sinceShot++;
   if (w && w.charge) updateCharge(w);
+  else if (w && w.spinUp) updateSpin(w);
   else if (w) {
     if (heroWeapon.mouseHeld) fireWeapon(mouseAimPoint());
     else if (keys['KeyK']) fireWeapon(null);
@@ -591,7 +630,7 @@ function updateWeaponHud() {
     // Шкала заряда: голубая, полная — белая
     weaponHudParts.heat.style.background = bar >= 1 ? '#ffffff' : '#4ee6ff';
     weaponHudParts.hint.textContent =
-      bar >= 1 ? 'Заряд полный — отпустите' : 'Зажмите ЛКМ — заряд, отпустите — выстрел · K — то же по взгляду · R — сменить · Q — убрать';
+      bar >= 1 ? 'Заряд полный — отпустите' : 'ЛКМ — выстрел, зажать — супервыстрел · K — по взгляду · R — сменить · Q — убрать';
     return;
   }
   weaponHudParts.heat.style.background = heroWeapon.overheated ? '#e0483a' : heroWeapon.heat > 0.7 ? '#e8b83a' : '#4ee6ff';
@@ -679,6 +718,25 @@ function playWeaponSound(kind) {
   } else if (kind === 'hit') {
     noise(0.08, 0.35, 900, 'bandpass');
     tone('sine', 300, 120, 0.08, 0.3);
+  } else if (kind === 'plasma') {
+    // Плазмомет: мягкий «буль» с шипением
+    tone('sine', 900, 160, 0.14, 0.3);
+    tone('triangle', 420, 90, 0.16, 0.2);
+    noise(0.08, 0.25, 1800, 'bandpass');
+  } else if (kind === 'minigun') {
+    // Пулемет: короткий сухой хлопок, двадцать в секунду сливаются в рев
+    noise(0.045, 0.45, 700, 'lowpass');
+    tone('square', 140, 70, 0.04, 0.18);
+  } else if (kind === 'spinup') {
+    // Раскрутка стволов: моторный вой вверх
+    tone('sawtooth', 80, 420, 0.5, 0.12);
+    tone('sine', 160, 840, 0.5, 0.08);
+  } else if (kind === 'shotgun') {
+    // Дробовик: тяжелый выстрел и щелчок помпы следом
+    noise(0.3, 0.7, 600, 'lowpass');
+    tone('sine', 120, 40, 0.3, 0.6);
+    tone('square', 900, 700, 0.03, 0.15, 0.42);
+    tone('square', 600, 500, 0.03, 0.15, 0.52);
   } else if (kind === 'blast') {
     // Полный заряд: низкий удар, треск и долгий спад
     tone('sawtooth', 900, 60, 0.5, 0.4);
@@ -737,13 +795,14 @@ window.addEventListener('keydown', (e) => {
   if (e.repeat || settingsOpen || dialogueOpen || inventoryOpen) return;
   if (e.code === 'KeyQ') toggleWeapon();
   if (e.code === 'KeyR') nextWeapon();
-  if (e.code === 'KeyK' && heroWeapon.id && !WEAPONS[heroWeapon.id].charge) fireWeapon(null);
+  if (e.code === 'KeyK' && heroWeapon.id && !WEAPONS[heroWeapon.id].charge && !WEAPONS[heroWeapon.id].spinUp) fireWeapon(null);
 });
 // ЛКМ по сцене с оружием в руках — огонь. Клик по подсвеченной вещи берет вещь (src/engine/input.js), не стреляет
 renderer.domElement.addEventListener('mousedown', (e) => {
   if (e.button !== 0 || !heroWeapon.id || hoveredPickable) return;
   heroWeapon.mouseHeld = true;
-  if (!WEAPONS[heroWeapon.id].charge) fireWeapon(mouseAimPoint()); // с накоплением — выстрел, когда отпустят
+  const w = WEAPONS[heroWeapon.id];
+  if (!w.charge && !w.spinUp) fireWeapon(mouseAimPoint()); // с накоплением — выстрел, когда отпустят; пулемет — когда раскрутится
 });
 document.addEventListener('mouseup', (e) => {
   if (e.button === 0) heroWeapon.mouseHeld = false;
