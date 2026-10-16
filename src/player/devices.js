@@ -5,7 +5,7 @@
 //   hasDeviceTag('saves') — можно ли сохраняться (без браслета панели сохранений нет вообще)
 //
 // API:
-//   defineDevice(id, def)   — описать прибор: name, kind, wear ('wristL' | 'wristR'), model(), tags, wornText
+//   defineDevice(id, def)   — описать прибор: name, desc (для панели справа), kind, wear ('wristL' | 'wristR'), model(), tags, wornText
 //   wearDevice(id)          — надеть (возвращает false, если уже надет); quiet — без сообщения
 //   takeOffDevice(id)       — снять (для ДЕМО и проверок)
 //   isWorn(id), hasDeviceTag(tag)
@@ -22,6 +22,7 @@ function defineDevice(id, def) {
 // сохранения: браслет запоминает мир, и в него можно вернуться, сохранив память
 defineDevice('bracelet', {
   name: 'Браслет возврата',
+  desc: 'Чертеж Веры с голубятни. Запоминает мир, и в него можно вернуться — с памятью.',
   kind: 'passive',
   wear: 'wristL',
   model: () => createBraceletModel(),

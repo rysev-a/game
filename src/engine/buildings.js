@@ -5,6 +5,7 @@
 //
 //   defineBuilding('library', {
 //     name: 'Библиотека',
+//     desc: 'Старое здание...',                     // пара слов для панели справа (src/engine/hoverinfo.js)
 //     size: { w: 22, d: 16 },                        // габарит снаружи (для подписи и площадки)
 //     exterior({ full }) → { group, obstacles: [{ x, z, hx, hz }], mapShapes: [{ x, z, hx, hz, color }],
 //                            door: { x, z } — точка у входа снаружи, fade: [{ mesh, mats, half }],
@@ -62,6 +63,13 @@ function placeBuilding(id, { x, z, heading = 0, full = true } = {}) {
   ext.group.position.set(x, 0, z);
   ext.group.rotation.y = heading;
   cityGroup.add(ext.group);
+  // Панель справа (src/engine/hoverinfo.js): само здание и помеченные части (userData.hoverInfo)
+  addHoverInfo(ext.group, {
+    kind: 'Здание',
+    name: def.name,
+    desc: full ? def.desc || '' : 'Заготовка: только стены, двери и этажи, без мебели и жильцов.',
+  });
+  registerHoverTree(ext.group);
   for (const o of ext.obstacles || []) addObstacle(rotateRect(o, heading, at));
   for (const m of ext.mapShapes || []) mapObjects.push(rotateRect(m, heading, at));
   for (const f of ext.fade || []) fadeBoxes.push({ fade: 1, ...f });
@@ -114,6 +122,7 @@ function placeBuilding(id, { x, z, heading = 0, full = true } = {}) {
     plan.floors.forEach((floor, i) => {
       floor.group.position.set(0, 0, floorZ[i]);
       cityGroup.add(floor.group);
+      registerHoverTree(floor.group);
       for (const f of floor.fadeBoxes) fadeBoxes.push(f);
       for (const m of floor.mapShapes) mapObjects.push({ ...m, z: m.z + floorZ[i] });
     });
@@ -339,43 +348,3 @@ function createRoomFloor(o = {}) {
 
 // Пределы, где может стоять центр игрока в комнате w × d
 const roomBounds = (w, d, r = 0.45) => ({ minX: -w / 2 + r, maxX: w / 2 - r, minZ: -d / 2 + r, maxZ: d / 2 - r });
-
-// ---------- Вывеска ----------
-// Табличка с надписью (текст рисуется на холсте). Лицом в +Z, центр — в (0, 0, 0).
-//   createSign('БИБЛИОТЕКА', { width: 10, height: 1.6, bg: '#2a3a5a', fg: '#f4e7c0', sub: 'информационный центр' })
-function createSign(text, o = {}) {
-  const width = o.width || 8;
-  const height = o.height || 1.4;
-  const cv = document.createElement('canvas');
-  cv.width = 512;
-  cv.height = Math.max(32, Math.round(512 * (height / width)));
-  const c = cv.getContext('2d');
-  c.fillStyle = o.bg || '#1d2b3a';
-  c.fillRect(0, 0, cv.width, cv.height);
-  c.strokeStyle = o.border || o.fg || '#f1ede2';
-  c.lineWidth = Math.max(3, cv.height * 0.05);
-  c.strokeRect(c.lineWidth, c.lineWidth, cv.width - c.lineWidth * 2, cv.height - c.lineWidth * 2);
-  c.fillStyle = o.fg || '#f1ede2';
-  c.textAlign = 'center';
-  c.textBaseline = 'middle';
-  const main = o.sub ? 0.5 : 0.62;
-  let size = Math.round(cv.height * main);
-  c.font = 'bold ' + size + 'px ' + (o.font || 'sans-serif');
-  while (c.measureText(text).width > cv.width * 0.88 && size > 8) {
-    size -= 2;
-    c.font = 'bold ' + size + 'px ' + (o.font || 'sans-serif');
-  }
-  c.fillText(text, cv.width / 2, cv.height * (o.sub ? 0.4 : 0.52));
-  if (o.sub) {
-    c.font = Math.round(cv.height * 0.22) + 'px ' + (o.font || 'sans-serif');
-    c.fillText(o.sub, cv.width / 2, cv.height * 0.76);
-  }
-  const tex = new THREE.CanvasTexture(cv);
-  tex.minFilter = THREE.LinearFilter;
-  const sign = new THREE.Mesh(new THREE.PlaneGeometry(width, height), new LitMaterial({ map: tex }));
-  const frameGeo = new THREE.BoxGeometry(width + 0.2, height + 0.2, 0.12);
-  const frame = new THREE.Mesh(frameGeo, new LitMaterial({ color: o.frame || 0x222222 }));
-  frame.position.z = -0.07;
-  sign.add(frame);
-  return sign;
-}

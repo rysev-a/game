@@ -10,12 +10,14 @@ const shop = createShop({
   depth: shopD,
   height: 9.5,
   doorWidth: 8,
-  signWidth: 22,
-  signHeight: 5.5,
-  title: 'ТОРГОВЫЙ ЦЕНТР',
 });
 shop.position.set(0, 0, shopZ);
 cityGroup.add(shop);
+addHoverInfo(shop, {
+  kind: 'Здание',
+  name: 'Торговый центр',
+  desc: 'Два этажа: супермаркет, бутики и фудкорт. У входа — парковка.',
+});
 mapObjects.push({ x: 0, z: shopZ, hx: shopW / 2, hz: shopD / 2, color: '#c9c9c9' });
 addObstacle({ x: 0, z: shopZ, hx: shopW / 2, hz: shopD / 2 });
 
@@ -46,6 +48,7 @@ const mallInterior = registerInterior({
 mall.floors.forEach((floor, i) => {
   floor.group.position.set(0, 0, mallFloorZ[i]);
   cityGroup.add(floor.group);
+  registerHoverTree(floor.group); // таблички отделов
   for (const f of floor.fadeBoxes) fadeBoxes.push(f);
   for (const m of floor.mapShapes) mapObjects.push({ ...m, z: m.z + mallFloorZ[i] });
 });

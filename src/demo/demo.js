@@ -25,34 +25,6 @@ clearZones.push(demoRect);
 roadH(-demoHalf + 6, demoHalf - 6, 0, 'asphalt');
 buildRoadMeshes();
 
-// Подпись над объектом: текст на холсте, всегда повернут к камере
-function demoLabel(text, x, y, z, { size = 1, color = '#ffffff', bg = 'rgba(0,0,0,0.55)' } = {}) {
-  const lines = String(text).split('\n');
-  const cv = document.createElement('canvas');
-  const c = cv.getContext('2d');
-  const font = 'bold 28px sans-serif';
-  c.font = font;
-  const w = Math.max(...lines.map((l) => c.measureText(l).width)) + 24;
-  const h = lines.length * 34 + 12;
-  cv.width = w;
-  cv.height = h;
-  c.font = font;
-  c.fillStyle = bg;
-  c.fillRect(0, 0, w, h);
-  c.fillStyle = color;
-  c.textAlign = 'center';
-  c.textBaseline = 'top';
-  lines.forEach((l, i) => c.fillText(l, w / 2, 8 + i * 34));
-  const tex = new THREE.CanvasTexture(cv);
-  tex.minFilter = THREE.LinearFilter;
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
-  const k = 0.022 * size;
-  sprite.scale.set(w * k, h * k, 1);
-  sprite.position.set(x, y, z);
-  cityGroup.add(sprite);
-  return sprite;
-}
-
 // ---------- Дом и гараж героя ----------
 {
   const side = -1; // северная сторона дороги, фасад к дороге
@@ -73,12 +45,12 @@ function demoLabel(text, x, y, z, { size = 1, color = '#ffffff', bg = 'rgba(0,0,
   });
   house.position.set(houseX, 0, houseZ);
   cityGroup.add(house);
+  addHoverInfo(house, { kind: 'Здание', name: 'Дом и гараж героя', desc: 'Двухэтажный дом с гаражом, в гараже — ваша машина.' });
   addObstacle({ x: houseX, z: houseZ, hx: homeW / 2, hz: homeD / 2 });
   mapObjects.push({ x: houseX, z: houseZ, hx: homeW / 2, hz: homeD / 2, color: '#d9a066' });
   const exterior = buildHomeExterior({ houseX, houseZ, side });
   const driveLen = Math.abs(exterior.frontZ - side * 3.5);
   flatRect(6.6, driveLen, 0x555555, 0.018, exterior.garageCenterX, (exterior.frontZ + side * 3.5) / 2);
-  demoLabel('Дом и гараж героя', houseX + 4, 12, houseZ, { size: 1.4 });
 }
 
 // ---------- Дом бабушки Веры, тропинка в лес и домик на дереве ----------
@@ -90,7 +62,6 @@ const demoScene = ['grandma_house', 'treehouse']; // эти заготовки �
   const gz = -24;
   flatRect(26, 22, 0x3a6b3d, 0.008, gx, gz - 1);
   placeBuilding('grandma_house', { x: gx, z: gz, heading: 0, full: true });
-  demoLabel('Дом Анны Петровны', gx, 9, gz, { size: 1.2 });
 
   // Тропинка: от задней стены дома на север, петляя, к дереву
   const treeX = gx + 14;
@@ -140,7 +111,6 @@ const demoScene = ['grandma_house', 'treehouse']; // эти заготовки �
 
   // Огромное дерево: дупло с веревочной лестницей смотрит на тропинку (на юг)
   placeBuilding('treehouse', { x: treeX, z: treeZ, heading: 0, full: true });
-  demoLabel('Домик на дереве\nлестница в дупле — E', treeX, 4.5, treeZ + 4, { size: 0.9 });
 }
 
 // ---------- Персонажи ----------
@@ -225,7 +195,6 @@ const demoPeople = [];
   const rowZ = 18;
   const step = 8;
   const x0 = -((DEMO_CHARACTERS.length - 1) * step) / 2;
-  demoLabel('ПЕРСОНАЖИ — подойдите и нажмите E', 0, 5.2, rowZ + 4, { size: 1.6, color: '#ffe08a' });
   DEMO_CHARACTERS.forEach((c, i) => {
     const preset = PERSON_PRESETS[c.type] || {};
     const opts = Object.assign({ gender: c.gender, hairColor: 0x3a2a1a, skinColor: 0xf0c8a0 }, c.opts || {});
@@ -241,7 +210,6 @@ const demoPeople = [];
     cityGroup.add(mesh);
     npcs.push(p);
     demoPeople.push(p);
-    demoLabel(c.name + '\n' + c.title, x, 3.1, rowZ, { size: 0.8 });
   });
 }
 
@@ -289,11 +257,11 @@ addInteractable({
   const table = boxWithEdges(tableW, 0.9, 1.6, 0x8a6a3c);
   table.position.set(0, 0.45, tableZ);
   cityGroup.add(table);
+  addHoverInfo(table, { kind: 'ДЕМО', name: 'Стол с предметами', desc: 'Здесь все вещи игры. E или клик по вещи — взять, запас бесконечный.' });
   addObstacle({ x: 0, z: tableZ, hx: tableW / 2, hz: 0.8 });
   mapObjects.push({ x: 0, z: tableZ, hx: tableW / 2, hz: 0.8, color: '#8a6a3c' });
-  demoLabel('ПРЕДМЕТЫ — E, чтобы взять', 0, 3.4, tableZ, { size: 1.6, color: '#ffe08a' });
 
-  const onTable = []; // { id, model, label }
+  const onTable = []; // { id, model }
   ids.forEach((id, i) => {
     const x = x0 + i * step;
     // Объемная пиксельная модель вещи (src/models/items.js), медленно вращается
@@ -303,8 +271,7 @@ addInteractable({
       model.rotation.y = performance.now() / 1000 + i;
     };
     cityGroup.add(model);
-    const label = demoLabel(ITEMS[id].name, x, 2.1, tableZ, { size: 0.85 });
-    onTable.push({ id, model, label });
+    onTable.push({ id, model });
     const take = () => {
       if (!hasItem(id) && !addItem(id)) showToast('Инвентарь полон');
     };
@@ -315,11 +282,11 @@ addInteractable({
       act: take,
     });
     // Мышью: навести на вещь (подсветится) и кликнуть
-    addPickable({ mesh: model, canPick: () => !drivingCar && !insideBuilding() && !hasItem(id), pick: take });
+    addPickable({ id, mesh: model, canPick: () => !drivingCar && !insideBuilding() && !hasItem(id), pick: take });
   });
   // Каждый кадр, пока стол на экране: на нем видны только вещи, которых нет в инвентаре
   table.onBeforeRender = () => {
-    for (const t of onTable) t.model.visible = t.label.visible = !hasItem(t.id);
+    for (const t of onTable) t.model.visible = !hasItem(t.id);
   };
 }
 
@@ -336,11 +303,11 @@ addInteractable({
   const stand = boxWithEdges(standW, 0.9, 1.6, 0x4a5a6a);
   stand.position.set(0, 0.45, standZ);
   cityGroup.add(stand);
+  addHoverInfo(stand, { kind: 'ДЕМО', name: 'Подставка с приборами', desc: 'E — надеть прибор, еще раз E у пустого места — снять.' });
   addObstacle({ x: 0, z: standZ, hx: standW / 2, hz: 0.8 });
   mapObjects.push({ x: 0, z: standZ, hx: standW / 2, hz: 0.8, color: '#4a5a6a' });
-  demoLabel('ПРИБОРЫ — E, чтобы надеть', 0, 3.4, standZ, { size: 1.2, color: '#8fe8ff' });
 
-  const onStand = []; // { id, mesh, label }
+  const onStand = []; // { id, mesh }
   ids.forEach((id, i) => {
     const d = DEVICES[id];
     const x = x0 + i * step;
@@ -348,8 +315,7 @@ addInteractable({
     mesh.add(createItemModel(id, 0.9)); // объемный значок прибора (src/models/items.js)
     mesh.position.set(x, 1.1, standZ);
     cityGroup.add(mesh);
-    const label = demoLabel(d.name, x, 2.1, standZ, { size: 0.85 });
-    onStand.push({ id, mesh, label });
+    onStand.push({ id, mesh });
     const toggle = () => {
       if (isWorn(id)) {
         takeOffDevice(id);
@@ -362,11 +328,11 @@ addInteractable({
       prompt: () => (isWorn(id) ? 'E — снять и положить обратно: ' : 'E — надеть: ') + d.name,
       act: toggle,
     });
-    addPickable({ mesh, canPick: () => !drivingCar && !insideBuilding() && !isWorn(id), pick: toggle });
+    addPickable({ id, mesh, canPick: () => !drivingCar && !insideBuilding() && !isWorn(id), pick: toggle });
   });
   // Каждый кадр, пока подставка на экране: надетого прибора на ней нет
   stand.onBeforeRender = () => {
-    for (const t of onStand) t.mesh.visible = t.label.visible = !isWorn(t.id);
+    for (const t of onStand) t.mesh.visible = !isWorn(t.id);
   };
 }
 
@@ -375,28 +341,27 @@ addInteractable({
 // этажи) и полные (мебель, станции, жильцы). Фасады — на север, к площадке
 {
   const rows = [
-    { z: 70, full: false, title: 'ЗДАНИЯ: пустые — стены, двери, этажи' },
-    { z: 104, full: true, title: 'ЗДАНИЯ: полные — станции, вещи, жильцы' },
+    { z: 70, full: false, title: 'Пустая заготовка: стены, двери и этажи.' },
+    { z: 104, full: true, title: 'Полная заготовка: станции, вещи и жильцы.' },
   ];
   const ids = Object.keys(BUILDINGS);
   const gap = 10;
   const total = ids.reduce((sum, id) => sum + BUILDINGS[id].size.w, 0) + gap * (ids.length - 1);
   for (const row of rows) {
     let x = -total / 2;
-    demoLabel(row.title, 0, 8, row.z - 16, { size: 1.3, color: '#ffe08a' });
     for (const id of ids) {
       const def = BUILDINGS[id];
       if (row.full && demoScene.includes(id)) continue; // полные — в своей сцене у дома героя
       const cx = x + def.size.w / 2;
-      flatRect(def.size.w + 4, def.size.d + 4, 0x3c3c3c, 0.012, cx, row.z);
+      addHoverInfo(flatRect(def.size.w + 4, def.size.d + 4, 0x3c3c3c, 0.012, cx, row.z), {
+        kind: 'ДЕМО', name: def.name + ' (' + id + ')', desc: row.title,
+      });
       placeBuilding(id, { x: cx, z: row.z, heading: Math.PI, full: row.full });
-      demoLabel(def.name + '\n' + id, cx, 3.2, row.z - def.size.d / 2 - 4.5, { size: 0.8 });
       x += def.size.w + gap;
     }
   }
 }
 
-demoLabel('ДЕМО-РЕЖИМ', 0, 9, -6, { size: 2.4, color: '#ffe08a' });
 
 // Старт на улице, за подставкой с приборами: впереди приборы, стол с предметами, персонажи, дорога и дом
 const demoStart = { x: 0, z: 48 };

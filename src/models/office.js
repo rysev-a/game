@@ -4,7 +4,7 @@
 // дизельный генератор во дворе (createGenerator).
 //
 // Подключение:
-//   <script src="src/models/office.js"></script>   (после src/engine/buildings.js — нужен createSign)
+//   <script src="src/models/office.js"></script>
 // Использование:
 //   const office = createOffice({ width: 18, depth: 14 });
 //   scene.add(office);   // фасад смотрит в +Z, центр основания в (0, 0, 0)
@@ -21,8 +21,6 @@ function createOffice(options = {}) {
       wallColor: 0x5a6470,
       bandColor: 0x2b3a4a,
       accent: 0x3fa35b,
-      sign: 'IT-КОМПАНИЯ',
-      signSub: 'проекты на заказ',
     },
     options,
   );
@@ -68,12 +66,6 @@ function createOffice(options = {}) {
   part(0.08, 2.6, 0.16, 0x333333, 0, 1.3, d / 2 + 0.08);
   part(4.6, 0.25, 2.0, 0x3a3f46, 0, 3.0, d / 2 + 1.0);
 
-  // Вывеска над козырьком, во всю ширину второго этажа
-  if (o.sign) {
-    const sign = createSign(o.sign, { width: 9, height: 1.5, bg: '#14202c', fg: '#7fe0a0', sub: o.signSub, border: '#3fa35b' });
-    sign.position.set(0, h - 0.6, d / 2 + 0.2);
-    root.add(sign);
-  }
   return root;
 }
 

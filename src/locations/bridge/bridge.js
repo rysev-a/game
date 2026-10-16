@@ -36,6 +36,7 @@ const bridgeHalfW = 6.25;
   const deck = boxWithEdges(bridgeLen, 0.6, bridgeHalfW * 2, 0x8a8a8a);
   deck.position.set(riverX, 0.012 - 0.3, 0);
   cityGroup.add(deck);
+  addHoverInfo(deck, { kind: 'Место', name: 'Мост через реку', desc: 'Единственная переправа на трассе. Внизу — глубокое русло.' });
   for (const dx of [-6, 6]) {
     const pier = boxWithEdges(1.4, 1.6, bridgeHalfW * 2 - 2, 0x7a7a7a);
     pier.position.set(riverX + dx, -1.4, 0);

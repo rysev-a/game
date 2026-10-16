@@ -69,6 +69,7 @@ function animate(now = performance.now()) {
   drawMinimap();
   updateTravelHud();
   updatePickHover(pickMouse); // вещь под мышью подсвечивается
+  updateHoverInfo(pickMouse); // что под мышью — в панели справа
   renderer.render(scene, camera);
 }
 

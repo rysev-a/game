@@ -62,7 +62,21 @@ function createMall(options = {}) {
   const registers = [-30, -24, -18, -12].map((x) => ({ x, z: 1.5, slot0: 1.5 + 1.7, step: 1.3, max: 6 }));
   const exitLaneZ = hd - 4;
 
-  // Надпись на canvas-текстуре: вывеска/табличка
+  // Табличка отдела: цветная плашка с рамкой, без текста. Что это за отдел, показывает панель
+  // справа при наведении мыши (userData.hoverInfo читает src/engine/hoverinfo.js)
+  const deptInfo = {
+    СУПЕРМАРКЕТ: 'Продукты, бытовая химия и всякая мелочь. Кассы у выхода.',
+    МОДА: 'Бутик одежды. Цены такие, что хочется ходить в старом.',
+    ОБУВЬ: 'Обувной магазин. Пахнет кожей и новыми шнурками.',
+    ТЕХНИКА: 'Телефоны, ноутбуки, провода и детали для приборов.',
+    ИГРЫ: 'Игровые автоматы. Кто-то до сих пор держит здесь рекорд.',
+    ПИЦЦА: 'Ларек фудкорта: пицца кусками и целиком.',
+    БУРГЕРЫ: 'Ларек фудкорта: бургеры и картошка.',
+    СУШИ: 'Ларек фудкорта: роллы и суши.',
+    КОФЕ: 'Кофейня фудкорта. Здесь всегда очередь.',
+    ДЕСЕРТЫ: 'Ларек фудкорта: пирожные и мороженое.',
+    КЕБАБ: 'Ларек фудкорта: шаурма и кебаб.',
+  };
   function labelPlane(text, w, h, bg, fg) {
     const cv = document.createElement('canvas');
     cv.width = 512;
@@ -73,20 +87,16 @@ function createMall(options = {}) {
     c.strokeStyle = fg;
     c.lineWidth = 5;
     c.strokeRect(5, 5, cv.width - 10, cv.height - 10);
-    c.fillStyle = fg;
-    c.textAlign = 'center';
-    c.textBaseline = 'middle';
-    let size = cv.height * 0.55;
-    c.font = 'bold ' + size + 'px sans-serif';
-    while (c.measureText(text).width > cv.width - 40 && size > 12) {
-      size -= 2;
-      c.font = 'bold ' + size + 'px sans-serif';
-    }
-    c.fillText(text, cv.width / 2, cv.height / 2 + 3);
-    return new THREE.Mesh(
+    const mesh = new THREE.Mesh(
       new THREE.PlaneGeometry(w, h),
       new LitMaterial({ map: new THREE.CanvasTexture(cv) }),
     );
+    mesh.userData.hoverInfo = {
+      kind: 'Отдел',
+      name: text.charAt(0) + text.slice(1).toLowerCase(),
+      desc: deptInfo[text] || 'Отдел торгового центра.',
+    };
+    return mesh;
   }
 
   function tileTexture(a, b) {

@@ -16,11 +16,11 @@
   const rack = boxWithEdges(1.2, 1.0, rackLen, 0x3a3f4a);
   rack.position.set(rackX, 0.5, rangeZ);
   cityGroup.add(rack);
+  addHoverInfo(rack, { kind: 'ДЕМО', name: 'Тир: стойка с оружием', desc: 'E — взять оружие, Q — достать, ЛКМ — огонь по манекенам.' });
   addObstacle({ x: rackX, z: rangeZ, hx: 0.6, hz: rackLen / 2 });
   mapObjects.push({ x: rackX, z: rangeZ, hx: 0.6, hz: rackLen / 2, color: '#3a3f4a' });
-  demoLabel('ТИР — возьмите оружие (E), Q — достать, ЛКМ — огонь', rackX, 3.6, rangeZ, { size: 1.2, color: '#ff9aa4' });
 
-  const onRack = []; // { id, mesh, label }
+  const onRack = []; // { id, mesh }
   ids.forEach((id, i) => {
     const w = WEAPONS[id];
     const z = z0 + i * step;
@@ -32,8 +32,7 @@
     mesh.add(model);
     mesh.position.set(rackX, 1.15, z);
     cityGroup.add(mesh);
-    const label = demoLabel(w.name, rackX, 2.3, z, { size: 0.85 });
-    onRack.push({ id, mesh, label });
+    onRack.push({ id, mesh });
     // Взятое оружие со стойки исчезает (как вещи со стола); выбросили из инвентаря — снова на стойке
     const take = () => {
       if (hasItem(id)) return;
@@ -46,10 +45,10 @@
       prompt: () => 'E — взять: ' + w.name,
       act: take,
     });
-    addPickable({ mesh, canPick: () => !drivingCar && !insideBuilding() && !hasItem(id), pick: take });
+    addPickable({ id, mesh, canPick: () => !drivingCar && !insideBuilding() && !hasItem(id), pick: take });
   });
   rack.onBeforeRender = () => {
-    for (const t of onRack) t.mesh.visible = t.label.visible = !hasItem(t.id);
+    for (const t of onRack) t.mesh.visible = !hasItem(t.id);
   };
 
   // Линия огня: полоса на земле, дальше — манекены
@@ -71,7 +70,6 @@
     mesh.position.set(0, 0, 0);
     pivot.position.set(dummyX, 0, d.z);
     cityGroup.add(pivot);
-    demoLabel(d.name + '\n' + d.note, dummyX, 5.3, d.z, { size: 0.75 });
     if (d.move) flatRect(0.3, d.move * 2 + 1.5, 0x444444, 0.02, dummyX, d.z); // рельс
     const shape = addObstacle({ x: dummyX, z: d.z, hx: 0.35, hz: 0.35 });
     let fall = 0; // 0 — стоит, 1 — лежит
@@ -79,6 +77,7 @@
     let frame = 0;
     addCombatTarget({
       name: d.name,
+      desc: 'Манекен для стрельбы: ' + d.note + '.',
       x: dummyX,
       z: d.z,
       r: 0.6,

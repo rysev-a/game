@@ -121,6 +121,12 @@ function buildCity(city) {
     const building = makeBuilding(w, h, d, big ? bigFacade : smallFacade, theme.top);
     building.position.set(px, h / 2, pz);
     cityGroup.add(building);
+    addHoverInfo(
+      building,
+      big
+        ? { kind: 'Здание', name: 'Многоэтажка', desc: 'Офисы внизу, квартиры наверху. Этажей — ' + Math.round(h / 3.2) + '.' }
+        : { kind: 'Здание', name: 'Жилой дом', desc: 'Небольшой городской дом на несколько квартир.' },
+    );
 
     if (big) {
       const crown = boxWithEdges(w * 0.4, 3, d * 0.4, theme.top);

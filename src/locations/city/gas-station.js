@@ -1,11 +1,13 @@
 // src/locations/city/gas-station.js
 // ЗАПРАВКА на трассе к западу от торгового центра, на северной стороне: площадка у обочины,
-// навес с двумя колонками и магазин-будка с вывеской «АЗС». Подъезжаете к колонке, останавливаетесь
+// навес с двумя колонками и магазин-будка. Подъезжаете к колонке, останавливаетесь
 // и нажимаете E — бак наполняется (это единственное место, где можно заправиться).
 
 const gasX = -140; // центр заправки по X
 const gasPumpZ = -11; // колонки стоят здесь, машина — между ними и дорогой
 const gasPumps = [-4.5, 4.5].map((dx) => ({ x: gasX + dx, z: gasPumpZ }));
+const gasInfo = { kind: 'Здание', name: 'Заправка', desc: 'Единственная заправка в округе. Начальник — Николай Палыч.' };
+const pumpInfo = { kind: 'Устройство', name: 'Топливная колонка', desc: 'Подъезжайте, останавливайтесь и жмите E — бак наполнится.' };
 
 // Площадка (бетон) и зона без леса
 flatRect(30, 13, 0x4a4a4e, 0.016, gasX, -9.5);
@@ -22,6 +24,7 @@ clearZones.push({ x1: gasX - 20, x2: gasX + 20, z1: -36, z2: 4 });
   roof.add(new THREE.LineSegments(new THREE.EdgesGeometry(roofGeo), roofLine));
   roof.position.set(gasX, 4.6, gasPumpZ);
   cityGroup.add(roof);
+  addHoverInfo(roof, gasInfo);
   fadeBoxes.push({ mesh: roof, mats: [roofMat, roofLine], half: [8, 0.2, 4], fade: 1 });
   for (const dx of [-7, 7]) {
     for (const dz of [-3, 3]) {
@@ -37,47 +40,31 @@ for (const p of gasPumps) {
   const pump = boxWithEdges(0.9, 1.7, 0.6, 0xd23c3c);
   pump.position.set(p.x, 0.85, p.z);
   cityGroup.add(pump);
+  addHoverInfo(pump, pumpInfo);
   const screen = boxWithEdges(0.5, 0.35, 0.05, 0x15202e);
   screen.position.set(p.x, 1.3, p.z + 0.32);
   cityGroup.add(screen);
+  addHoverInfo(screen, pumpInfo);
   addObstacle({ x: p.x, z: p.z, hx: 0.5, hz: 0.35 });
 }
 
-// Будка с вывеской «АЗС»
+// Будка-магазин
 {
   const kioskZ = -25;
   const kiosk = boxWithEdges(10, 4, 6, 0xe6dfcc);
   kiosk.position.set(gasX, 2, kioskZ);
   cityGroup.add(kiosk);
+  addHoverInfo(kiosk, gasInfo);
   addObstacle({ x: gasX, z: kioskZ, hx: 5, hz: 3 });
   mapObjects.push({ x: gasX, z: kioskZ, hx: 5, hz: 3, color: '#c9c9c9' });
   const door = boxWithEdges(1.4, 2.3, 0.12, 0x1d3446);
   door.position.set(gasX, 1.15, kioskZ + 3.05);
   cityGroup.add(door);
+  addHoverInfo(door, gasInfo);
   const win = boxWithEdges(3, 1.4, 0.12, 0x2c5a78);
   win.position.set(gasX + 3, 1.8, kioskZ + 3.05);
   cityGroup.add(win);
-
-  const cv = document.createElement('canvas');
-  cv.width = 256;
-  cv.height = 96;
-  const c = cv.getContext('2d');
-  c.fillStyle = '#d23c3c';
-  c.fillRect(0, 0, 256, 96);
-  c.strokeStyle = '#f1ede2';
-  c.lineWidth = 6;
-  c.strokeRect(5, 5, 246, 86);
-  c.fillStyle = '#f1ede2';
-  c.font = 'bold 60px sans-serif';
-  c.textAlign = 'center';
-  c.textBaseline = 'middle';
-  c.fillText('АЗС', 128, 52);
-  const sign = new THREE.Mesh(
-    new THREE.PlaneGeometry(5, 1.9),
-    new LitMaterial({ map: new THREE.CanvasTexture(cv) }),
-  );
-  sign.position.set(gasX, 4.9, kioskZ + 3.06);
-  cityGroup.add(sign);
+  addHoverInfo(win, gasInfo);
 }
 
 // ЗАПРАВКА. Машина должна стоять у колонки (в 4,8 юнитах), игрок — либо за рулем, либо стоять

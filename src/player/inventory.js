@@ -17,15 +17,15 @@
 //   showToast(текст, мс) — короткое сообщение внизу экрана
 
 const ITEMS = {
-  wrench: { name: 'Гаечный ключ', icon: 'wrench' },
-  screwdriver: { name: 'Отвертка', icon: 'screwdriver' },
-  keys: { name: 'Ключи от машины', icon: 'keys' },
-  wallet: { name: 'Кошелек', icon: 'wallet' },
-  phone: { name: 'Телефон', icon: 'phone' },
-  itpass: { name: 'Пропуск в IT-компанию', icon: 'itpass' },
-  notebook: { name: 'Блокнот', icon: 'notebook' },
-  flashlight: { name: 'Фонарик', icon: 'flashlight' },
-  canister: { name: 'Канистра с бензином', icon: 'canister' }, // от соседа; E у своей машины — залить
+  wrench: { name: 'Гаечный ключ', icon: 'wrench', desc: 'Тяжелый, надежный. Пригодится в гараже.' },
+  screwdriver: { name: 'Отвертка', icon: 'screwdriver', desc: 'Крестовая. Открывает корпуса приборов.' },
+  keys: { name: 'Ключи от машины', icon: 'keys', desc: 'Ключи от вашей бирюзовой машины.' },
+  wallet: { name: 'Кошелек', icon: 'wallet', desc: 'Немного денег и старый пропуск в спортзал.' },
+  phone: { name: 'Телефон', icon: 'phone', desc: 'Связь, карта и фонарик, пока не сядет батарейка.' },
+  itpass: { name: 'Пропуск в IT-компанию', icon: 'itpass', desc: 'Пропуск через турникет IT-компании.' },
+  notebook: { name: 'Блокнот', icon: 'notebook', desc: 'Записи по делу. Пока почти пустой.' },
+  flashlight: { name: 'Фонарик', icon: 'flashlight', desc: 'Светит далеко. Ночью без него никуда.' },
+  canister: { name: 'Канистра с бензином', icon: 'canister', desc: 'Бензин от соседа. E у своей машины — залить в бак.' }, // от соседа; E у своей машины — залить
 };
 
 const inventory = {

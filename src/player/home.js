@@ -236,6 +236,7 @@ for (const p of home.floors.flatMap((f) => f.pickups)) {
   homePickups.push(p);
   p.interactable = makePickupInteractable(p);
   addPickable({
+    id: p.id, // что это — в панели справа (src/engine/hoverinfo.js)
     mesh: p.mesh,
     canPick: () => {
       const ci = currentInterior();

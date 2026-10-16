@@ -41,7 +41,7 @@ function defineWeapon(id, def) {
   );
   WEAPONS[id] = w;
   if (def.iconArt && !PIXEL_ART[w.icon]) PIXEL_ART[w.icon] = def.iconArt;
-  ITEMS[id] = { name: w.name, icon: w.icon, kind: 'weapon' };
+  ITEMS[id] = { name: w.name, icon: w.icon, kind: 'weapon', desc: w.desc };
   return w;
 }
 
