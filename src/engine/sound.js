@@ -59,7 +59,9 @@ function updateSound() {
   mix.car = carSpeed > 0.02 ? carVolumeMin + (carVolumeMax - carVolumeMin) * Math.min(carSpeed, 1) : 0;
   duck += ((phraseActive() ? duckLevel : 1) - duck) * 0.1;
   for (const [name, t] of Object.entries(soundTracks)) {
-    const target = muted || !audioUnlocked ? 0 : (mix[name] || 0) * duck;
+    // Фоновые звуки (все, кроме двигателя) можно выключить в настройках
+    const off = muted || !audioUnlocked || (!settings.ambient && name !== 'car');
+    const target = off ? 0 : (mix[name] || 0) * duck;
     t.gain += (target - t.gain) * (name === 'car' ? 0.15 : 0.04); // двигатель реагирует быстро
     if (Math.abs(target - t.gain) < 0.002) t.gain = target;
     t.el.volume = Math.min(Math.max(t.gain * settings.volume, 0), 1); // общая громкость из настроек

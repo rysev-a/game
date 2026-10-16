@@ -1,20 +1,28 @@
 // src/engine/settings.js
-// НАСТРОЙКИ. Шестеренка внизу слева (или клавиша O) открывает меню; пока в нем одна настройка —
-// общая громкость (0–100%), она действует на все звуки: зоны, машину, дождь, фразу, шаги.
-// Значение запоминается в браузере (localStorage). Пока меню открыто, игровые клавиши не работают.
+// НАСТРОЙКИ. Шестеренка внизу слева (или клавиша O) открывает меню. В нем:
+// - общая громкость (0–100%), она действует на все звуки: зоны, машину, дождь, фразу, шаги;
+// - «Фоновые звуки» — выключает фон локаций (птицы, город, лес, река, магазин) и дождь,
+//   остальные звуки (машина, фраза, шаги, выстрелы) продолжают играть.
+// Значения запоминаются в браузере (localStorage). Пока меню открыто, игровые клавиши не работают.
 
-const settings = { volume: 1 };
+const settings = { volume: 1, ambient: true };
 try {
   const saved = parseFloat(localStorage.getItem('game.volume'));
   if (!Number.isNaN(saved)) settings.volume = Math.min(1, Math.max(0, saved));
 } catch (e) {
   // localStorage недоступен (приватный режим и т. п.) — остается громкость по умолчанию
 }
+try {
+  if (localStorage.getItem('game.ambient') === 'off') settings.ambient = false;
+} catch (e) {
+  // то же: фоновые звуки остаются включены
+}
 
 const settingsBtn = document.getElementById('settingsBtn');
 const settingsMenu = document.getElementById('settingsMenu');
 const volumeSlider = document.getElementById('volumeSlider');
 const volumeValue = document.getElementById('volumeValue');
+const ambientToggle = document.getElementById('ambientToggle');
 let settingsOpen = false;
 
 function showVolume() {
@@ -29,6 +37,7 @@ function setSettingsOpen(open) {
     for (const k of Object.keys(keys)) keys[k] = false; // отпускаем зажатые клавиши
   } else {
     volumeSlider.blur(); // чтобы стрелки не двигали ползунок вместо игрока
+    ambientToggle.blur(); // чтобы пробел не переключал галочку вместо игры
   }
 }
 
@@ -37,6 +46,15 @@ volumeSlider.addEventListener('input', () => {
   volumeValue.textContent = volumeSlider.value + '%';
   try {
     localStorage.setItem('game.volume', String(settings.volume));
+  } catch (e) {
+    // не страшно: просто не запомнится
+  }
+});
+
+ambientToggle.addEventListener('change', () => {
+  settings.ambient = ambientToggle.checked;
+  try {
+    localStorage.setItem('game.ambient', settings.ambient ? 'on' : 'off');
   } catch (e) {
     // не страшно: просто не запомнится
   }
@@ -55,3 +73,4 @@ window.addEventListener('keydown', (e) => {
 });
 
 showVolume();
+ambientToggle.checked = settings.ambient;
