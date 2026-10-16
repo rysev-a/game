@@ -15,6 +15,8 @@
 //   man.setPush('side');            // водитель толкает сбоку у открытой двери, одной рукой рулит
 //   man.setPush(false);             // выпрямиться. В позах толкания updateWalk шагает только ногами
 //   man.attach('wristL', mesh);     // надеть вещь на левое запястье (браслет), качается с рукой
+//   man.attach('handR', gun);       // вложить оружие в правую руку: ствол (-Z модели) идет вдоль руки
+//   man.setAim(true);               // правая рука вытянута вперед (держит оружие); setAim(false) — опустить
 //
 // Прохожие: gender 'female' добавляет платье и длинные волосы,
 // hairColor включает прическу (без него человечек лысый, как игрок):
@@ -356,6 +358,7 @@ function createWalkingMan(options = {}) {
   // Положительный угол X поворачивает конечность вперед (в -Z)
   let sitting = false;
   let pushing = false;
+  let aiming = false; // правая рука вытянута вперед с оружием
   root.updateWalk = function (t, amp = 1) {
     if (sitting) return; // сидящий не шагает
     const swing = Math.sin(t) * amp;
@@ -371,7 +374,7 @@ function createWalkingMan(options = {}) {
     legL.rotation.x = swing * 0.75;
     legR.rotation.x = -swing * 0.75;
     armL.rotation.x = -swing * 0.55;
-    armR.rotation.x = swing * 0.55;
+    armR.rotation.x = aiming ? 1.5 : swing * 0.55;
     body.rotation.z = Math.sin(t) * 0.04 * amp; // легкое покачивание корпуса
     body.rotation.y = Math.cos(t) * 0.06 * amp;
     hips.position.y = Math.abs(Math.cos(t)) * 0.04 * amp; // «подпрыгивание» шага
@@ -406,6 +409,12 @@ function createWalkingMan(options = {}) {
     }
   };
 
+  // Поза «целится»: правая рука вытянута вперед на уровне плеча (держит оружие), левая шагает как обычно
+  root.setAim = function (on) {
+    aiming = on;
+    armR.rotation.set(on ? 1.5 : 0, 0, 0);
+  };
+
   // Поза «сидит»: таз опускается на высоту сиденья, ноги вытянуты вперед, руки на коленях
   root.setSit = function (on) {
     sitting = on;
@@ -418,10 +427,13 @@ function createWalkingMan(options = {}) {
 
   // Надетые вещи (браслет на запястье и т.п.): attach('wristL' | 'wristR', obj) — вещь качается вместе с рукой.
   // Запястье — чуть выше кисти (кисть на y = −0,68 в группе руки). Снять: obj.parent.remove(obj)
-  const WEAR_SLOTS = { wristL: [armL, -0.55], wristR: [armR, -0.55] };
+  // handR — в кулак: вещь повернута так, что ее -Z смотрит вдоль руки (из кулака), а +Y — от груди вверх
+  // при вытянутой вперед руке
+  const WEAR_SLOTS = { wristL: [armL, -0.55, 0], wristR: [armR, -0.55, 0], handR: [armR, -0.7, -Math.PI / 2] };
   root.attach = function (slot, obj) {
-    const [arm, y] = WEAR_SLOTS[slot];
+    const [arm, y, rx] = WEAR_SLOTS[slot];
     obj.position.set(0, y, 0);
+    obj.rotation.x = rx;
     arm.add(obj);
     return obj;
   };
