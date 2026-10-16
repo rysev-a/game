@@ -20,7 +20,7 @@ defineWeapon('pulse_laser', {
   range: 50,
   speed: 2.4, // юнитов за кадр
   heat: null, // не перегревается
-  charge: { time: 1.2, min: 0, damage: [12, 90], push: [0.1, 0.7], stagger: [15, 70], scale: [0.8, 2.4], length: [1, 4] },
+  charge: { time: 1.2, min: 0, damage: [12, 90], push: [0.1, 0.7], stagger: [15, 70], scale: [0.8, 2.4], length: [1, 4], elixir: [0.002, 0.02] },
   aimAssist: 0.22,
   // Сверхкороткая вспышка испаряет поверхность: микровзрыв и ударная волна — цель пошатывается и отлетает
   effects: { stagger: 20 },
@@ -99,6 +99,7 @@ defineWeapon('plasma_flamer', {
   desc: 'Поток липкой плазмы на 10–12 шагов. Прожигает броню, поджигает и оставляет горящие лужи на земле.',
   kind: 'stream',
   hold: 'rifle',
+  elixir: 0.0005, // доля шкалы эликсира за выстрел
   damage: 3,
   type: 'plasma',
   fireRate: 15,
@@ -180,6 +181,7 @@ defineWeapon('arc_discharger', {
   desc: 'Молния перескакивает между целями (до четырех), парализует их. По роботам и электронике бьет вдвое сильнее.',
   kind: 'arc',
   hold: 'rifle',
+  elixir: 0.0015, // доля шкалы эликсира за выстрел
   damage: 10,
   type: 'electric',
   fireRate: 5,
@@ -257,6 +259,7 @@ defineWeapon('plasma_gun', {
   desc: 'Очередь зеленых шаров плазмы, как в Unreal. Шары видно в полете, при попадании — зеленый микровзрыв.',
   kind: 'pulse',
   hold: 'rifle',
+  elixir: 0.0012, // доля шкалы эликсира за выстрел
   damage: 9,
   type: 'plasma',
   fireRate: 7,

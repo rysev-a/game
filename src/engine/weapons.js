@@ -46,6 +46,9 @@ const WEAPONS = {};
 //         выстрелит. Полный заряд — удар 'blast'
 //   spinUp — секунды раскрутки (пулемет): зажал — стволы раскручиваются (userData.spin модели), стрельба
 //         начинается, когда раскрутились; отпустил — медленно останавливаются
+//   elixir — сколько эликсира тратит выстрел, доля полной шкалы (heroStats.maxElixir); у оружия с charge —
+//         charge.elixir: [от, до] по заряду. Нет поля — эликсир не тратится (дробовик, пулемет). Эликсира
+//         не хватает — оружие не стреляет
 //   effects — что попадание делает с целью (состояния из src/engine/combat.js): { stagger, freeze, ... },
 //   push — сила толчка от попадания, hitFx — вспышка попадания ('spark' | 'microburst')
 //   model() — модель в руке (src/models/weapons.js), sound — набор звуков (см. playWeaponSound)
@@ -262,6 +265,7 @@ function chargedWeapon(w, power) {
     push: lerpRange(c.push, power),
     effects: Object.assign({}, w.effects, { stagger: Math.round(lerpRange(c.stagger, power)) }),
     hitFx: power >= 0.95 ? 'blast' : w.hitFx,
+    elixir: c.elixir ? lerpRange(c.elixir, power) : w.elixir,
     // Волна длиннее по заряду (геометрия та же, растянута по длине — см. fireWeapon)
     wave: w.wave && c.length ? Object.assign({}, w.wave, { length: w.wave.length * lerpRange(c.length, power) }) : w.wave,
   });
@@ -274,6 +278,15 @@ function fireWeapon(aim, power) {
   if (w.charge) w = chargedWeapon(w, power || 0);
   if (heroWeapon.overheated) {
     if (heroWeapon.sinceShot > 20) playWeaponSound('dry');
+    heroWeapon.sinceShot = 0;
+    return false;
+  }
+  // Супероружие тратит эликсир; не хватает — сухой щелчок и подсказка
+  if (w.elixir && !spendWeaponElixir(w.elixir)) {
+    if (heroWeapon.sinceShot > 20) {
+      playWeaponSound('dry');
+      showToast(w.name + ': нет эликсира. Дробовик и пулемет стреляют без него');
+    }
     heroWeapon.sinceShot = 0;
     return false;
   }
@@ -314,6 +327,27 @@ function fireWeapon(aim, power) {
   if (w.charge && power >= 0.95) playWeaponSound('blast');
   else if (w.sound) playWeaponSound(w.sound);
   return true;
+}
+
+// ---------- Эликсир ----------
+// Шкала эликсира — heroStats.elixir из heroStats.maxElixir (фиолетовая полоса, src/player/equipment.js).
+// Трата выстрела — доля полной шкалы. Списываем сами, а панель перерисовываем не чаще четырех раз в секунду:
+// огнемет стреляет 15 раз в секунду (spendElixir из equipment.js перерисовывает панель на каждый вызов)
+let elixirHudDirty = false;
+let elixirHudAt = 0;
+function spendWeaponElixir(frac) {
+  const amount = frac * heroStats.maxElixir;
+  if (heroStats.elixir < amount) return false;
+  heroStats.elixir = Math.max(0, heroStats.elixir - amount);
+  elixirHudDirty = true;
+  return true;
+}
+function updateElixirHud() {
+  const now = performance.now();
+  if (!elixirHudDirty || now - elixirHudAt < 250) return;
+  elixirHudDirty = false;
+  elixirHudAt = now;
+  renderEquipHud();
 }
 
 // ---------- Накопление заряда ----------
@@ -596,6 +630,7 @@ function updateWeapons() {
   for (const k in WEAPON_KINDS) if (WEAPON_KINDS[k].update) WEAPON_KINDS[k].update();
   updateWeaponFx();
   updateWeaponHud();
+  updateElixirHud();
 }
 const weaponGlowColor = new THREE.Color();
 const weaponHotColor = new THREE.Color(0xffc060);
