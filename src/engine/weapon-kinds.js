@@ -48,15 +48,18 @@ WEAPON_KINDS.rail = {
   fire(w, s) {
     const len = freePath(s.x, s.z, s.dirX, s.dirZ, w.range);
     const slug = new THREE.Mesh(slugGeo, additive(0xffffff, 1));
-    slug.rotation.y = Math.atan2(s.dirX, s.dirZ);
+    const slope = s.slope || 0;
+    slug.rotation.set(-Math.atan(slope), Math.atan2(s.dirX, s.dirZ), 0, 'YXZ');
     // Вакуумный коридор: прозрачная труба от дула до сердечника
     const corridor = new THREE.Mesh(corridorGeo, additive(w.color, 0.28));
     corridor.material.side = THREE.DoubleSide;
     corridor.position.set(s.x, s.y, s.z);
-    corridor.rotation.y = slug.rotation.y;
+    corridor.rotation.copy(slug.rotation);
     corridor.scale.set(0.35, 0.35, 0.01);
     cityGroup.add(slug, corridor);
-    rails.push({ w, ...s, len, traveled: 0, slug, corridor, hit: [], age: 0, collapsed: false });
+    // Выстрел вниз: сердечник уходит в землю раньше, чем в стену
+    const toGround = slope < 0 ? s.y / -slope : Infinity;
+    rails.push({ w, ...s, slope, len: Math.min(len, toGround), traveled: 0, slug, corridor, hit: [], age: 0, collapsed: false });
     playWeaponSound('rail');
   },
   update() {
@@ -70,17 +73,18 @@ WEAPON_KINDS.rail = {
           r.traveled = Math.min(r.len, r.traveled + r.w.speed / steps);
           const x = r.x + r.dirX * r.traveled;
           const z = r.z + r.dirZ * r.traveled;
-          const t = targetAt(x, z, r.y, r.hit);
+          const y = r.y + r.slope * r.traveled;
+          const t = targetAt(x, z, y, r.hit);
           if (t) {
             r.hit.push(t);
-            weaponHit(r.w, t, x, r.y, z, r.dirX, r.dirZ);
+            weaponHit(r.w, t, x, y, z, r.dirX, r.dirZ);
             playWeaponSound('hit');
           }
         }
-        r.slug.position.set(r.x + r.dirX * r.traveled, r.y, r.z + r.dirZ * r.traveled);
-        r.corridor.scale.z = r.traveled;
+        r.slug.position.set(r.x + r.dirX * r.traveled, r.y + r.slope * r.traveled, r.z + r.dirZ * r.traveled);
+        r.corridor.scale.z = r.traveled * Math.sqrt(1 + r.slope * r.slope);
         if (r.traveled >= r.len) {
-          spawnWeaponFx(r.slug.position.x, r.y, r.slug.position.z, 0xffffff, 0.25, 8, 1.2);
+          spawnWeaponFx(r.slug.position.x, r.slug.position.y, r.slug.position.z, 0xffffff, 0.25, 8, 1.2);
           cityGroup.remove(r.slug);
           r.slug.material.dispose();
         }
@@ -110,7 +114,7 @@ WEAPON_KINDS.rail = {
         }
         for (const l of looseObjects) pull(l.x, l.z, (vx, vz) => pushLoose(l, vx * 1.6, vz * 1.6));
         for (let d = 2; d < r.traveled; d += 3) {
-          spawnShockRing(ax + r.dirX * d, r.y, az + r.dirZ * d, r.w.color, 0.25, 10, 0.86); // кольца сжимаются
+          spawnShockRing(ax + r.dirX * d, r.y + r.slope * d, az + r.dirZ * d, r.w.color, 0.25, 10, 0.86); // кольца сжимаются
         }
       }
       if (r.collapsed) {
@@ -174,7 +178,7 @@ WEAPON_KINDS.stream = {
       m.position.set(s.x, s.y, s.z);
       cityGroup.add(m);
       const v = st.speed * (0.85 + Math.random() * 0.3);
-      plasmaBlobs.push({ w, x: s.x, y: s.y, z: s.z, vx: dx * v, vz: dz * v, vy: -0.004, life: st.life, max: st.life, m, phase: Math.random() * 6 });
+      plasmaBlobs.push({ w, x: s.x, y: s.y, z: s.z, vx: dx * v, vz: dz * v, vy: -0.004 + (s.slope || 0) * v, life: st.life, max: st.life, m, phase: Math.random() * 6 });
     }
     if (flameSoundCount++ % 4 === 0) playWeaponSound('flame');
   },
@@ -272,7 +276,7 @@ WEAPON_KINDS.canister = {
     mesh.position.set(s.x, s.y, s.z);
     mesh.rotation.y = Math.atan2(s.dirX, s.dirZ);
     cityGroup.add(mesh);
-    canisters.push({ w, x: s.x, y: s.y, z: s.z, dx: s.dirX, dz: s.dirZ, traveled: 0, mesh });
+    canisters.push({ w, x: s.x, y: s.y, z: s.z, dx: s.dirX, dz: s.dirZ, dy: s.slope || 0, traveled: 0, mesh });
     playWeaponSound('cryo');
   },
   update() {
@@ -283,6 +287,7 @@ WEAPON_KINDS.canister = {
       for (let k = 0; k < steps && !done; k++) {
         c.x += (c.dx * c.w.speed) / steps;
         c.z += (c.dz * c.w.speed) / steps;
+        c.y += (c.dy * c.w.speed) / steps;
         c.traveled += c.w.speed / steps;
         const t = targetAt(c.x, c.z, c.y);
         if (t) {
@@ -294,7 +299,7 @@ WEAPON_KINDS.canister = {
         } else if (boltBlocked(c.x, c.z)) {
           cryoBurst(c.w, c.x - c.dx * 0.5, c.y, c.z - c.dz * 0.5, null);
           done = true;
-        } else if (c.traveled >= c.w.range) {
+        } else if (c.y < 0.1 || c.traveled >= c.w.range) {
           cryoBurst(c.w, c.x, 0.3, c.z, null); // упала на землю
           done = true;
         }
@@ -552,7 +557,7 @@ WEAPON_KINDS.spread = {
     for (let i = 0; i < pellets; i++) {
       const a = (Math.random() - 0.5) * angle;
       const h = shot.heading + a;
-      spawnBolt(w, shot.x, shot.y + (Math.random() - 0.5) * 0.1, shot.z, -Math.sin(h), -Math.cos(h), w.range * (0.8 + Math.random() * 0.4));
+      spawnBolt(w, shot.x, shot.y + (Math.random() - 0.5) * 0.1, shot.z, -Math.sin(h), -Math.cos(h), w.range * (0.8 + Math.random() * 0.4), shot.slope);
     }
   },
 };

@@ -17,6 +17,9 @@
 //         зажать — очередь. У оружия с накоплением (charge, импульсный лазер) зажать — копить заряд,
 //         отпустить — выстрел. Клик по вещи, которую можно взять, по-прежнему берет вещь
 //   K — выстрел по направлению взгляда, с небольшим доводом на ближайшую цель
+//   На компьютере в боевом режиме мышь захватывается (src/engine/mouse-look.js): движение мыши крутит
+//   камеру и прицел, как в 3D-шутерах, вверх-вниз — выстрел чуть выше или ниже (aimPitch), колесо —
+//   смена оружия (nextWeapon(±1)), Esc — отпустить мышь
 //
 // API:
 //   defineWeapon(id, def)  — описать оружие (параметры — ниже у defineWeapon)
@@ -143,6 +146,12 @@ const heroWeapon = {
   aimFrames: 0, // сколько еще кадров держать корпус к цели
 };
 
+// Наклон прицела вверх-вниз (рад, плюс — вверх). Меняет его только захваченная мышь (src/engine/mouse-look.js),
+// иначе 0 — заряды летят горизонтально. aimSlope — сколько заряд поднимается на единицу пути
+let aimPitch = 0;
+const aimSlope = () => Math.tan(aimPitch);
+const mouseLookActive = () => !touchUI && document.pointerLockElement === renderer.domElement;
+
 const weaponBolts = []; // летящие заряды
 const weaponFx = []; // вспышки у ствола и попадания: { mesh, life, max, grow }
 
@@ -194,13 +203,14 @@ function toggleWeapon() {
   else showToast('Оружия нет. В ДЕМО оно лежит в тире и на столе предметов');
 }
 
-// Следующее оружие из пяти ячеек оружия по кругу (R). Одно оружие — подсказка, что сменить не на что
-function nextWeapon() {
+// Следующее оружие из пяти ячеек оружия по кругу (R, колесо вниз); dir = −1 — предыдущее (колесо вверх).
+// Одно оружие — подсказка, что сменить не на что
+function nextWeapon(dir = 1) {
   const ids = weaponSlotIds();
   if (!ids.length) return toggleWeapon();
   if (!heroWeapon.id) return drawWeapon(heroEquip.weapons[heroEquip.active] || ids[0]);
   const i = ids.indexOf(heroWeapon.id);
-  const id = ids[(i + 1) % ids.length];
+  const id = ids[(i + dir + ids.length) % ids.length];
   if (id === heroWeapon.id) return showToast('В других ячейках оружия нет — возьмите еще в тире');
   if (drawWeapon(id)) showToast(WEAPONS[id].name, 1500);
 }
@@ -213,6 +223,7 @@ const aimPoint = new THREE.Vector3();
 function mouseAimPoint() {
   // На телефоне целится кнопка огня с прицелом-гироскопом (src/engine/touch.js): touchAim — его точка или null
   if (heroWeapon.touchAim) return heroWeapon.touchAim();
+  if (mouseLookActive()) return null; // мышь захвачена: стреляем по взгляду камеры (с доводом)
   if (typeof pickMouse === 'undefined' || !pickMouse) return null;
   aimRaycaster.setFromCamera(pickMouse, camera);
   const meshes = combatTargets.filter((t) => !t.dead && t.mesh).map((t) => t.mesh);
@@ -307,7 +318,7 @@ function fireWeapon(aim, power) {
   heroWeapon.aimFrames = 45;
   const { x, y, z } = muzzleAt(w, heading);
   const kind = WEAPON_KINDS[w.kind];
-  if (kind && kind.fire) kind.fire(w, { x, y, z, dirX, dirZ, heading, aim });
+  if (kind && kind.fire) kind.fire(w, { x, y, z, dirX, dirZ, heading, aim, slope: aimSlope() });
   else spawnBolt(w, x, y, z, dirX, dirZ);
   // Заряд с накоплением: чем больше набрано, тем толще волна и ярче вспышка
   const scale = w.charge ? lerpRange(w.charge.scale, power) : 1;
@@ -435,33 +446,36 @@ function updateBeam(w) {
   const m = muzzleAt(w, heading);
   const dx = -Math.sin(heading);
   const dz = -Math.cos(heading);
-  // Идем по лучу шагами по 0,3 до цели, стены или дальности
+  const slope = aimSlope();
+  // Идем по лучу шагами по 0,3 до цели, стены, земли или дальности
   let len = 0;
   let hit = null;
   while (len < w.beam.range) {
     len += 0.3;
     const x = m.x + dx * len;
     const z = m.z + dz * len;
-    hit = targetAt(x, z, m.y);
-    if (hit || boltBlocked(x, z)) break;
+    const y = m.y + slope * len;
+    hit = targetAt(x, z, y);
+    if (hit || y < 0 || boltBlocked(x, z)) break;
   }
   len = Math.min(len, w.beam.range);
   const ex = m.x + dx * len;
   const ez = m.z + dz * len;
+  const ey = m.y + slope * len;
   const { g, glow, halo } = beamParts;
   g.visible = true;
   g.position.set(m.x, m.y, m.z);
-  g.rotation.y = Math.atan2(dx, dz);
-  g.scale.set(1, 1, len);
+  g.rotation.set(-Math.atan(slope), Math.atan2(dx, dz), 0, 'YXZ');
+  g.scale.set(1, 1, len * Math.sqrt(1 + slope * slope));
   const flick = 0.8 + Math.random() * 0.4;
   glow.scale.set(flick, flick, 1);
   halo.scale.set(1.2 - flick * 0.3, 1.2 - flick * 0.3, 1);
   if (beamFrame % w.beam.every === 0) {
     if (hit) {
-      weaponHit(w, hit, ex, m.y, ez, dx, dz, { damage: Math.round((w.beam.dps * w.beam.every) / 60) });
-    } else if (len < w.beam.range) spawnWeaponFx(ex, m.y, ez, w.color, 0.12, 6, 1.15); // искры о стену
+      weaponHit(w, hit, ex, ey, ez, dx, dz, { damage: Math.round((w.beam.dps * w.beam.every) / 60) });
+    } else if (len < w.beam.range) spawnWeaponFx(ex, Math.max(0.05, ey), ez, w.color, 0.12, 6, 1.15); // искры о стену или землю
   }
-  if (beamFrame % 3 === 0) spawnWeaponFx(ex + (Math.random() - 0.5) * 0.3, m.y + (Math.random() - 0.5) * 0.3, ez + (Math.random() - 0.5) * 0.3, w.color, 0.08, 6, 1.2);
+  if (beamFrame % 3 === 0) spawnWeaponFx(ex + (Math.random() - 0.5) * 0.3, Math.max(0.05, ey) + (Math.random() - 0.5) * 0.3, ez + (Math.random() - 0.5) * 0.3, w.color, 0.08, 6, 1.2);
 }
 function stopBeam() {
   beamOn = false;
@@ -540,9 +554,10 @@ const boltGeos = {
   tracer: [new THREE.BoxGeometry(0.03, 0.03, 1.3), new THREE.BoxGeometry(0.07, 0.07, 1.6)],
 };
 
-// Заряд; range — своя дальность (дробинки разлетаются на разное расстояние). Возвращает заряд
-function spawnBolt(w, x, y, z, dx, dz, range = w.range) {
-  if (w.bolt === 'wave') return spawnWaveBolt(w, x, y, z, dx, dz);
+// Заряд; range — своя дальность (дробинки разлетаются на разное расстояние); dy — подъем на единицу пути
+// (наклон прицела). Возвращает заряд
+function spawnBolt(w, x, y, z, dx, dz, range = w.range, dy = aimSlope()) {
+  if (w.bolt === 'wave') return spawnWaveBolt(w, x, y, z, dx, dz, dy);
   const [core, glow] = boltGeos[w.bolt] || boltGeos.pulse;
   const mesh = new THREE.Group();
   mesh.add(new THREE.Mesh(core, new THREE.MeshBasicMaterial({ color: w.bolt === 'tracer' ? 0xfff2c0 : 0xffffff })));
@@ -553,9 +568,9 @@ function spawnBolt(w, x, y, z, dx, dz, range = w.range) {
     ),
   );
   mesh.position.set(x, y, z);
-  mesh.rotation.y = Math.atan2(dx, dz);
+  mesh.rotation.set(-Math.atan(dy), Math.atan2(dx, dz), 0, 'YXZ');
   cityGroup.add(mesh);
-  const b = { w, x, y, z, dx, dz, traveled: 0, range, mesh };
+  const b = { w, x, y, z, dx, dz, dy, traveled: 0, range, mesh };
   weaponBolts.push(b);
   return b;
 }
@@ -600,7 +615,7 @@ function waveParts(w) {
   return parts;
 }
 
-function spawnWaveBolt(w, x, y, z, dx, dz) {
+function spawnWaveBolt(w, x, y, z, dx, dz, dy) {
   const { geos, mats } = waveParts(w);
   const mesh = new THREE.Group();
   const body = new THREE.Group(); // всё, что тянется хвостом; растет из дула и втягивается в цель
@@ -609,9 +624,9 @@ function spawnWaveBolt(w, x, y, z, dx, dz) {
   mesh.add(body);
   mesh.add(new THREE.Mesh(geos[4], mats[4]));
   mesh.position.set(x, y, z);
-  mesh.rotation.y = Math.atan2(dx, dz);
+  mesh.rotation.set(-Math.atan(dy), Math.atan2(dx, dz), 0, 'YXZ');
   cityGroup.add(mesh);
-  weaponBolts.push({ w, x, y, z, dx, dz, traveled: 0, mesh, body, shared: true, fade: 0 });
+  weaponBolts.push({ w, x, y, z, dx, dz, dy, traveled: 0, mesh, body, shared: true, fade: 0 });
 }
 
 const boltBlocked = (x, z) => (insideBuilding() ? blockedInside(x, z) : blockedOutsideStatic(x, z));
@@ -649,13 +664,15 @@ function updateBolts() {
     for (let s = 0; s < steps && !done; s++) {
       b.x += b.dx * step;
       b.z += b.dz * step;
+      b.y += b.dy * step;
       b.traveled += step;
       const t = targetAt(b.x, b.z, b.y);
       if (t) {
         weaponHit(b.w, t, b.x, b.y, b.z, b.dx, b.dz);
         if (!b.w.quietHit) playWeaponSound('hit');
         done = true;
-      } else if (boltBlocked(b.x, b.z)) {
+      } else if (b.y < 0.05 || boltBlocked(b.x, b.z)) {
+        b.y = Math.max(0.05, b.y); // выстрел вниз — заряд бьет в землю
         spawnWeaponFx(b.x, b.y, b.z, b.w.color, 0.15, 8, 1.15);
         done = true;
       } else if (b.traveled >= (b.range || b.w.range)) {
@@ -785,7 +802,7 @@ let weaponHudKey = '';
 function updateWeaponHud() {
   const w = WEAPONS[heroWeapon.id];
   const bar = w && w.charge ? heroWeapon.charge : heroWeapon.heat;
-  const key = w ? w.id + '|' + Math.round(bar * 50) + '|' + heroWeapon.overheated : '';
+  const key = w ? w.id + '|' + Math.round(bar * 50) + '|' + heroWeapon.overheated + '|' + mouseLookActive() : '';
   if (key === weaponHudKey) return;
   weaponHudKey = key;
   weaponHud.style.display = w ? 'block' : 'none';
@@ -798,15 +815,21 @@ function updateWeaponHud() {
     // Шкала заряда: голубая, полная — белая
     weaponHudParts.heat.style.background = bar >= 1 ? '#ffffff' : '#4ee6ff';
     weaponHudParts.hint.textContent =
-      bar >= 1 ? 'Заряд полный — отпустите' : 'ЛКМ — выстрел, зажать — супервыстрел · K — по взгляду · R — сменить · Q — убрать';
+      bar >= 1 ? 'Заряд полный — отпустите' : 'ЛКМ — выстрел, зажать — супервыстрел · ' + weaponKeysHint();
     return;
   }
   weaponHudParts.heat.style.background = heroWeapon.overheated ? '#e0483a' : heroWeapon.heat > 0.7 ? '#e8b83a' : '#4ee6ff';
   weaponHudParts.hint.textContent = heroWeapon.overheated
     ? 'Перегрев — остывает'
     : w.beam
-      ? 'ЛКМ — выстрел, зажать — луч · K — по взгляду · R — сменить · Q — убрать'
-      : 'ЛКМ — огонь по курсору · K — по взгляду · R — сменить · Q — убрать';
+      ? 'ЛКМ — выстрел, зажать — луч · ' + weaponKeysHint()
+      : (mouseLookActive() ? 'ЛКМ — огонь · ' : 'ЛКМ — огонь по курсору · ') + weaponKeysHint();
+}
+// Мышь захвачена — целятся ею и меняют оружие колесом; иначе — клавиши
+function weaponKeysHint() {
+  return mouseLookActive()
+    ? 'мышь — прицел · колесо или R — сменить · Q — убрать · Esc — отпустить мышь'
+    : 'K — по взгляду · колесо или R — сменить · Q — убрать';
 }
 
 // ---------- Звук (синтез, как шаги в src/player/footsteps.js) ----------
