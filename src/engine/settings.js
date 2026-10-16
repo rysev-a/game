@@ -7,7 +7,7 @@
 //   Режим боя   — автонаведение: выстрел по взгляду сам доводится на ближайшую цель (assistTarget, src/engine/weapons.js);
 //                 вид от первого лица (только компьютер): камера в глазах героя, мышь резче, без автонаведения
 //                 (src/engine/mouse-look.js).
-//   Вождение    — глубина заноса на ручнике (Space), резкость торможения и разгона, чувствительность руля
+//   Вождение    — глубина заноса на ручнике (Space) и в дрифте (газ+тормоз), резкость торможения и разгона, чувствительность руля
 //                 (src/player/driving.js).
 //   Карта       — показывать миникарту, ее размер, север всегда сверху, прохожие на карте (src/engine/minimap.js).
 // Внизу окна — версия игры (нажали — история версий) и справа «Сбросить»: все настройки по умолчанию.
@@ -27,7 +27,7 @@ const SETTINGS_DEFAULTS = {
   mouseSens: 1, // множитель чувствительности мыши
   autoAim: true,
   firstPerson: false, // вид от первого лица в бою (компьютер)
-  driftDepth: 0.6, // 0..1 — насколько глубоко заносит на ручнике
+  driftLevel: 0.5, // 0..1 — насколько глубоко заносит на ручнике и в дрифте (1 — прежние 20%, src/player/driving.js)
   brakeSharp: 1, // множители к торможению, разгону и рулю машины
   accelSharp: 1,
   steerSens: 1,
@@ -64,6 +64,16 @@ function saveSetting(key) {
 }
 for (const key of Object.keys(SETTINGS_DEFAULTS)) loadSetting(key);
 settings.volume = Math.min(1, Math.max(0, settings.volume));
+// Прежняя шкала заноса (game.driftDepth) была в 5 раз круче: ее 20% — это нынешние 100%
+try {
+  const oldDrift = parseFloat(localStorage.getItem('game.driftDepth'));
+  if (!Number.isNaN(oldDrift) && localStorage.getItem('game.driftLevel') === null) {
+    settings.driftLevel = Math.min(1, Math.max(0.01, oldDrift / 0.2));
+    saveSetting('driftLevel');
+  }
+} catch (e) {
+  // localStorage недоступен — остается значение по умолчанию
+}
 
 // Громкость групп звука (вместе с общей): фон — зоны и дождь, звуки — двигатель, фраза, шаги, выстрелы
 const ambientGain = () => (settings.ambient ? settings.volume * settings.ambientVolume : 0);
@@ -150,8 +160,8 @@ const settingsTabs = [
     id: 'drive',
     name: 'Вождение',
     items: [
-      { type: 'range', key: 'driftDepth', label: 'Глубина заноса', min: 0, max: 1, step: 0.05, show: pct, desk: true,
-        note: 'Space на ходу — ручник: задние колеса скользят, машину заносит, на дороге остаются следы' },
+      { type: 'range', key: 'driftLevel', label: 'Глубина заноса', min: 0.01, max: 1, step: 0.01, show: pct,
+        note: 'Ручник на ходу (Space) — машину заносит, на дороге остаются следы. На гоночных газ и тормоз вместе — дрифт: машина едет боком' },
       { type: 'range', key: 'brakeSharp', label: 'Резкость торможения', min: 0.5, max: 2, step: 0.05, show: pct },
       { type: 'range', key: 'accelSharp', label: 'Резкость разгона', min: 0.5, max: 2, step: 0.05, show: pct },
       { type: 'range', key: 'steerSens', label: 'Чувствительность поворота', min: 0.5, max: 2, step: 0.05, show: pct },
