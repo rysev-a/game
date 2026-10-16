@@ -4,13 +4,14 @@
 //
 //   только горизонтально: при первом касании — на весь экран с закрепленным поворотом (Android),
 //                         держат вертикально — просьба повернуть телефон
-//   левая часть экрана  — джойстик: где коснулись, там его центр. Вверх/вниз — W/S, влево/вправо — A/D
+//   слева               — джойстик: стоит на месте, очерчен кругами; берется касанием его круга. Вверх/вниз — W/S, влево/вправо — A/D
 //                         (за рулем — руль). В боевом режиме: отклонили до упора — бег, чуть-чуть — шаг (Shift)
 //   правая часть экрана — провести пальцем: вращать камеру и наклонять горизонт (как зажатое колесо мыши);
 //                         два пальца — масштаб; короткое касание — что это (панель слева), взять вещь,
 //                         а с оружием в руках — выстрел в эту точку
-//   кнопки справа внизу — действие (E), огонь (зажать — очередь / накопление заряда), прыжок, выйти из машины (F)
+//   кнопки справа внизу — действие (E), огонь (зажать — очередь / накопление заряда), выйти из машины (F)
 //                         и значок оружия: касание — лента оружия, листается свайпом
+//   внизу по центру     — оружие в ячейках маленькими значками: касание — взять в руки или убрать
 //   слева внизу         — значок инвентаря (раскрывает его на весь экран) и тонкие полоски жизни и эликсира
 //   справа внизу        — мелко дата и время: 01.01.2030 - 15:20
 //   наклон телефона     — гироскоп: точная доводка прицела, пока оружие в руках (выключается в настройках)
@@ -106,15 +107,34 @@ if (touchUI) {
     }
     #rotateNote .big { font-size: 56px; display: block; margin-bottom: 12px; }
     @media (orientation: portrait) { #rotateNote { display: flex; } }
+    /* Джойстик стоит на месте слева: внешний круг — сколько можно отклонить, внутренний — «мертвая зона» */
     #joyBase {
-      position: fixed; z-index: 20; width: 112px; height: 112px; margin: -56px 0 0 -56px; border-radius: 50%;
-      border: 2px solid rgba(255, 255, 255, 0.35); background: rgba(0, 0, 0, 0.2); pointer-events: none; display: none;
+      position: fixed; z-index: 20; width: 112px; height: 112px; border-radius: 50%; box-sizing: border-box;
+      left: max(36px, calc(env(safe-area-inset-left) + 24px)); bottom: max(64px, calc(env(safe-area-inset-bottom) + 56px));
+      border: 2px solid rgba(255, 255, 255, 0.35); background: rgba(0, 0, 0, 0.2); pointer-events: none;
     }
-    #joyBase.on { display: block; }
+    #joyBase::before {
+      content: ''; position: absolute; left: 50%; top: 50%; width: 38px; height: 38px; margin: -19px 0 0 -19px;
+      border-radius: 50%; border: 1px dashed rgba(255, 255, 255, 0.35);
+    }
+    #joyBase.on { border-color: rgba(255, 255, 255, 0.6); }
     #joyKnob {
-      position: absolute; left: 32px; top: 32px; width: 44px; height: 44px; border-radius: 50%;
-      background: rgba(255, 255, 255, 0.45); border: 2px solid rgba(255, 255, 255, 0.7);
+      position: absolute; left: 32px; top: 32px; width: 44px; height: 44px; border-radius: 50%; box-sizing: border-box;
+      background: rgba(255, 255, 255, 0.4); border: 2px solid rgba(255, 255, 255, 0.7);
     }
+    /* Оружие в ячейках — маленькими значками внизу по центру; касание — взять в руки (или убрать) */
+    #mGuns {
+      position: fixed; z-index: 20; left: 50%; transform: translateX(-50%); bottom: max(8px, env(safe-area-inset-bottom));
+      display: flex; gap: 6px;
+    }
+    #mGuns .g {
+      width: 34px; height: 34px; padding: 0; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(10, 14, 20, 0.55); display: flex; align-items: center; justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #mGuns .g .px { width: 24px; height: 24px; image-rendering: pixelated; pointer-events: none; }
+    #mGuns .g.drawn { border-color: #ffd84a; background: rgba(255, 216, 74, 0.3); }
+    body.touch.invOpen #mGuns { display: none; }
     #touchPad {
       position: fixed; z-index: 20; right: max(12px, env(safe-area-inset-right)); bottom: max(22px, calc(env(safe-area-inset-bottom) + 14px));
       display: grid; grid-template-columns: repeat(3, 52px); grid-auto-rows: 52px; gap: 8px; direction: rtl;
@@ -169,6 +189,7 @@ if (touchUI) {
   const joyRadius = 56; // насколько можно увести палец от центра (px)
   const joyDead = 0.3; // меньше этого — не идем
   const joyWalk = 0.75; // в боевом режиме меньше этого — шаг, больше — бег
+  const joyGrab = 1.6; // касание дальше joyRadius × joyGrab от центра — не джойстик, а камера
   const joyBase = document.createElement('div');
   joyBase.id = 'joyBase';
   const joyKnob = document.createElement('div');
@@ -227,12 +248,14 @@ if (touchUI) {
       e.preventDefault(); // без прокрутки, зума страницы и «мышиных» событий после касания
       if (settingsOpen) setSettingsOpen(false); // касание мимо меню закрывает его, как клик мышью
       for (const t of e.changedTouches) {
-        if (!joyTouch && t.clientX < window.innerWidth * 0.45) {
-          joyTouch = { id: t.identifier, x: t.clientX, y: t.clientY };
-          joyBase.style.left = t.clientX + 'px';
-          joyBase.style.top = t.clientY + 'px';
+        // Джойстик берем, только коснувшись его круга (с запасом joyGrab); остальное слева — камера
+        const r = joyBase.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        if (!joyTouch && Math.hypot(t.clientX - cx, t.clientY - cy) < joyRadius * joyGrab) {
+          joyTouch = { id: t.identifier, x: cx, y: cy };
           joyBase.classList.add('on');
-          setJoy(0, 0);
+          setJoy(t.clientX - cx, t.clientY - cy);
           continue;
         }
         lookTouches.set(t.identifier, { x: t.clientX, y: t.clientY });
@@ -289,6 +312,7 @@ if (touchUI) {
       if (joyTouch && t.identifier === joyTouch.id) {
         joyTouch = null;
         joyBase.classList.remove('on');
+        joyKnob.style.transform = '';
         clearJoyKeys();
         continue;
       }
@@ -362,7 +386,6 @@ if (touchUI) {
   btnFire.addEventListener('contextmenu', (e) => e.preventDefault());
   pad.appendChild(btnFire);
   addButton('tbAct', '✋', 'KeyE', false); // E — действие
-  addButton('tbJump', '⤒', 'Space', true);
   const btnExit = addButton('tbExit', '🚪', 'KeyF', false); // F — выйти из машины / отпустить толкаемую
 
   // Кнопка оружия: значок того, что в руках (или в активной ячейке). Касание — выбор оружия
@@ -630,6 +653,29 @@ if (touchUI) {
   });
   settingsMenu.insertBefore(gyroRow, settingsMenu.querySelector('.hint'));
 
+  const gunsEl = document.createElement('div');
+  gunsEl.id = 'mGuns';
+  document.body.appendChild(gunsEl);
+  let gunsShown = '';
+  function updateGuns() {
+    const ids = weaponSlotIds();
+    const key = ids.join(',') + '|' + heroWeapon.id;
+    if (key === gunsShown) return;
+    gunsShown = key;
+    gunsEl.innerHTML = '';
+    for (const id of ids) {
+      const b = document.createElement('button');
+      b.className = 'g' + (heroWeapon.id === id ? ' drawn' : '');
+      b.appendChild(pixelIcon((ITEMS[id] || {}).icon || id));
+      b.addEventListener('click', () => {
+        if (!canPlay()) return;
+        if (heroWeapon.id === id) holsterWeapon();
+        else drawWeapon(id);
+      });
+      gunsEl.appendChild(b);
+    }
+  }
+
   const rotateNote = document.createElement('div');
   rotateNote.id = 'rotateNote';
   rotateNote.innerHTML = '<div><span class="big">⟳</span>Поверните телефон горизонтально</div>';
@@ -683,6 +729,7 @@ if (touchUI) {
     document.body.classList.toggle('invOpen', inventoryOpen);
     if (inventoryOpen) updateHand();
     updateReticle();
+    updateGuns();
     requestAnimationFrame(updateTouchPad);
   }
   updateTouchPad();
