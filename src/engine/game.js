@@ -59,6 +59,7 @@ function animate(now = performance.now()) {
   updatePlayerBody(move);
   updateWeapons(); // после тела: корпус к цели, заряды, нагрев
   updateCombat(); // цели: полоски здоровья, вспышки, состояния
+  updateEnemyAttacks(); // снаряды и удары врагов по герою
   updateCamera();
   updateFade();
   updateSchedule();
