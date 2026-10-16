@@ -7,6 +7,7 @@
 //   createCainModel()                         // «Каин-02»: тяжелый боевой робот, кулак и пулемет
 //   createSporeHoundModel()                   // спорогончая: бледная гончая с горящими спорами на спине
 //   createStiltVanguardModel()                // ходульный авангард: высокий желтый робот на ходулях
+//   createDemoLabModel()                      // лаборатория ДЕМО: корпус с раздвижными воротами, из них выходят существа
 //
 // Все модели смотрят в -Z и стоят на y = 0. Анимация — m.userData.animate(a), раз в кадр:
 //   a.phase — фаза шага (растет, пока существо идет или топчется на развороте)
@@ -602,5 +603,79 @@ function createStiltVanguardModel() {
     const blink = (idle > 40 && Math.sin(time * 5) > 0.2) || (attack === 'rocket' && charge > 0 && Math.sin(time * 30) > 0);
     for (const l of lamps) l.visible = !blink || l.position.x * Math.sin(time * 0.7) > 0;
   };
+  return g;
+}
+
+// ---------- Лаборатория ДЕМО ----------
+// Низкий бетонный корпус 20 × 10 с синей полосой, фасадом (воротами) в -Z. Ворота — две створки на
+// рельсе, они разъезжаются в стороны (m.userData.setDoor(0..1)); за ними темный проем. По бокам от
+// ворот — окна, за стеклом светятся зеленые капсулы с существами. Над воротами — лампа:
+// m.userData.setAlarm(on, time) — мигает красным, пока из лаборатории выходят существа, иначе зеленая.
+function createDemoLabModel() {
+  const g = new THREE.Group();
+  const W = 20;
+  const D = 10;
+  const H = 5;
+  const front = -D / 2;
+  cBox(g, W + 0.8, 0.4, D + 0.8, 0x6a6e70, 0, 0.2, 0); // цоколь
+  cBox(g, W, H, D, 0xd8dcd6, 0, 0.4 + H / 2, 0); // корпус
+  cBox(g, W + 0.06, 0.55, D + 0.06, 0x2f6fa8, 0, H - 0.4, 0); // синяя полоса
+  cBox(g, W + 0.4, 0.45, D + 0.4, 0xb4b8b2, 0, H + 0.6, 0); // парапет
+  cBox(g, W - 0.6, 0.1, D - 0.6, 0x7a7e80, 0, H + 0.62, 0); // крыша
+  // На крыше: вентиляция, вытяжка, антенна с огоньком
+  cBox(g, 2.4, 1.1, 1.8, 0x9aa2a6, -5.5, H + 1.2, 1.5);
+  cBox(g, 2.6, 0.2, 2, 0x7d858a, -5.5, H + 1.8, 1.5);
+  cCyl(g, 0.9, 1, 1.2, 8, 0x8a9296, 4.5, H + 1.25, 2);
+  cCyl(g, 1.05, 1.05, 0.15, 8, 0x5a6266, 4.5, H + 1.9, 2);
+  cCyl(g, 0.07, 0.1, 3.2, 5, 0x5a6266, 8, H + 2.4, -2.5);
+  cGem(g, 0.18, 0xff4a3a, 8, H + 4.05, -2.5, { glow: true });
+
+  // Ворота: темный проем, рама, рельс сверху и две створки с желто-черной полосой внизу
+  const doorW = 5.2;
+  const doorH = 3.9;
+  cBox(g, doorW, doorH, 0.1, 0x0e1214, 0, 0.4 + doorH / 2, front - 0.02); // проем
+  cBox(g, 0.35, doorH + 0.3, 0.3, 0x3a3f46, -doorW / 2 - 0.17, 0.4 + doorH / 2, front - 0.1);
+  cBox(g, 0.35, doorH + 0.3, 0.3, 0x3a3f46, doorW / 2 + 0.17, 0.4 + doorH / 2, front - 0.1);
+  cBox(g, doorW * 2 + 1.4, 0.3, 0.3, 0x3a3f46, 0, 0.55 + doorH, front - 0.12); // рельс
+  const leaves = [];
+  for (const s of [-1, 1]) {
+    const leaf = new THREE.Group();
+    leaf.position.set((s * doorW) / 4, 0, front - 0.22);
+    g.add(leaf);
+    cBox(leaf, doorW / 2, doorH, 0.14, 0x7a838c, 0, 0.4 + doorH / 2, 0);
+    cBox(leaf, doorW / 2 - 0.3, 0.12, 0.06, 0x5a636c, 0, 0.4 + doorH * 0.62, -0.08); // ребро
+    for (let i = 0; i < 4; i++) cBox(leaf, doorW / 8, 0.4, 0.05, i % 2 ? 0x1c1c1c : 0xf2c230, -doorW / 4 + doorW / 16 + (i * doorW) / 8, 0.65, -0.09);
+    leaves.push({ leaf, s });
+  }
+  // Лампа над воротами и полоса света в проеме
+  const lamp = creaturePart(g, new THREE.BoxGeometry(1.2, 0.35, 0.3), 0x5aff7a, 0, 0.95 + doorH, front - 0.2, { glow: true });
+  const inner = creaturePart(g, new THREE.BoxGeometry(doorW - 0.4, 0.12, 0.05), 0x2a6a40, 0, 0.5 + doorH, front - 0.06, { glow: true });
+
+  // Окна по бокам: темное стекло в раме, за ним капсула со светящимся раствором
+  for (const x of [-7, -3.8, 3.8, 7]) {
+    cBox(g, 2.2, 1.9, 0.12, 0x3a3f46, x, 2.6, front - 0.05);
+    cBox(g, 1.9, 1.6, 0.06, 0x1c2a32, x, 2.6, front - 0.1);
+    cCyl(g, 0.38, 0.38, 1.3, 8, 0x5cff8a, x, 2.5, front - 0.14, { glow: true, scale: [1, 1, 0.15] });
+    cBox(g, 2.4, 0.14, 0.3, 0xb4b8b2, x, 1.58, front - 0.12); // отлив
+  }
+  // Сбоку — резервуар с трубой в стену
+  cCyl(g, 1.2, 1.2, 3.4, 10, 0x9aa4ac, W / 2 + 1.6, 2.1, 1.5);
+  cCyl(g, 1.25, 1.25, 0.2, 10, 0x6a7276, W / 2 + 1.6, 3.85, 1.5);
+  cBox(g, 1.4, 0.3, 0.3, 0x6a7276, W / 2 + 0.5, 3.1, 1.5);
+  // Желто-черная разметка перед воротами
+  for (let i = 0; i < 6; i++) cBox(g, 0.7, 0.03, 1.6, i % 2 ? 0x1c1c1c : 0xf2c230, -2.1 + i * 0.84, 0.02, front - 1.2);
+
+  const green = new THREE.Color(0x5aff7a);
+  const red = new THREE.Color(0xff3a2a);
+  const dimRed = red.clone().multiplyScalar(0.35);
+  g.userData.setDoor = (k) => {
+    for (const { leaf, s } of leaves) leaf.position.x = s * (doorW / 4 + k * (doorW / 2 + 0.2));
+  };
+  g.userData.setAlarm = (on, time) => {
+    const blink = on && Math.sin(time * 12) > 0;
+    lamp.material.color.copy(on ? (blink ? red : dimRed) : green);
+    inner.material.color.setHex(on ? 0x6a2a20 : 0x2a6a40);
+  };
+  g.userData.door = { x: 0, z: front - 1, w: doorW };
   return g;
 }

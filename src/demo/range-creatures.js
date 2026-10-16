@@ -1,13 +1,19 @@
 // src/demo/range-creatures.js
-// ДЕМО: ВОЛЬЕР С СУЩЕСТВАМИ В ТИРЕ (docs/mechanics/weapons.md#демо-тир). Южнее роботов-мишеней —
-// огороженная с трех сторон площадка, открытая к линии огня (на запад). В ней ходят пять существ из
-// лаборатории (модели — src/models/creatures.js): каждое — обычная цель боевой платформы (addCombatTarget,
-// src/engine/combat.js) со своим здоровьем и множителями урона, так что всё оружие тира по ним бьет,
-// а лед, ток и шатание их останавливают.
+// ДЕМО: ВОЛЬЕР С СУЩЕСТВАМИ В ТИРЕ И ЛАБОРАТОРИЯ (docs/mechanics/weapons.md#демо-тир). Южнее
+// роботов-мишеней — огороженная с трех сторон площадка, открытая к линии огня (на запад). За южной
+// оградой — лаборатория: из ее ворот через калитку в вольер выходят существа (модели —
+// src/models/creatures.js). Вольер стоит пустой, пока обучение (src/demo/tutorial.js) не позовет
+// spawnPenCreature(id). Каждое существо — обычная цель боевой платформы (addCombatTarget,
+// src/engine/combat.js) со своим видом (kind: robot | bio — иммунитеты и слабости, ENEMY_KINDS) и
+// здоровьем, так что всё оружие тира по нему бьет (или не бьет), а лед, ток и шатание его останавливают.
+// Побежденное существо падает и растворяется: его больше нет.
+//
+//   spawnPenCreature(id, onGone) — выпустить существо из лаборатории; onGone() — когда оно исчезло
+//   PEN_CREATURES — записи существ по id;  penLab — модель лаборатории (ворота, лампа)
 //
 // Спокойно: wander — бродит по случайным точкам вольера; patrol — ходит по своим точкам с остановками;
 // hover — парит (дрон; на точке маршрута крутится и выжигает пол). Попали — оборачивается к герою
-// (гончая — отбегает). Упавшее встает через 3 секунды, не тронутое 5 секунд — восстанавливает здоровье.
+// (гончая — отбегает). Не тронутое 5 секунд — восстанавливает здоровье.
 //
 // БОЙ. Герой подошел ближе aggro (или выстрелил) — существо нападает: держит свою дистанцию от героя
 // (keep) и бьет атаками из attacks (замах charge кадров, потом shots выстрелов через every кадров,
@@ -15,6 +21,9 @@
 // Из вольера существа отходят только к линии огня (дальше — поводок). Герой упал — приходит в себя
 // у стойки с оружием. Подключается после src/demo/range.js.
 
+const PEN_CREATURES = {};
+let spawnPenCreature = null;
+let penLab = null;
 {
   const penX = 101; // центр вольера
   const penZ = 87;
@@ -25,9 +34,13 @@
 
   // Низкая ограда: север, юг и восток; запад открыт к стрелку
   const railColor = 0x6a6a5e;
+  // В южной ограде — калитка напротив ворот лаборатории
+  const gateHalf = 3;
+  const southHalf = (penHX - gateHalf) / 2;
   const rails = [
     { x: penX, z: penZ - penHZ, hx: penHX, hz: 0.12 },
-    { x: penX, z: penZ + penHZ, hx: penHX, hz: 0.12 },
+    { x: penX - penHX + southHalf, z: penZ + penHZ, hx: southHalf, hz: 0.12 },
+    { x: penX + penHX - southHalf, z: penZ + penHZ, hx: southHalf, hz: 0.12 },
     { x: penX + penHX, z: penZ, hx: 0.12, hz: penHZ },
   ];
   for (const r of rails) {
@@ -41,10 +54,27 @@
       post.position.set(r.x + (r.hx > r.hz ? k * r.hx * 2 : 0), 0.5, r.z + (r.hz > r.hx ? k * r.hz * 2 : 0));
       cityGroup.add(post);
     }
-    addHoverInfo(rail, { kind: 'ДЕМО', name: 'Вольер', desc: 'Существа из лаборатории. Стрелять с линии на западе.' });
+    addHoverInfo(rail, { kind: 'ДЕМО', name: 'Вольер', desc: 'Сюда из лаборатории выходят существа. Стрелять с линии на западе.' });
     addObstacle(r);
     mapObjects.push({ ...r, color: '#6a6a5e' });
   }
+
+  // Лаборатория за южной оградой, воротами к калитке вольера
+  const labX = penX;
+  const labZ = penZ + penHZ + 13;
+  penLab = createDemoLabModel();
+  penLab.position.set(labX, 0, labZ);
+  cityGroup.add(penLab);
+  addHoverInfo(penLab, {
+    kind: 'ДЕМО',
+    name: 'Лаборатория',
+    desc: 'Здесь выращивают существ и собирают роботов. Когда идет обучение, ворота открываются и существа по одному выходят в вольер.',
+  });
+  addObstacle({ x: labX, z: labZ, hx: 10.4, hz: 5.4 });
+  mapObjects.push({ x: labX, z: labZ, hx: 10, hz: 5, color: '#d8dcd6' });
+  addObstacle({ x: labX + 11.6, z: labZ + 1.5, hx: 1.2, hz: 1.2 }); // резервуар
+  const labDoor = { x: labX, z: labZ - 6.2 }; // у ворот, снаружи
+  flatRect(6, labDoor.z - (penZ + penHZ) + 2, 0x5a5a44, 0.013, labX, (labDoor.z + penZ + penHZ) / 2); // тропа к калитке
 
   // Где герой приходит в себя, если существа его свалили: у стойки с оружием, вне их досягаемости
   heroWakePoint = { x: 74, z: 38 };
@@ -67,13 +97,14 @@
   // attacks — чем бьет: { name, min, max (дальность), charge, shots, every, cd, fire(model, t, i) }
   const CREATURES = [
     {
+      id: 'strider',
       make: createChimericStriderModel,
       name: 'Химерный ходок',
-      desc: 'Сшит из нескольких тварей: красное тело с клыками на четырех длинных ногах, сверху — мешок-яйцо. Подкрадывается и бьет вблизи: встает на дыбы и обрушивает клыки. Огонь и плазма ×1,5, холод ×1,5 — быстро коченеет.',
+      kind: 'bio',
+      desc: 'Биосущество, сшитое из нескольких тварей: красное тело с клыками на четырех длинных ногах, сверху — мешок-яйцо. Подкрадывается и бьет вблизи: встает на дыбы и обрушивает клыки. Огонь и плазма огнемета ×2, холод ×1,5; ток и импульс его не берут.',
       hp: 150, r: 0.9, height: 3.6, speed: 0.035, fightSpeed: 0.075, stride: 2.2,
-      weak: { fire: 1.5, plasma: 1.5, cold: 1.5 },
+      weak: { cold: 1.5 },
       behavior: 'wander',
-      at: [-6, -7],
       keep: [0, 1.6],
       attacks: [
         {
@@ -85,11 +116,12 @@
       ],
     },
     {
+      id: 'drone',
       make: createCleanUpDroneModel,
       name: 'Дрон-уборщик',
-      desc: 'Маленький парящий дрон, очень быстрый. Кружит вокруг цели, бьет молнией издалека и поливает огнем из сопла. Электроника — ток ×2; гладкий купол держит пули и лазер (×0,6).',
+      kind: 'robot',
+      desc: 'Робот: маленький парящий дрон, очень быстрый. Кружит вокруг цели, бьет молнией издалека и поливает огнем из сопла. Ток и импульсный лазер ×2; огонь, плазма огнемета, пули и дробь его не берут.',
       hp: 90, r: 0.95, height: 1.9, speed: 0.045, fightSpeed: 0.17, stride: 0,
-      weak: { electric: 2, energy: 0.6, kinetic: 0.6 },
       behavior: 'hover',
       route: [[-8, 6], [-8, -6], [0, -6], [0, 6]],
       keep: [6, 11],
@@ -103,11 +135,12 @@
       ],
     },
     {
+      id: 'cain',
       make: createCainModel,
       name: 'Проект «Каин-02»',
-      desc: 'Тяжелый боевой робот, медленный, но бьет издалека: зеленая плазма из шестиствольника, ракеты с плеча, а вблизи поднимает кулак и жжет огнем прямо из руки. Толстая броня — лазер и кинетика ×0,5, огнемет ее прожигает; через трещину у плеча ток бьет ×1,5.',
+      kind: 'robot',
+      desc: 'Тяжелый боевой робот, медленный, но бьет издалека: зеленая плазма из шестиствольника, ракеты с плеча, а вблизи поднимает кулак и жжет огнем прямо из руки. Огонь, плазма огнемета, пули и дробь его броню не берут; ток и импульсный лазер ×2.',
       hp: 400, r: 1.3, height: 4.2, speed: 0.02, fightSpeed: 0.026, stride: 2.4,
-      weak: { energy: 0.5, kinetic: 0.5, shrapnel: 0.5, electric: 1.5 },
       behavior: 'patrol',
       route: [[6, -6], [6, 6]],
       wait: 180,
@@ -119,13 +152,13 @@
       ],
     },
     {
+      id: 'hound',
       make: createSporeHoundModel,
       name: 'Спорогончая',
-      desc: 'Быстрая бледная гончая, на спине зреют горящие споры. Держится на расстоянии и рыгает оранжевой жидкостью: попадание жжет, на земле остается горящая лужа; вблизи кусает. Огонь ×2 — споры вспыхивают; от попадания отбегает.',
+      kind: 'bio',
+      desc: 'Биосущество: быстрая бледная гончая, на спине зреют горящие споры. Держится на расстоянии и рыгает оранжевой жидкостью: попадание жжет, на земле остается горящая лужа; вблизи кусает. Огонь ×2 — споры вспыхивают; ток и импульс ее не берут; от попадания отбегает.',
       hp: 70, r: 0.8, height: 1.7, speed: 0.08, fightSpeed: 0.12, stride: 4.5,
-      weak: { fire: 2, plasma: 2 },
       behavior: 'wander',
-      at: [2, 8],
       flee: true,
       keep: [5, 9],
       strafe: true,
@@ -140,11 +173,12 @@
       ],
     },
     {
+      id: 'stilt',
       make: createStiltVanguardModel,
       name: 'Ходульный авангард',
-      desc: 'Высокий разведчик на ходулях: обходит периметр широким шагом, а заметив цель — бьет очередями из рук-стволов и ракетами из плечевых ламп. Электроника — ток ×2; тонкие ноги не держат удар — кинетика ×1,5.',
+      kind: 'robot',
+      desc: 'Робот-разведчик на ходулях: обходит периметр широким шагом, а заметив цель — бьет очередями из рук-стволов и ракетами из плечевых ламп. Ток и импульсный лазер ×2; огонь, плазма огнемета, пули и дробь его не берут.',
       hp: 180, r: 0.8, height: 4.9, speed: 0.04, fightSpeed: 0.05, stride: 1.6,
-      weak: { electric: 2, kinetic: 1.5, energy: 0.75 },
       behavior: 'patrol',
       route: [[12, -10], [12, 10], [-2, 10], [-2, -10]],
       wait: 60,
@@ -178,21 +212,42 @@
   const aggro = 30; // заметил героя
   const giveUp = 42; // потерял
 
-  for (const c of CREATURES) {
+  // Удар, который не прошел (иммунитет вида), — подсказка, чем бить; не чаще раза в 4 секунды
+  let immuneHintAt = 0;
+  const immuneHint = (t) => {
+    if (performance.now() - immuneHintAt < 4000) return;
+    immuneHintAt = performance.now();
+    showToast(
+      t.kind === 'robot'
+        ? t.name + ': броню робота не берут огонь, плазма огнемета, пули и дробь. Бейте током (дуговой разрядник) или импульсным лазером'
+        : t.name + ': по живой ткани ток и импульс не проходят. Жгите огнем (плазменный огнемет)',
+      3500,
+    );
+  };
+
+  for (const c of CREATURES) PEN_CREATURES[c.id] = c;
+
+  // Выпустить существо из ворот лаборатории: выходит через калитку в вольер, дальше — как обычно.
+  // Побежденное падает, растворяется и исчезает совсем; тогда зовется onGone
+  spawnPenCreature = (id, onGone) => {
+    const c = PEN_CREATURES[id];
     const model = c.make();
     const body = new THREE.Group(); // поворот и падение; полоска здоровья — на pivot, она не крутится
     body.add(model);
     const pivot = new THREE.Group();
     pivot.add(body);
     const route = (c.route || []).map(([x, z]) => ({ x: penX + x, z: penZ + z }));
-    const start = route[0] || { x: penX + c.at[0], z: penZ + c.at[1] };
+    const start = { x: labDoor.x + rand(-1, 1), z: labDoor.z };
     pivot.position.set(start.x, 0, start.z);
     cityGroup.add(pivot);
-    const shape = addObstacle({ x: start.x, z: start.z, hx: c.r * 0.6, hz: c.r * 0.6 });
+    const ob = { x: start.x, z: start.z, hx: c.r * 0.6, hz: c.r * 0.6 };
+    const shape = addObstacle(ob);
     shape.creature = true; // свои снаряды сквозь него пролетают
 
     const s = {
-      heading: -Math.PI / 2, // лицом на запад, к линии огня
+      heading: 0, // лицом на север: выходит из ворот к калитке
+      enter: { x: penX + rand(-3, 3), z: penZ + penHZ - 4 }, // куда дойти, прежде чем драться
+      gone: 0, // 0..1 — растворяется после поражения
       goal: null,
       leg: 0, // какая точка маршрута следующая
       wait: 60 + Math.random() * 120,
@@ -305,9 +360,11 @@
       r: c.r,
       height: c.height,
       hp: c.hp,
-      weak: c.weak,
+      kind: c.kind,
+      weak: c.weak || {},
       mesh: pivot,
-      onHit: (t) => {
+      onHit: (t, hit, dmg) => {
+        if (dmg === 0 && hit.weapon) immuneHint(t);
         s.alert = 120;
         if (model.userData.spin !== undefined) model.userData.spin = 0.5; // «Каин» раскручивает пулемет
         if (c.flee && !t.dead && !s.atk) {
@@ -321,7 +378,7 @@
         }
       },
       onDeath: () => {
-        s.downUntil = performance.now() + 3000;
+        s.downUntil = performance.now() + 1500; // полежит и растворится
         s.atk = null;
       },
       update: (t) => {
@@ -346,7 +403,10 @@
         }
 
         if (!t.dead && canMove(t)) {
-          if (s.flee > 0 && s.goal) {
+          if (s.enter) {
+            // Выход из лаборатории: прямо через калитку в вольер, на героя пока не смотрит
+            if (walkTo(t, s.enter, c.fightSpeed)) s.enter = null;
+          } else if (s.flee > 0 && s.goal) {
             if (walkTo(t, s.goal, c.fightSpeed * 1.5)) s.flee = 0;
           } else if (s.fight) fightStep(t);
           else if (s.sweep > 0) {
@@ -391,13 +451,28 @@
           if (a) s.lastAttack = a.def.name;
         }
 
-        // Падение и подъем
+        // Падение; полежало — растворяется зеленым облаком и исчезает совсем
         if (t.dead) {
           s.fall = Math.min(1, s.fall + 0.04);
           if (performance.now() > s.downUntil) {
-            reviveTarget(t);
-            s.goal = null;
-            s.wait = 60;
+            if (s.gone === 0) {
+              spawnWeaponFx(t.x, 0.8, t.z, 0x7aff9a, c.r * 0.8, 30, 1.03);
+              spawnShockRing(t.x, 0.15, t.z, 0x7aff9a, 0.4, 20, 1.12);
+            }
+            s.gone = Math.min(1, s.gone + 0.025);
+            if (s.gone >= 1) {
+              // Убрать после кадра: сейчас идет обход целей
+              queueMicrotask(() => {
+                removeCombatTarget(t);
+                cityGroup.remove(pivot);
+                const i = obstacles.indexOf(ob);
+                if (i >= 0) obstacles.splice(i, 1);
+                const j = obstacleShapes.indexOf(shape);
+                if (j >= 0) obstacleShapes.splice(j, 1);
+                if (onGone) onGone();
+              });
+              t.update = null;
+            }
           }
         } else {
           s.fall = Math.max(0, s.fall - 0.03);
@@ -413,10 +488,11 @@
         } else {
           body.rotation.z = s.fall * 1.45 + wobble;
         }
-        pivot.position.set(t.x + t.off.x, 0, t.z + t.off.z);
+        pivot.position.set(t.x + t.off.x, -s.gone * 1.2, t.z + t.off.z);
+        pivot.scale.setScalar(1 - s.gone * 0.6);
         shape.x = t.x + t.off.x;
         shape.z = t.z + t.off.z;
       },
     });
-  }
+  };
 }

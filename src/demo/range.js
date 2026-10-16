@@ -62,9 +62,9 @@
     { x: dummyX, z: rangeZ, name: 'Бронированный', note: 'энергия и кинетика — ×0,25, плазма прожигает броню', armor: true, weak: { energy: 0.25, kinetic: 0.25 } },
     { x: dummyX, z: rangeZ + 12, name: 'Движущийся', note: 'ходит туда-сюда — для тахионного пистолета', move: 6 },
     // Тройка роботов стоит плотно: на ней видно, как разряд перескакивает с цели на цель
-    { x: dummyX - 4, z: rangeZ + 21, name: 'Робот-мишень', note: 'электроника — ток ×2', robot: true, weak: { electric: 2 }, hp: 80 },
-    { x: dummyX - 1, z: rangeZ + 24, name: 'Робот-мишень', note: 'электроника — ток ×2', robot: true, weak: { electric: 2 }, hp: 80 },
-    { x: dummyX - 4, z: rangeZ + 27, name: 'Робот-мишень', note: 'электроника — ток ×2', robot: true, weak: { electric: 2 }, hp: 80 },
+    { x: dummyX - 4, z: rangeZ + 21, name: 'Робот-мишень', note: 'робот — ток и импульс ×2; огонь, плазма огнемета, пули и дробь не берут', robot: true, hp: 80 },
+    { x: dummyX - 1, z: rangeZ + 24, name: 'Робот-мишень', note: 'робот — ток и импульс ×2; огонь, плазма огнемета, пули и дробь не берут', robot: true, hp: 80 },
+    { x: dummyX - 4, z: rangeZ + 27, name: 'Робот-мишень', note: 'робот — ток и импульс ×2; огонь, плазма огнемета, пули и дробь не берут', robot: true, hp: 80 },
   ];
   flatRect(12, 12, 0x5a5048, 0.012, dummyX - 2.5, rangeZ + 24); // площадка роботов
   for (const d of DUMMIES) {
@@ -87,6 +87,7 @@
       r: d.robot ? 0.5 : 0.6,
       height: d.robot ? 1.9 : 2.5,
       hp: d.hp || 120,
+      kind: d.robot ? 'robot' : undefined, // роботы-мишени — вид robot (ENEMY_KINDS)
       weak: d.weak || {},
       mesh: pivot,
       onHit: () => {
