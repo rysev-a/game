@@ -95,7 +95,7 @@ defineBuilding('library', {
       stations,
       people: [
         {
-          floor: 0, x: -6, z: 2.1, yaw: Math.PI, type: 'elder', gender: 'male', opts: { glasses: true, beard: true, cane: false },
+          floor: 0, x: -6, z: 2.1, yaw: Math.PI, type: 'semyon', gender: 'male',
           name: 'Семён Аркадьевич', title: 'директор библиотеки',
           talk: simpleTalk('Семён Аркадьевич — директор библиотеки', {
             hello: 'Молодой человек, вы опять пришли за документацией?',

@@ -25,7 +25,7 @@ low-poly, flat-shaded, chunky blocky proportions, simple box-like shapes, solid 
 clean readable silhouette, stylized indie game asset
 ```
 
-Это повторяет то, как выглядит игра сейчас: люди собраны из коробок (`src/models/person.js`), вещи —
+Это повторяет то, как выглядит игра сейчас: люди собраны из граненых деталей по листу [characters.png](characters.png) (`src/models/person.js`, см. [characters.md](characters.md)), вещи —
 объемный пиксель-арт из значков 12×12 (`src/models/items.js`), всё с плоскими цветами.
 
 ## Персонажи

@@ -115,7 +115,7 @@ defineBuilding('it_company', {
       stations,
       people: [
         {
-          floor: 0, x: 6.6, z: -4.6, yaw: Math.PI, type: 'office', gender: 'male', opts: { bag: null },
+          floor: 0, x: 6.6, z: -4.6, yaw: Math.PI, type: 'oleg', gender: 'male',
           name: 'Олег Борисович', title: 'начальник',
           talk: simpleTalk('Олег Борисович — начальник в IT-компании', {
             hello: 'Ты где пропадаешь? Проект для пекарни горит.',

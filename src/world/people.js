@@ -8,6 +8,7 @@ const npcPants = [0x2f2f2f, 0x3a4a6a, 0x5a4a3a, 0x4a4a4a];
 const npcHair = [0x1a1a1a, 0x5a3a22, 0x8a6a3a, 0xc9a24a, 0x7a2a1a];
 const npcSkins = [0xd9a066, 0xf0c8a0, 0xa66e3c, 0x7a4a2a];
 const npcBags = [0x5a4632, 0x2a2a2a, 0x8a2a2a, 0x2a4a6a, 0x4a6a3a];
+const npcJackets = [0x5a4632, 0x2a2c34, 0x6a2a2a, 0x3a4a5a, 0x8a7a5a];
 const npcHats = [0x2a2a2a, 0x8a2a2a, 0x2a4a6a, 0xc9a24a, 0x4a6a3a];
 
 // Какой это человек: набор из PERSON_PRESETS (src/models/person.js) и мелкие детали.
@@ -41,6 +42,12 @@ function makePerson(gender, type = personType()) {
     if (gender === 'male' && type !== 'police' && Math.random() < 0.2) opts.beard = true;
   }
   if (type === 'casual' && Math.random() < 0.2) opts.hat = 'beanie';
+  // Прически, куртки и толстовки — как у персонажей с листа docs/art/characters.png
+  if (gender === 'female') opts.hair = type === 'elder' ? 'bun' : pick(['long', 'long', 'bob', 'ponytail']);
+  else if (type === 'elder' && Math.random() < 0.4) opts.hair = 'bald';
+  if (gender === 'male' && Math.random() < 0.15) opts.mustache = true;
+  if ((type === 'casual' || type === 'office') && Math.random() < 0.3) opts.jacket = pick(npcJackets);
+  else if ((type === 'casual' || type === 'student') && Math.random() < 0.15) opts.hoodie = true;
   // У набора свои цвета формы, прически и т. п. — случайные цвета их не перекрывают
   const preset = PERSON_PRESETS[type] || {};
   for (const key in preset) delete opts[key];
