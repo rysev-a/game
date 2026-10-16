@@ -32,6 +32,26 @@ const combatRunFactor = 2;
 const combatCameraZoom = 1.15;
 const inCombatMode = () => !drivingCar && !pushingCar && !!heroWeapon.id;
 const isRunning = () => inCombatMode() && !keys['ShiftLeft'] && !keys['ShiftRight'];
+// БЕГ ДВОЙНЫМ НАЖАТИЕМ (вне боя): дважды быстро нажать «вперед» (W или джойстик вперед) — бег,
+// еще раз быстро отпустить и нажать — спринт. Отпустили «вперед» дольше чем на gaitTapGap — снова шагом
+const gaitRunFactor = 2; // бег — как в боевом режиме
+const gaitSprintFactor = 3;
+const gaitTapGap = 300; // мс между отпусканием и новым нажатием, чтобы нажатие считалось «еще раз»
+let gaitLevel = 0; // 0 — шаг, 1 — бег, 2 — спринт
+let gaitTaps = 0; // сколько быстрых нажатий подряд
+let gaitUpPrev = false;
+let gaitReleasedAt = -Infinity;
+function updateGait(up) {
+  const now = performance.now();
+  if (up && !gaitUpPrev) {
+    gaitTaps = now - gaitReleasedAt < gaitTapGap ? gaitTaps + 1 : 1;
+    gaitLevel = Math.min(2, gaitTaps - 1);
+  } else if (!up && gaitUpPrev) gaitReleasedAt = now;
+  else if (!up && now - gaitReleasedAt >= gaitTapGap) gaitLevel = gaitTaps = 0;
+  gaitUpPrev = up;
+}
+// Во что умножить скорость пешком: в бою — прежние правила (бег, Shift — шагом), вне боя — бег/спринт
+const gaitFactor = () => (inCombatMode() ? (isRunning() ? combatRunFactor : 1) : gaitLevel === 2 ? gaitSprintFactor : gaitLevel === 1 ? gaitRunFactor : 1);
 let combatCamera = 0; // 0..1 — насколько камера отъехала для боя
 const mouseLookCameraHeight = 11; // высота камеры, пока мышь захвачена для прицела (src/engine/mouse-look.js)
 const mouseLookCameraTilt = 30; // насколько камера опускается (поднимается) на радиан наклона прицела
@@ -53,6 +73,7 @@ let worldRotation = 0;
 //   W / S — вперед / назад      A / D — поворот (налево / направо); в боевом режиме — шаг боком
 //   E — действие               F — выйти из машины / отпустить   стрелки — камера (←→ вращать, ↑↓ наклон)
 //   Shift — в боевом режиме (оружие в руках) идти шагом, а не бежать
+//   W дважды быстро — бег, еще раз — спринт (вне боя); отпустили W — снова шагом
 // За рулем и при толкании машины A/D — руль: left/right
 function readControls() {
   return {
@@ -104,7 +125,8 @@ function updateWalking(c) {
       playerHeading += Math.atan2(Math.sin(d), Math.cos(d)) * 0.3;
     }
     const f = (c.up ? 1 : 0) - (c.down ? 1 : 0);
-    const speed = playerSpeed * (isRunning() ? combatRunFactor : 1);
+    updateGait(!!c.up);
+    const speed = playerSpeed * gaitFactor();
     let fwd = f > 0 ? speed : f < 0 ? -speed * playerBackFactor : 0;
     // Ходьба кликом по земле (src/player/click-move.js): сам поворачивает к точке и идет
     const auto = clickMoveSteer(c);
@@ -194,11 +216,11 @@ function updatePlayerBody(move) {
   const onGround = player.position.y <= playerGroundY + 0.01;
   const moving = move.moving && onGround;
   const turning = move.turn !== 0 && onGround;
-  // Бег: шаги чаще и шире
-  const run = isRunning() && moving;
-  if (moving) walkPhase += 0.18 * (run ? 1.55 : 1) * move.dir; // шаги подстроены под скорость (пятится — в обратную сторону)
+  // Бег: шаги чаще и шире, спринт — еще чаще и шире
+  const gait = moving ? gaitFactor() : 1;
+  if (moving) walkPhase += 0.18 * (gait >= 3 ? 1.95 : gait >= 2 ? 1.55 : 1) * move.dir; // шаги подстроены под скорость (пятится — в обратную сторону)
   else if (turning) walkPhase += 0.11;
-  const targetAmp = moving ? (run ? 1.35 : 1) : turning ? 0.55 : 0;
+  const targetAmp = moving ? (gait >= 3 ? 1.55 : gait >= 2 ? 1.35 : 1) : turning ? 0.55 : 0;
   walkAmp += (targetAmp - walkAmp) * 0.18;
   player.updateWalk(walkPhase, walkAmp);
   updateFootsteps(moving || turning);
