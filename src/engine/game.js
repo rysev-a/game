@@ -58,7 +58,7 @@ function animate(now = performance.now()) {
   applyWorldTransform();
   updatePlayerBody(move);
   updateWeapons(); // после тела: корпус к цели, заряды, нагрев
-  updateCombat(); // цели: полоски здоровья, цифры урона
+  updateCombat(); // цели: полоски здоровья, вспышки, состояния
   updateCamera();
   updateFade();
   updateSchedule();

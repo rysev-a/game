@@ -14,7 +14,7 @@
 //   });
 //   hitTarget(t, { damage: 12, type: 'energy', x, z, effects }) → сколько урона прошло
 //   removeCombatTarget(t)
-//   updateCombat() — раз в кадр из главного цикла: полоски здоровья, цифры урона, вспышки, состояния
+//   updateCombat() — раз в кадр из главного цикла: полоски здоровья, вспышки, состояния
 //
 // Типы урона: energy (лазер), kinetic (гаусс, капсула крио), plasma и fire (плазма и ее горение),
 // cold (холод), electric (разряд), tachyon (тахионы), shrapnel (осколки льда).
@@ -34,7 +34,6 @@
 // притягивают (pushLoose, looseObjects); трение останавливает, мешают препятствия.
 
 const combatTargets = [];
-const combatFx = []; // летящие цифры урона: { sprite, life, vy }
 
 function addCombatTarget(def) {
   const t = Object.assign({ name: '', r: 0.6, height: 2, hp: 100, weak: {}, dead: false, flash: 0 }, def);
@@ -73,9 +72,6 @@ function hitTarget(t, hit) {
   t.flash = 6;
   t.lastHit = performance.now();
   drawHpBar(t);
-  // Цифра урона: белая — обычный, желтая — слабое место, серая — почти не прошло; урон стихий — своим цветом
-  const color = mult >= 1.5 ? '#ffe066' : mult < 0.5 ? '#9aa3ad' : damageTypeColor[hit.type] || '#ffffff';
-  spawnDamageNumber(mult < 0.5 && dmg <= 3 ? 'блок ' + dmg : String(dmg), t, color, hit.small);
   if (shatter) shatterTarget(t);
   else if (hit.effects) for (const k in hit.effects) applyStatus(t, k, hit.effects[k]);
   if (hit.push) pushTarget(t, hit.push.x, hit.push.z);
@@ -86,8 +82,6 @@ function hitTarget(t, hit) {
   }
   return dmg;
 }
-
-const damageTypeColor = { fire: '#ffa040', plasma: '#ff8a3a', cold: '#a8e8ff', electric: '#d8b8ff', tachyon: '#ff7ae0', shrapnel: '#e8fbff' };
 
 // Вернуть цель к жизни с полным здоровьем (манекены встают сами); состояния снимаются
 function reviveTarget(t) {
@@ -286,31 +280,6 @@ function drawHpBar(t) {
   t.hpBar.material.map.needsUpdate = true;
 }
 
-// ---------- Цифры урона ----------
-function spawnDamageNumber(text, t, color, small = false) {
-  const cv = document.createElement('canvas');
-  const c = cv.getContext('2d');
-  c.font = 'bold 40px sans-serif';
-  cv.width = Math.ceil(c.measureText(text).width) + 12;
-  cv.height = 48;
-  c.font = 'bold 40px sans-serif';
-  c.textBaseline = 'top';
-  c.lineWidth = 6;
-  c.strokeStyle = 'rgba(0,0,0,0.8)';
-  c.strokeText(text, 6, 4);
-  c.fillStyle = color;
-  c.fillText(text, 6, 4);
-  const tex = new THREE.CanvasTexture(cv);
-  tex.minFilter = THREE.LinearFilter;
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
-  const s = small ? 0.008 : 0.012;
-  sprite.scale.set(cv.width * s, cv.height * s, 1);
-  sprite.renderOrder = 11;
-  sprite.position.set(t.x + t.off.x + (Math.random() - 0.5) * 0.6, t.height + 0.9, t.z + t.off.z);
-  cityGroup.add(sprite);
-  combatFx.push({ sprite, life: 50, vy: 0.03 });
-}
-
 // ---------- Цвет модели: вспышка при попадании и состояния ----------
 const hitFlashColor = new THREE.Color(0xffffff);
 function setTint(t, color, k) {
@@ -343,18 +312,6 @@ function updateCombat() {
       cityGroup.remove(sh.m);
       sh.m.material.dispose();
       shards.splice(i, 1);
-    }
-  }
-  for (let i = combatFx.length - 1; i >= 0; i--) {
-    const f = combatFx[i];
-    f.life--;
-    f.sprite.position.y += f.vy;
-    f.sprite.material.opacity = Math.min(1, f.life / 20);
-    if (f.life <= 0) {
-      cityGroup.remove(f.sprite);
-      f.sprite.material.map.dispose();
-      f.sprite.material.dispose();
-      combatFx.splice(i, 1);
     }
   }
 }
