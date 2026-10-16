@@ -568,6 +568,7 @@ function createWalkingMan(options = {}) {
   // при вытянутой вперед руке
   const WEAR_SLOTS = { wristL: [L.inner, -0.56, 0], wristR: [R.inner, -0.56, 0], handR: [R.inner, -0.7, -Math.PI / 2] };
   root.attach = function (slot, obj) {
+    root.userData.rig.attached.push([slot, obj]);
     const [arm, y, rx] = WEAR_SLOTS[slot];
     obj.position.set(0, y, 0);
     obj.rotation.x = rx;
@@ -576,6 +577,8 @@ function createWalkingMan(options = {}) {
   };
 
   root.setPush(false); // применить сутулость (stoop)
+  // Для готовой 3D-модели из файла (person-models.js): что прятать и что перевешивать на кости
+  root.userData.rig = { hips, attached: [] };
   return root;
 }
 
@@ -693,5 +696,8 @@ const PERSON_PRESETS = {
 PERSON_PRESETS.geek = PERSON_PRESETS.maxim; // старое имя набора игрока
 
 function createPerson(type, options = {}) {
-  return createWalkingMan(Object.assign({}, PERSON_PRESETS[type] || {}, options));
+  const man = createWalkingMan(Object.assign({}, PERSON_PRESETS[type] || {}, options));
+  // Если для набора есть готовая 3D-модель (src/models/person-models.js), она заменит человечка
+  if (typeof attachPersonModel === 'function') attachPersonModel(man, type === 'geek' ? 'maxim' : type);
+  return man;
 }
