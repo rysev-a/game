@@ -208,6 +208,13 @@ if (touchUI) {
       background: rgba(10, 14, 20, 0.6); color: white; font-size: 18px; display: none;
     }
     body.touch.armed #mPeace { display: block; }
+    /* За рулем — кнопка «выйти» там же, рядом с оружием; надписи «остановитесь, чтобы выйти» на телефоне нет */
+    #mExit {
+      width: 34px; height: 34px; padding: 0; border-radius: 8px; border: 1px solid rgba(255, 216, 74, 0.7);
+      background: rgba(10, 14, 20, 0.6); color: white; font-size: 18px; display: none;
+    }
+    body.touch.driving #mExit { display: block; }
+    #mExit.wait { background: rgba(255, 216, 74, 0.35); }
     /* Подсказка действия на телефоне — тоже кнопка: касание делает то, что в ней написано */
     body.touch #prompt { pointer-events: auto; cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.35); }
   `;
@@ -491,7 +498,7 @@ if (touchUI) {
     '<button id="mInvBtn"></button><div class="bars">' +
     '<div class="bar"><div id="mHp" style="background:#e0483a"></div></div>' +
     '<div class="bar"><div id="mElixir" style="background:#a05cf0"></div></div></div>' +
-    '<button id="mPeace">🕊</button>';
+    '<button id="mPeace">🕊</button><button id="mExit">🚪</button>';
   document.body.appendChild(stats);
   const invBtn = stats.querySelector('#mInvBtn');
   invBtn.appendChild(pixelIcon('bag'));
@@ -499,6 +506,26 @@ if (touchUI) {
   stats.querySelector('#mPeace').addEventListener('click', () => {
     if (heroWeapon.id) holsterWeapon(); // в мирный режим
   });
+  // Выйти из машины: стоит — сразу; едет — сама тормозит до остановки и тогда выходит
+  const exitBtn = stats.querySelector('#mExit');
+  let exitPending = false;
+  exitBtn.addEventListener('click', () => {
+    if (drivingCar) exitPending = true;
+  });
+  function updateExit() {
+    if (exitPending && drivingCar) {
+      keys['Space'] = true; // ручник, пока машина не встанет
+      if (Math.abs(drivingCar.speed) <= exitMaxSpeed) {
+        keys['Space'] = false;
+        exitPending = false;
+        exitCar();
+      }
+    } else if (exitPending) {
+      keys['Space'] = false;
+      exitPending = false;
+    }
+    exitBtn.classList.toggle('wait', exitPending);
+  }
   const hpEl = stats.querySelector('#mHp');
   const elixirEl = stats.querySelector('#mElixir');
 
@@ -791,6 +818,8 @@ if (touchUI) {
     updateReticle();
     updateGuns();
     document.body.classList.toggle('armed', !!heroWeapon.id);
+    document.body.classList.toggle('driving', !!drivingCar);
+    updateExit();
     requestAnimationFrame(updateTouchPad);
   }
   updateTouchPad();

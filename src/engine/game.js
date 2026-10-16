@@ -18,7 +18,7 @@ function updatePrompt() {
   const it = dialogueOpen ? null : activeInteractable(); // в разговоре подсказка не нужна
   if (it) {
     promptText = it.prompt();
-  } else if (drivingCar) {
+  } else if (drivingCar && !touchUI) { // на телефоне выход — кнопка 🚪 рядом с оружием (src/engine/touch.js)
     promptText =
       Math.abs(drivingCar.speed) <= exitMaxSpeed
         ? 'E или F — выйти из машины'
