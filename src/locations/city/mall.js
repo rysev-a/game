@@ -59,8 +59,8 @@ const mallFloor = () => (playerWorldZ > (mallFloorZ[0] + mallFloorZ[1]) / 2 ? 1 
 addInteriorDoor(mallInterior, {
   outside: shopDoorOutside,
   door: mall.door,
-  enterLabel: 'R — войти в торговый центр',
-  exitLabel: 'R — выйти из торгового центра',
+  enterLabel: 'E — войти в торговый центр',
+  exitLabel: 'E — выйти из торгового центра',
 });
 addInteriorStairs(mallInterior, mall.stairs);
 zoneSounds.mall = { shop: 0.9 };

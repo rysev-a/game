@@ -51,7 +51,7 @@ addInteractable({
   near: () => !drivingCar && !insideBuilding() && nearestCar() !== null,
   prompt: () => {
     const car = nearestCar();
-    return carBlockedReason(car) || (car.isPlayerCar ? 'R — сесть в свою машину' : 'R — сесть в машину (есть ключи)');
+    return carBlockedReason(car) || (car.isPlayerCar ? 'E — сесть в свою машину' : 'E — сесть в машину (есть ключи)');
   },
   act: () => {
     const car = nearestCar();
@@ -59,7 +59,7 @@ addInteractable({
   },
 });
 
-// Канистра с бензином (от соседа): R рядом со своей машиной заливает бензин — катить не нужно
+// Канистра с бензином (от соседа): E рядом со своей машиной заливает бензин — катить не нужно
 const canisterFuel = 0.45; // сколько бака доливает канистра
 addInteractable({
   priority: 3, // важнее «толкать» и «сесть»
@@ -68,7 +68,7 @@ addInteractable({
     const car = nearestCar();
     return !!car && car.isPlayerCar && car.fuel < 0.55;
   },
-  prompt: () => 'R — залить бензин из канистры',
+  prompt: () => 'E — залить бензин из канистры',
   act: () => {
     const car = nearestCar();
     car.fuel = Math.min(1, car.fuel + canisterFuel);
@@ -138,7 +138,7 @@ function updateDriving(c) {
   }
   if (car.fuel <= 0 && !emptyFuelWarned) {
     emptyFuelWarned = true;
-    showToast('Бензин закончился. F — выйти, потом R у машины — толкать', 6000);
+    showToast('Бензин закончился. F — выйти, потом E у машины — толкать', 6000);
   }
   if (blockedX && blockedZ) car.speed *= -0.25;
   else if (blockedX || blockedZ) car.speed *= 0.85;
@@ -167,18 +167,17 @@ function moveCarWithCollisions(car, turn) {
 }
 
 // Камера поворачивается вместе с машиной: нос смотрит вверх экрана. Поворот передаем камере
-// как есть, а остаток (после посадки или ручного вращения мышью/Z/C) плавно доворачиваем к нулю
+// как есть, а остаток (после посадки или ручного вращения колесом мыши/стрелками) плавно доворачиваем к нулю
 function followCamera(car, appliedTurn) {
   worldRotation -= appliedTurn;
-  // Вид повернут мышью (включен глаз) — камеру не возвращаем, она остается как поставили
-  if (viewLookActive || cameraHoldFrames > 0) return; // вид крутят мышью или стрелками
+  if (viewDragging || cameraHoldFrames > 0) return; // вид крутят мышью или стрелками
   const offset = worldRotation + car.heading;
   worldRotation -= Math.atan2(Math.sin(offset), Math.cos(offset)) * cameraFollowEase;
 }
 
-// ТОЛКАНИЕ. Если машина «села» (кончился бензин), ее можно толкать: подойти, R — игрок встает
+// ТОЛКАНИЕ. Если машина «села» (кончился бензин), ее можно толкать: подойти, E — игрок встает
 // слева у открытой водительской двери: одной рукой рулит, другой толкает. W — толкать вперед,
-// S — тянуть назад, A/D — направлять, R или F — отпустить.
+// S — тянуть назад, A/D — направлять, E или F — отпустить.
 // Если человека попросили помочь (диалог, src/player/talk.js), он толкает сзади, и машина катится
 // очень быстро. Докатить машину до заправки можно и самому — медленно
 const pushSpeed = 0.1; // толкать вперед одному (юнитов за кадр)
@@ -199,13 +198,13 @@ const helperIsPushing = (car) => !!car && !!car.helper && car.helper.ready;
 addInteractable({
   priority: 1,
   near: () => !drivingCar && !pushingCar && !insideBuilding() && canPush(nearestCar()),
-  prompt: () => 'У машины кончился бензин. R — толкать',
+  prompt: () => 'У машины кончился бензин. E — толкать',
   act: () => startPush(nearestCar()),
 });
 addInteractable({
   priority: 5, // пока толкаете, это главное действие
   near: () => !!pushingCar,
-  prompt: () => 'R или F — отпустить машину. W — толкать, S — тянуть, A/D — направлять',
+  prompt: () => 'E или F — отпустить машину. W — толкать, S — тянуть, A/D — направлять',
   act: () => releaseCar(),
 });
 
@@ -291,7 +290,7 @@ function updateCarMeshes() {
   }
 }
 
-// F — выйти из машины или отпустить толкаемую (R у колонки заправляет, поэтому выходим по F)
+// F — выйти из машины или отпустить толкаемую (E у колонки заправляет, поэтому выходим по F)
 window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyF' && !e.repeat && !settingsOpen && !dialogueOpen && !inventoryOpen) {
     if (drivingCar) exitCar();

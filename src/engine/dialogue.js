@@ -1,12 +1,12 @@
 // src/engine/dialogue.js
-// ДИАЛОГИ: движок и окно внизу экрана. С любым человеком рядом можно поговорить (R). Игрок
+// ДИАЛОГИ: движок и окно внизу экрана. С любым человеком рядом можно поговорить (E). Игрок
 // выбирает ответ цифрой (1–9) или кликом мыши; Esc — закончить разговор. Пока идет диалог,
 // игровые клавиши не работают, а собеседник останавливается и поворачивается к игроку.
 //
 // Диалог — дерево узлов. Узел:
 //   { speaker: 'Имя', text: 'реплика', options: [{ text, next(person), action(person), end }] }
 //   next(person) возвращает следующий узел; action(person) — что сделать при выборе;
-//   end: true или отсутствие next — закончить разговор. Узел без options — «R, чтобы продолжить».
+//   end: true или отсутствие next — закончить разговор. Узел без options — «E, чтобы продолжить».
 // Что говорят люди — в src/player/talk.js (startDialogue вызывается оттуда).
 
 let dialogueOpen = false;
@@ -34,7 +34,7 @@ function renderDialogue() {
   if (!options.length) {
     const hint = document.createElement('div');
     hint.className = 'hint';
-    hint.textContent = 'R — продолжить';
+    hint.textContent = 'E — продолжить';
     dlgOptions.appendChild(hint);
     return;
   }
@@ -98,8 +98,8 @@ window.addEventListener('keydown', (e) => {
     chooseDialogueOption(Number(digit[1]) - 1);
   } else if (e.code === 'Escape') {
     endDialogue();
-  } else if (['KeyR', 'Space', 'Enter'].includes(e.code)) {
-    // Тот же R, которым начали разговор, не должен сразу его закрыть
+  } else if (['KeyE', 'Space', 'Enter'].includes(e.code)) {
+    // Тот же E, которым начали разговор, не должен сразу его закрыть
     if (performance.now() - dialogueOpenedAt > 250 && !(dialogueNode.options || []).length) endDialogue();
   }
 });

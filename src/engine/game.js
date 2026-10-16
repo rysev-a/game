@@ -1,6 +1,6 @@
 // src/engine/game.js
 // ГЛАВНЫЙ ЦИКЛ. Порядок кадра: ввод → движение пешком → езда → люди и сцены → подсказка →
-// вращение мира вокруг игрока → тело игрока → камера → затухание зданий → погода, звук, карта → рендер.
+// вращение мира вокруг игрока → тело игрока → камера → затухание зданий → погода, звук, карта → вещь под мышью → рендер.
 
 // Старт: в доме, в прихожей на первом этаже
 playerWorldX = home.door.x;
@@ -16,7 +16,7 @@ function updatePrompt() {
   } else if (drivingCar) {
     promptText =
       Math.abs(drivingCar.speed) <= exitMaxSpeed
-        ? 'R или F — выйти из машины'
+        ? 'E или F — выйти из машины'
         : 'W/S — газ, A/D — руль, Space — тормоз. Остановитесь, чтобы выйти';
   }
   promptEl.textContent = promptText;
@@ -61,6 +61,7 @@ function animate(now = performance.now()) {
 
   drawMinimap();
   updateTravelHud();
+  updatePickHover(pickMouse); // вещь под мышью подсвечивается
   renderer.render(scene, camera);
 }
 

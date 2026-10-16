@@ -45,7 +45,7 @@
         pointer-events: none;
         display: none;
       }
-      /* Слева сверху: инвентарь и рядом кнопка-глаз (вид мышью) */
+      /* Слева сверху: инвентарь */
       #topLeft {
         position: absolute;
         top: 10px;
@@ -54,36 +54,6 @@
         display: flex;
         align-items: flex-start;
         gap: 8px;
-      }
-      #eyeBtn {
-        width: 40px;
-        height: 40px;
-        box-sizing: border-box;
-        padding: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 8px;
-        background: rgba(10, 14, 20, 0.62);
-        cursor: pointer;
-      }
-      #eyeBtn:hover {
-        background: rgba(60, 60, 70, 0.8);
-      }
-      #eyeBtn .px {
-        width: 28px;
-        height: 28px;
-        image-rendering: pixelated;
-        opacity: 0.45;
-        pointer-events: none;
-      }
-      #eyeBtn.active {
-        border-color: #ffd84a;
-        background: rgba(255, 216, 74, 0.25);
-      }
-      #eyeBtn.active .px {
-        opacity: 1;
       }
       #inventory {
         position: relative;
@@ -467,7 +437,6 @@
     <div id="mouseHint"></div>
     <div id="topLeft">
       <div id="inventory"></div>
-      <button id="eyeBtn" title="Вид мышью (V)"></button>
     </div>
     <div id="toast"></div>
     <div id="dialogue">
@@ -492,7 +461,7 @@
       <span id="clockIcon"></span>
       <div><div id="clockTime">09:00</div><div id="clockDate"></div></div>
     </div>
-    <div id="hud"><div id="hudZone"></div>R — действие · I — инвентарь · V — вид мышью · P — дождь · M — звук · O — настройки<div id="hudSound"></div></div>
+    <div id="hud"><div id="hudZone"></div>E — действие · I — инвентарь · P — дождь · M — звук · O — настройки<div id="hudSound"></div></div>
     <div id="minimapWrap"><canvas id="minimap" width="320" height="320"></canvas></div>
     <div id="mmInfo"></div>
     <script>

@@ -2,9 +2,6 @@
 // НАСТРОЙКИ. Шестеренка внизу слева (или клавиша O) открывает меню; пока в нем одна настройка —
 // общая громкость (0–100%), она действует на все звуки: зоны, машину, дождь, фразу, шаги.
 // Значение запоминается в браузере (localStorage). Пока меню открыто, игровые клавиши не работают.
-//
-// Мышь захвачена игрой (клик по сцене) — тогда курсора нет. Чтобы нажать на шестеренку,
-// сначала нажмите Esc (браузер отпустит мышь) или откройте меню клавишей O: она отпустит мышь сама.
 
 const settings = { volume: 1 };
 try {
@@ -30,7 +27,6 @@ function setSettingsOpen(open) {
   settingsMenu.style.display = open ? 'block' : 'none';
   if (open) {
     for (const k of Object.keys(keys)) keys[k] = false; // отпускаем зажатые клавиши
-    if (document.exitPointerLock) document.exitPointerLock(); // нужен курсор, чтобы двигать ползунок
   } else {
     volumeSlider.blur(); // чтобы стрелки не двигали ползунок вместо игрока
   }
@@ -48,7 +44,7 @@ volumeSlider.addEventListener('input', () => {
 
 settingsBtn.addEventListener('click', () => setSettingsOpen(!settingsOpen));
 
-// Клик мимо меню закрывает его (в том числе клик по сцене, который захватывает мышь)
+// Клик мимо меню закрывает его (в том числе клик по сцене)
 document.addEventListener('mousedown', (e) => {
   if (settingsOpen && !settingsMenu.contains(e.target) && e.target !== settingsBtn) setSettingsOpen(false);
 });

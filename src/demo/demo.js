@@ -1,7 +1,7 @@
 // src/demo/demo.js
 // ДЕМО-РЕЖИМ (самая простая версия, см. docs/mechanics/demo.md). Вместо большого мира — одна площадка:
-// дом и гараж героя с машиной, дорога, ряд всех персонажей сюжета (с каждым можно поговорить, R)
-// и стол со всеми предметами (R — взять, запас бесконечный). Платформа та же, что в игре:
+// дом и гараж героя с машиной, дорога, ряд всех персонажей сюжета (с каждым можно поговорить, E)
+// и стол со всеми предметами (E или клик мышью — взять, запас бесконечный). Платформа та же, что в игре:
 // demo/index.html подключает те же файлы, кроме src/locations/* и src/world/world.js, forest.js, fence.js.
 // Подключается вместо них, перед src/engine/settings.js.
 
@@ -169,7 +169,7 @@ const demoPeople = [];
   const rowZ = 18;
   const step = 8;
   const x0 = -((DEMO_CHARACTERS.length - 1) * step) / 2;
-  demoLabel('ПЕРСОНАЖИ — подойдите и нажмите R', 0, 5.2, rowZ + 4, { size: 1.6, color: '#ffe08a' });
+  demoLabel('ПЕРСОНАЖИ — подойдите и нажмите E', 0, 5.2, rowZ + 4, { size: 1.6, color: '#ffe08a' });
   DEMO_CHARACTERS.forEach((c, i) => {
     const preset = PERSON_PRESETS[c.type] || {};
     const opts = Object.assign({ gender: c.gender, hairColor: 0x3a2a1a, skinColor: 0xf0c8a0 }, c.opts || {});
@@ -214,7 +214,7 @@ const demoPersonNear = () => {
 addInteractable({
   priority: 2,
   near: () => !!demoPersonNear(),
-  prompt: () => 'R — поговорить: ' + demoPersonNear().demo.name,
+  prompt: () => 'E — поговорить: ' + demoPersonNear().demo.name,
   act: () => {
     const p = demoPersonNear();
     startDialogue(p, demoDialogue(p));
@@ -234,7 +234,7 @@ addInteractable({
   cityGroup.add(table);
   addObstacle({ x: 0, z: tableZ, hx: tableW / 2, hz: 0.8 });
   mapObjects.push({ x: 0, z: tableZ, hx: tableW / 2, hz: 0.8, color: '#8a6a3c' });
-  demoLabel('ПРЕДМЕТЫ — R, чтобы взять', 0, 3.4, tableZ, { size: 1.6, color: '#ffe08a' });
+  demoLabel('ПРЕДМЕТЫ — E, чтобы взять', 0, 3.4, tableZ, { size: 1.6, color: '#ffe08a' });
 
   const colors = [0xe0c341, 0x3a7bd5, 0xc43a3a, 0x3fa35b, 0x8a5fc4, 0xe58a2f, 0xdad6c8, 0x4a8a9a, 0xd07a2f];
   ids.forEach((id, i) => {
@@ -243,15 +243,18 @@ addInteractable({
     box.position.set(x, 1.1, tableZ);
     cityGroup.add(box);
     demoLabel(ITEMS[id].name, x, 2.1, tableZ, { size: 0.85 });
+    const take = () => {
+      if (hasItem(id)) showToast('Уже в инвентаре: ' + ITEMS[id].name);
+      else if (!addItem(id)) showToast('Инвентарь полон');
+    };
     addInteractable({
       priority: 2,
       near: () => !drivingCar && !insideBuilding() && Math.hypot(playerWorldX - x, playerWorldZ - tableZ) < 2.2,
-      prompt: () => 'R — взять: ' + ITEMS[id].name,
-      act: () => {
-        if (hasItem(id)) showToast('Уже в инвентаре: ' + ITEMS[id].name);
-        else if (!addItem(id)) showToast('Инвентарь полон');
-      },
+      prompt: () => 'E — взять: ' + ITEMS[id].name,
+      act: take,
     });
+    // Мышью: навести на коробку (подсветится) и кликнуть
+    addPickable({ mesh: box, canPick: () => !drivingCar && !insideBuilding(), pick: take });
   });
 }
 

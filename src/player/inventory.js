@@ -23,7 +23,7 @@ const ITEMS = {
   badge: { name: 'Удостоверение', icon: 'badge' },
   notebook: { name: 'Блокнот', icon: 'notebook' },
   flashlight: { name: 'Фонарик', icon: 'flashlight' },
-  canister: { name: 'Канистра с бензином', icon: 'canister' }, // от соседа; R у своей машины — залить
+  canister: { name: 'Канистра с бензином', icon: 'canister' }, // от соседа; E у своей машины — залить
 };
 
 const inventory = {
@@ -180,7 +180,6 @@ function setInventoryOpen(open) {
   savesMode = null;
   if (open) {
     for (const k of Object.keys(keys)) keys[k] = false; // отпускаем зажатые клавиши
-    if (document.exitPointerLock) document.exitPointerLock(); // нужен курсор, чтобы кликать
   }
   renderInventory();
 }
