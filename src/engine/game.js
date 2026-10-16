@@ -62,6 +62,7 @@ function animate(now = performance.now()) {
   updateCombat(); // цели: полоски здоровья, вспышки, состояния
   updateEnemyAttacks(); // снаряды и удары врагов по герою
   updateCamera();
+  updateMouseLook(); // прицел мышью: перекрестие, отпустить мышь, если боевой режим кончился
   updateFade();
   updateSchedule();
   updateRain();

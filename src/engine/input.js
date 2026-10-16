@@ -1,6 +1,7 @@
 // src/engine/input.js
 // Ввод: клавиши, полный экран, мышь (зажатое колесо — вращение вида и наклон горизонта, наведение
-// и клик — взять вещь), колесо — зум.
+// и клик — взять вещь), колесо — зум, а в боевом режиме — смена оружия. Вид и прицел захваченной
+// мышью в боевом режиме — src/engine/mouse-look.js.
 
 // ВИД МЫШЬЮ. Играем кнопками: W/S — вперед/назад, A/D — поворот, камера поворачивается вместе
 // с игроком. Пока зажато колесо мыши, движение мыши вращает камеру и наклоняет горизонт; отпустили —
@@ -38,8 +39,9 @@ fullscreenBtn.addEventListener('click', () => {
 
 function updateMouseHint() {
   mouseHint.style.display = 'block';
-  mouseHint.textContent =
-    'W/S — вперед/назад · A/D — поворот · E — действие · зажатое колесо мыши или стрелки — камера · клик по вещи — взять';
+  mouseHint.textContent = mouseLookActive()
+    ? 'W/S — вперед/назад · A/D — вбок · мышь — прицел · колесо — оружие · Esc — отпустить мышь'
+    : 'W/S — вперед/назад · A/D — поворот · E — действие · зажатое колесо мыши или стрелки — камера · клик по вещи — взять';
 }
 updateMouseHint();
 
@@ -67,6 +69,10 @@ window.addEventListener('blur', () => (viewDragging = false));
 // Где курсор над сценой (-1..1) — по нему ищем вещь под мышью (updatePickHover в src/engine/interact.js)
 let pickMouse = null;
 renderer.domElement.addEventListener('mousemove', (e) => {
+  if (mouseLookActive()) {
+    pickMouse = null; // мышь захвачена для прицела — курсора нет, вещи под ним не ищем
+    return;
+  }
   pickMouse = pickMouse || new THREE.Vector2();
   pickMouse.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
 });
@@ -87,11 +93,27 @@ document.addEventListener('mousemove', (e) => {
   cameraHoldFrames = cameraHoldDelay; // пока крутим и чуть после — камера не возвращается за игроком
 });
 
-// Колесо мыши — масштаб: вверх — ближе, вниз — дальше
+// Колесо мыши — масштаб: вверх — ближе, вниз — дальше. В боевом режиме на компьютере колесо меняет
+// оружие: вниз — следующее, вверх — предыдущее. Тачпад шлет много мелких событий: копим прокрутку
+// и меняем не чаще раза в wheelSwitchMs
+let wheelAcc = 0;
+let wheelSwitchAt = 0;
+const wheelSwitchMs = 160;
 window.addEventListener(
   'wheel',
   (e) => {
     e.preventDefault();
+    const onScene = e.target === renderer.domElement || mouseLookActive();
+    if (!touchUI && inCombatMode() && onScene && !settingsOpen && !dialogueOpen) {
+      const now = performance.now();
+      wheelAcc += e.deltaMode === 1 ? e.deltaY * 40 : e.deltaY;
+      if (Math.abs(wheelAcc) >= 50 && now - wheelSwitchAt > wheelSwitchMs) {
+        nextWeapon(wheelAcc > 0 ? 1 : -1);
+        wheelAcc = 0;
+        wheelSwitchAt = now;
+      }
+      return;
+    }
     const factor = e.deltaY < 0 ? 1 / 1.1 : 1.1;
     zoom = Math.min(Math.max(zoom * factor, zoomMin), zoomMax);
   },

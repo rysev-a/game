@@ -33,6 +33,8 @@ const combatCameraZoom = 1.15;
 const inCombatMode = () => !drivingCar && !pushingCar && !!heroWeapon.id;
 const isRunning = () => inCombatMode() && !keys['ShiftLeft'] && !keys['ShiftRight'];
 let combatCamera = 0; // 0..1 — насколько камера отъехала для боя
+const mouseLookCameraHeight = 11; // высота камеры, пока мышь захвачена для прицела (src/engine/mouse-look.js)
+const mouseLookCameraTilt = 30; // насколько камера опускается (поднимается) на радиан наклона прицела
 let rotationSpeed = 0.025;
 
 // Простая физика прыжка (в кадрах, не в секундах).
@@ -200,6 +202,11 @@ function updateCamera() {
   if (keys['ArrowDown']) cameraHeight = Math.max(cameraHeight - 0.5, cameraHeightMin);
   combatCamera += ((inCombatMode() ? 1 : 0) - combatCamera) * 0.05;
   const z = zoom * (1 + (combatCameraZoom - 1) * combatCamera);
-  camera.position.set(0, cameraHeight * z, cameraDistance * z);
-  camera.lookAt(0, 1, 0);
+  // Мышь захвачена для прицела (src/engine/mouse-look.js): камера опускается, как за плечом в шутере,
+  // и наклоняется вслед за прицелом — целишься выше, камера ниже и видно дальше
+  mouseLookBlend += ((mouseLookActive() ? 1 : 0) - mouseLookBlend) * 0.08;
+  const lookHeight = mouseLookCameraHeight - aimPitch * mouseLookCameraTilt;
+  const h = cameraHeight + (lookHeight - cameraHeight) * mouseLookBlend;
+  camera.position.set(0, h * z, cameraDistance * z);
+  camera.lookAt(0, 1 + mouseLookBlend * 1.5, 0);
 }
