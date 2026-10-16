@@ -96,6 +96,12 @@
         display: grid;
         gap: 4px;
       }
+      /* С бесконечным рюкзаком вещей может быть больше 8 × 5: видно 8 строк, остальное прокручивается */
+      #inventory.open .invGrid.items {
+        max-height: 348px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+      }
       #inventory .invGrid.saves {
         margin-top: 6px;
       }

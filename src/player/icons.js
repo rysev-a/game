@@ -109,6 +109,23 @@ const PIXEL_ART = {
       '...kkkkkk...',
     ],
   },
+  backpack: {
+    palette: { k: '#2a1a10', B: '#7a4fc4', b: '#5a3796', s: '#c9a86a', g: '#7affd8' },
+    rows: [
+      '....kkkk....',
+      '...ks..sk...',
+      '..kkkkkkkk..',
+      '.kBBBBBBBBk.',
+      '.kBbbbbbbBk.',
+      '.kBBBggBBBk.',
+      '.kBBBggBBBk.',
+      '.kBbbbbbbBk.',
+      '.kBBBBBBBBk.',
+      '.kBBBBBBBBk.',
+      '..kkkkkkkk..',
+      '............',
+    ],
+  },
   itpass: {
     palette: { l: '#3a7bd5', d: '#8a909a', w: '#f1ede2', p: '#c8a07a', k: '#1c1f26', g: '#3fa35b' },
     rows: [

@@ -79,12 +79,31 @@ defineBuilding('treehouse', {
         floor: 0, x: 6, z: -4.3, label: 'E — приборы Веры',
         act: () => showToast('Приборы Веры. Сейчас не работают, их можно будет починить. Рядом запас эликсира.', 4500),
       });
-      // Сундук
-      room.furniture(1.8, 0.9, 1.0, 0x6b3a22, 6.6, -1.5);
+      // Сундук, на нем — бесконечный рюкзак Веры (src/player/inventory.js): с ним инвентарь без конца.
+      // Рюкзак виден, пока его нет у героя (и после загрузки сохранения без него — снова лежит)
+      const chest = room.furniture(1.8, 0.9, 1.0, 0x6b3a22, 6.6, -1.5);
       room.part(1.85, 0.12, 1.05, 0xc9a82a, 6.6, 0.7, -1.5);
+      const backpack = createItemModel('backpack', 0.9);
+      backpack.position.set(6.6, 0.95, -1.5);
+      backpack.children[0].onBeforeRender = () => {
+        backpack.rotation.y = performance.now() / 1000;
+      };
+      room.group.add(backpack);
+      chest.onBeforeRender = () => {
+        backpack.visible = !hasItem('backpack');
+      };
+      const takeBackpack = () => {
+        if (!addItem('backpack')) return;
+        showToast('Бесконечный рюкзак! Теперь с собой можно носить сколько угодно вещей.', 4500);
+      };
+      addPickable({ id: 'backpack', mesh: backpack, canPick: () => !hasItem('backpack'), pick: takeBackpack });
       stations.push({
-        floor: 0, x: 5.3, z: -1.5, label: 'E — сундук',
-        act: () => showToast('Сундук. Позже здесь можно будет хранить вещи и приборы.', 3500),
+        floor: 0, x: 5.3, z: -1.5,
+        label: () => (hasItem('backpack') ? 'E — сундук' : 'E — взять: Бесконечный рюкзак'),
+        act: () => {
+          if (!hasItem('backpack')) takeBackpack();
+          else showToast('Сундук. Позже здесь можно будет хранить вещи и приборы.', 3500);
+        },
       });
       // Гамак между двумя столбами (юго-восток)
       for (const x of [3.4, 7.4]) room.furniture(0.25, 2.2, 0.25, 0x5a3d26, x, 3.8);
