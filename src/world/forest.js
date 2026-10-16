@@ -41,8 +41,8 @@ for (let gx = wb.minX - 56; gx < wb.maxX + 56; gx += treeSpacing) {
   lowGeo.translate(0, 2.9, 0);
   const highGeo = new THREE.ConeGeometry(1.4, 2.8, 6);
   highGeo.translate(0, 4.6, 0);
-  const trunkMat = new THREE.MeshBasicMaterial({ color: 0x5a3d26 });
-  const white = () => new THREE.MeshBasicMaterial({ color: 0xffffff }); // цвет задает setColorAt
+  const trunkMat = new LitMaterial({ color: 0x5a3d26 });
+  const white = () => new LitMaterial({ color: 0xffffff }); // цвет задает setColorAt
   const greens = [0x2f6b3a, 0x3a7a42, 0x265a33, 0x4a8a3c];
   const m4 = new THREE.Matrix4();
   const tint = new THREE.Color();

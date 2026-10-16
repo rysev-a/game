@@ -41,7 +41,7 @@ function createShop(options = {}) {
 
   function part(w, h, d, color) {
     const geo = new THREE.BoxGeometry(w, h, d);
-    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color }));
+    const mesh = new THREE.Mesh(geo, new LitMaterial({ color }));
     mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));
     return mesh;
   }
@@ -124,7 +124,7 @@ function createShop(options = {}) {
   root.add(sign);
   const face = new THREE.Mesh(
     new THREE.PlaneGeometry(signW - 0.2, signH - 0.2),
-    new THREE.MeshBasicMaterial({ map: tex }),
+    new LitMaterial({ map: tex }),
   );
   face.position.set(0, sign.position.y, front - 1 + 0.22);
   root.add(face);

@@ -16,7 +16,7 @@ clearZones.push({ x1: gasX - 20, x2: gasX + 20, z1: -36, z2: 4 });
 // Навес: плоская крыша на четырех стойках; полупрозрачная, когда загораживает вид
 {
   const roofGeo = new THREE.BoxGeometry(16, 0.4, 8);
-  const roofMat = new THREE.MeshBasicMaterial({ color: 0xd23c3c, transparent: true });
+  const roofMat = new LitMaterial({ color: 0xd23c3c, transparent: true });
   const roofLine = new THREE.LineBasicMaterial({ color: 0x111111, transparent: true });
   const roof = new THREE.Mesh(roofGeo, roofMat);
   roof.add(new THREE.LineSegments(new THREE.EdgesGeometry(roofGeo), roofLine));
@@ -74,7 +74,7 @@ for (const p of gasPumps) {
   c.fillText('АЗС', 128, 52);
   const sign = new THREE.Mesh(
     new THREE.PlaneGeometry(5, 1.9),
-    new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv) }),
+    new LitMaterial({ map: new THREE.CanvasTexture(cv) }),
   );
   sign.position.set(gasX, 4.9, kioskZ + 3.06);
   cityGroup.add(sign);

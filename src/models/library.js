@@ -32,7 +32,7 @@ function createLibrary(options = {}) {
   const edgeMat = new THREE.LineBasicMaterial({ color: 0x111111 });
   const part = (pw, ph, pd, color, x, y, z, parent = root) => {
     const geo = new THREE.BoxGeometry(pw, ph, pd);
-    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color }));
+    const mesh = new THREE.Mesh(geo, new LitMaterial({ color }));
     mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));
     mesh.position.set(x, y, z);
     parent.add(mesh);
@@ -40,7 +40,7 @@ function createLibrary(options = {}) {
   };
 
   // Корпус: прозрачный материал, чтобы стены затухали, когда заслоняют игрока
-  const wallMat = new THREE.MeshBasicMaterial({ color: o.wallColor, transparent: true });
+  const wallMat = new LitMaterial({ color: o.wallColor, transparent: true });
   const lineMat = new THREE.LineBasicMaterial({ color: 0x111111, transparent: true });
   const bodyGeo = new THREE.BoxGeometry(w, h, d);
   const body = new THREE.Mesh(bodyGeo, wallMat);
@@ -79,7 +79,7 @@ function createLibrary(options = {}) {
   for (let s = 0; s < 3; s++) part(pw + 1.6 - s * 0.5, 0.2, pd + 1.2 - s * 0.6, 0xc9c1b0, 0, 0.1 + s * 0.2, pz + 0.3 - s * 0.3);
   const colGeo = new THREE.CylinderGeometry(0.35, 0.42, h - 1.2, 8);
   [-3.6, -1.2, 1.2, 3.6].forEach((x) => {
-    const col = new THREE.Mesh(colGeo, new THREE.MeshBasicMaterial({ color: o.trimColor }));
+    const col = new THREE.Mesh(colGeo, new LitMaterial({ color: o.trimColor }));
     col.add(new THREE.LineSegments(new THREE.EdgesGeometry(colGeo), edgeMat));
     col.position.set(x, 0.6 + (h - 1.2) / 2, pz + 0.6);
     root.add(col);
@@ -94,7 +94,7 @@ function createLibrary(options = {}) {
     shape.lineTo(-(pw + 0.6) / 2, 0);
     const geo = new THREE.ExtrudeGeometry(shape, { depth: pd + 0.4, bevelEnabled: false });
     geo.translate(0, 0, -(pd + 0.4) / 2);
-    const ped = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: o.trimColor }));
+    const ped = new THREE.Mesh(geo, new LitMaterial({ color: o.trimColor }));
     ped.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));
     ped.position.set(0, h + 0.5, pz);
     root.add(ped);

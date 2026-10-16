@@ -46,7 +46,7 @@ function createHouse(options = {}) {
   const edgeMat = new THREE.LineBasicMaterial({ color: o.edgeColor });
 
   function withEdges(geo, color) {
-    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color }));
+    const mesh = new THREE.Mesh(geo, new LitMaterial({ color }));
     mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));
     return mesh;
   }

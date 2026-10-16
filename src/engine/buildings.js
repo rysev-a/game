@@ -252,7 +252,7 @@ function createRoomFloor(o = {}) {
   const mapShapes = [];
   const edgeMat = new THREE.LineBasicMaterial({ color: 0x111111 });
 
-  const floorMat = new THREE.MeshBasicMaterial({ color: o.floorColor || 0xa8814f });
+  const floorMat = new LitMaterial({ color: o.floorColor || 0xa8814f });
   if (o.plank) {
     const cv = document.createElement('canvas');
     cv.width = cv.height = 64;
@@ -283,7 +283,7 @@ function createRoomFloor(o = {}) {
 
   function part(pw, ph, pd, color, x, y, z) {
     const geo = new THREE.BoxGeometry(pw, ph, pd);
-    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color }));
+    const mesh = new THREE.Mesh(geo, new LitMaterial({ color }));
     mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));
     mesh.position.set(x, y, z);
     group.add(mesh);
@@ -301,7 +301,7 @@ function createRoomFloor(o = {}) {
   };
   function wall(ww, wd, x, z, color = o.wallColor || 0xe6dfcc) {
     const geo = new THREE.BoxGeometry(ww, wallH, wd);
-    const wallMat = new THREE.MeshBasicMaterial({ color, transparent: true });
+    const wallMat = new LitMaterial({ color, transparent: true });
     const lineMat = new THREE.LineBasicMaterial({ color: 0x111111, transparent: true });
     const mesh = new THREE.Mesh(geo, wallMat);
     mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), lineMat));
@@ -323,7 +323,7 @@ function createRoomFloor(o = {}) {
     const right = hw - (dx + o.doorGap / 2);
     if (left > 0.05) wall(left, t, -hw + left / 2, hd + t / 2, wc);
     if (right > 0.05) wall(right, t, hw - right / 2, hd + t / 2, wc);
-    const mat = new THREE.Mesh(new THREE.PlaneGeometry(o.doorGap, 1.4), new THREE.MeshBasicMaterial({ color: 0x5a3a2a }));
+    const mat = new THREE.Mesh(new THREE.PlaneGeometry(o.doorGap, 1.4), new LitMaterial({ color: 0x5a3a2a }));
     mat.rotation.x = -Math.PI / 2;
     mat.position.set(dx, 0.02, hd - 0.9);
     group.add(mat);
@@ -368,9 +368,9 @@ function createSign(text, o = {}) {
   }
   const tex = new THREE.CanvasTexture(cv);
   tex.minFilter = THREE.LinearFilter;
-  const sign = new THREE.Mesh(new THREE.PlaneGeometry(width, height), new THREE.MeshBasicMaterial({ map: tex }));
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(width, height), new LitMaterial({ map: tex }));
   const frameGeo = new THREE.BoxGeometry(width + 0.2, height + 0.2, 0.12);
-  const frame = new THREE.Mesh(frameGeo, new THREE.MeshBasicMaterial({ color: o.frame || 0x222222 }));
+  const frame = new THREE.Mesh(frameGeo, new LitMaterial({ color: o.frame || 0x222222 }));
   frame.position.z = -0.07;
   sign.add(frame);
   return sign;

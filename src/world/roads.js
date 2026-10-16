@@ -53,7 +53,7 @@ function buildRoadMeshes() {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(batch.verts, 3));
     cityGroup.add(
-      new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: batch.color, side: THREE.DoubleSide })),
+      new THREE.Mesh(geo, new LitMaterial({ color: batch.color, side: THREE.DoubleSide })),
     );
   }
 }

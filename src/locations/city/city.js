@@ -42,8 +42,8 @@ function makeBuilding(w, h, d, facade, topColor) {
   const tex = facade.clone();
   tex.needsUpdate = true;
   tex.repeat.set(w / 10, h / 10); // 2×2 окна на ~10 юнитов
-  const side = new THREE.MeshBasicMaterial({ map: tex, transparent: true });
-  const top = new THREE.MeshBasicMaterial({ color: topColor, transparent: true });
+  const side = new LitMaterial({ map: tex, transparent: true });
+  const top = new LitMaterial({ color: topColor, transparent: true });
   const edge = new THREE.LineBasicMaterial({ color: 0x111111, transparent: true });
   const geo = new THREE.BoxGeometry(w, h, d);
   const mesh = new THREE.Mesh(geo, [side, side, top, top, side, side]);

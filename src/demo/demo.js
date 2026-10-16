@@ -101,7 +101,7 @@ const demoScene = ['grandma_house', 'treehouse']; // эти заготовки �
     const z = gz - grandmaD / 2 - 1 + (treeZ + 6 - (gz - grandmaD / 2 - 1)) * t;
     pts.push({ x: gx + (treeX - gx) * t + Math.sin(t * Math.PI * 3) * 9 * (1 - t * 0.6), z });
   }
-  const pathMat = new THREE.MeshBasicMaterial({ color: 0x9a7a52, side: THREE.DoubleSide });
+  const pathMat = new LitMaterial({ color: 0x9a7a52, side: THREE.DoubleSide });
   for (let i = 0; i < pts.length - 1; i++) {
     const a = pts[i];
     const b = pts[i + 1];

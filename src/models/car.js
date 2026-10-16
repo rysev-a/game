@@ -37,7 +37,7 @@ function createCar(options = {}) {
 
   function part(w, h, d, color) {
     const geo = new THREE.BoxGeometry(w, h, d);
-    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color }));
+    const mesh = new THREE.Mesh(geo, new LitMaterial({ color }));
     mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));
     return mesh;
   }
@@ -80,7 +80,7 @@ function createCar(options = {}) {
 
   // Отличительные детали: полосы, багажник на крыше, номерные знаки
   if (o.stripeColor !== null) {
-    const stripeMat = new THREE.MeshBasicMaterial({ color: o.stripeColor });
+    const stripeMat = new LitMaterial({ color: o.stripeColor });
     for (const x of [-0.2, 0.2]) {
       const hood = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.02, 4.2), stripeMat);
       hood.position.set(x, 0.9, 0); // по капоту и багажнику (в середине закрыта салоном)
@@ -91,7 +91,7 @@ function createCar(options = {}) {
     }
   }
   if (o.roofRack) {
-    const rackMat = new THREE.MeshBasicMaterial({ color: 0x1a1a1e });
+    const rackMat = new LitMaterial({ color: 0x1a1a1e });
     for (const x of [-0.7, 0.7]) {
       const rail = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.07, 1.8), rackMat);
       rail.position.set(x, 1.52, 0.25);
@@ -118,7 +118,7 @@ function createCar(options = {}) {
     c.textAlign = 'center';
     c.textBaseline = 'middle';
     c.fillText(o.plateText, 64, 34);
-    const plateMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv) });
+    const plateMat = new LitMaterial({ map: new THREE.CanvasTexture(cv) });
     const plateGeo = new THREE.PlaneGeometry(0.62, 0.31);
     const front = new THREE.Mesh(plateGeo, plateMat);
     front.position.set(0, 0.5, -2.115);
@@ -131,7 +131,7 @@ function createCar(options = {}) {
 
   // Колеса: цилиндр осью вдоль X внутри группы-ступицы, крутим группу
   const wheelGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.3, 14);
-  const wheelMat = new THREE.MeshBasicMaterial({ color: o.wheelColor });
+  const wheelMat = new LitMaterial({ color: o.wheelColor });
   const wheels = [];
   [
     [-1.05, -1.35],

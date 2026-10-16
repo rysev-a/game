@@ -27,7 +27,7 @@ function createTreehouse(options = {}) {
   const edgeMat = new THREE.LineBasicMaterial({ color: 0x111111 });
   const fade = [];
   const withEdges = (geo, color, fades) => {
-    const mat = new THREE.MeshBasicMaterial({ color, transparent: !!fades });
+    const mat = new LitMaterial({ color, transparent: !!fades });
     const line = new THREE.LineBasicMaterial({ color: 0x111111, transparent: !!fades });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), fades ? line : edgeMat));

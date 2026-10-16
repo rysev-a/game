@@ -13,6 +13,7 @@
   </head>
   <body>
     <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+    <script src="../engine/materials.js"></script>
     <script src="person.js"></script>
     <script>
       const scene = new THREE.Scene();
@@ -29,6 +30,11 @@
       document.body.appendChild(renderer.domElement);
 
       scene.add(new THREE.GridHelper(20, 20, 0x555555, 0x333333));
+      // Свет как в игре (src/engine/scene.js): небо и солнце
+      scene.add(new THREE.HemisphereLight(0xffffff, 0xb0aa9e, 0.72));
+      const sun = new THREE.DirectionalLight(0xfff4e0, 0.38);
+      sun.position.set(30, 60, 18);
+      scene.add(sun);
 
       // Ряд: игрок-гик и все типы людей
       const lineup = [

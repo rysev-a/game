@@ -75,7 +75,8 @@ function updateRain() {
   const night = 1 - daylight();
   skyScratch.copy(clearSky).lerp(nightSky, night);
   scene.background.copy(skyScratch).lerp(rainSky, weather * (1 - night * 0.7)).lerp(brightSky, glow * 0.6 * (1 - night));
-  nightTint.style.opacity = (night * 0.5).toFixed(3);
+  setDaylight(1 - night); // свет сцены; синее затенение поверх экрана теперь слабее, темноту дает сам свет
+  nightTint.style.opacity = (night * 0.25).toFixed(3);
   scene.fog.color.copy(scene.background);
   scene.fog.density = 0.01 + 0.006 * weather - 0.003 * glow;
   sunTint.style.opacity = (0.1 * glow).toFixed(3);

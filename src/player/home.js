@@ -57,7 +57,7 @@ function createHomeInterior() {
 
     function part(w, h, d, color, x, y, z) {
       const geo = new THREE.BoxGeometry(w, h, d);
-      const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color }));
+      const mesh = new THREE.Mesh(geo, new LitMaterial({ color }));
       mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));
       mesh.position.set(x, y, z);
       group.add(mesh);
@@ -84,7 +84,7 @@ function createHomeInterior() {
     // Пол
     const floorMesh = new THREE.Mesh(
       new THREE.PlaneGeometry(homeW, homeD),
-      new THREE.MeshBasicMaterial({ map: plankTexture() }),
+      new LitMaterial({ map: plankTexture() }),
     );
     floorMesh.rotation.x = -Math.PI / 2;
     floorMesh.position.y = 0.01;
@@ -94,7 +94,7 @@ function createHomeInterior() {
     // Стены (полупрозрачные, когда между камерой и игроком)
     function wall(w, d, x, z) {
       const geo = new THREE.BoxGeometry(w, wallH, d);
-      const wallMat = new THREE.MeshBasicMaterial({ color: 0xe6dfcc, transparent: true });
+      const wallMat = new LitMaterial({ color: 0xe6dfcc, transparent: true });
       const lineMat = new THREE.LineBasicMaterial({ color: 0x111111, transparent: true });
       const mesh = new THREE.Mesh(geo, wallMat);
       mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), lineMat));
@@ -112,7 +112,7 @@ function createHomeInterior() {
       wall(piece, t, -(doorGap / 2 + piece / 2), hd + t / 2);
       wall(piece, t, doorGap / 2 + piece / 2, hd + t / 2);
       // Коврик у двери
-      const mat = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.6), new THREE.MeshBasicMaterial({ color: 0x5a3a2a }));
+      const mat = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.6), new LitMaterial({ color: 0x5a3a2a }));
       mat.rotation.x = -Math.PI / 2;
       mat.position.set(0, 0.02, hd - 1);
       group.add(mat);
@@ -303,7 +303,7 @@ function buildHomeExterior(info) {
   // Стены и крыша полупрозрачные, когда между камерой и игроком (видно, что внутри)
   function fadeWall(w, h, d, color, x, y, z) {
     const geo = new THREE.BoxGeometry(w, h, d);
-    const mat = new THREE.MeshBasicMaterial({ color, transparent: true });
+    const mat = new LitMaterial({ color, transparent: true });
     const lineMat = new THREE.LineBasicMaterial({ color: 0x111111, transparent: true });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), lineMat));

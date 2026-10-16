@@ -85,7 +85,7 @@ function createMall(options = {}) {
     c.fillText(text, cv.width / 2, cv.height / 2 + 3);
     return new THREE.Mesh(
       new THREE.PlaneGeometry(w, h),
-      new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv) }),
+      new LitMaterial({ map: new THREE.CanvasTexture(cv) }),
     );
   }
 
@@ -116,7 +116,7 @@ function createMall(options = {}) {
 
     function part(w, h, d, color, x, y, z) {
       const geo = new THREE.BoxGeometry(w, h, d);
-      const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color }));
+      const mesh = new THREE.Mesh(geo, new LitMaterial({ color }));
       mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));
       mesh.position.set(x, y, z);
       group.add(mesh);
@@ -159,7 +159,7 @@ function createMall(options = {}) {
     // Пол
     const floorMesh = new THREE.Mesh(
       new THREE.PlaneGeometry(o.width, o.depth),
-      new THREE.MeshBasicMaterial({
+      new LitMaterial({
         map: level === 0 ? tileTexture('#d9d2bf', '#c4bca6') : tileTexture('#cdbf9f', '#b9aa86'),
       }),
     );
@@ -172,7 +172,7 @@ function createMall(options = {}) {
     function wall(w, d, x, z) {
       const h = o.wallHeight;
       const geo = new THREE.BoxGeometry(w, h, d);
-      const wallMat = new THREE.MeshBasicMaterial({ color: o.wallColor, transparent: true });
+      const wallMat = new LitMaterial({ color: o.wallColor, transparent: true });
       const lineMat = new THREE.LineBasicMaterial({ color: o.edgeColor, transparent: true });
       const mesh = new THREE.Mesh(geo, wallMat);
       mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), lineMat));
@@ -191,7 +191,7 @@ function createMall(options = {}) {
       // Коврик и кадки у входа
       const mat = new THREE.Mesh(
         new THREE.PlaneGeometry(o.doorWidth, 3),
-        new THREE.MeshBasicMaterial({ color: 0x8a2a2a }),
+        new LitMaterial({ color: 0x8a2a2a }),
       );
       mat.rotation.x = -Math.PI / 2;
       mat.position.set(0, 0.02, hd - 1.8);
@@ -240,7 +240,7 @@ function createMall(options = {}) {
         backSign(name, x, 7, 1.1, 3.7, color, '#ffffff');
         const panel = new THREE.Mesh(
           new THREE.PlaneGeometry(8.4, 2.6),
-          new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(0.55) }),
+          new LitMaterial({ color: new THREE.Color(color).multiplyScalar(0.55) }),
         );
         panel.position.set(x, 1.5, -hd + 0.03);
         group.add(panel);
@@ -255,7 +255,7 @@ function createMall(options = {}) {
 
       // ── Центр: фонтан и проходы ──
       solidBox(4, 0.8, 4, 0x8a8a92, 0, -4, '#8a8a92');
-      const water = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 3.2), new THREE.MeshBasicMaterial({ color: 0x3a8ad0 }));
+      const water = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 3.2), new LitMaterial({ color: 0x3a8ad0 }));
       water.rotation.x = -Math.PI / 2;
       water.position.set(0, 0.82, -4);
       group.add(water);
@@ -280,7 +280,7 @@ function createMall(options = {}) {
         backSign(name, x, 7, 1.2, 3.6, color, '#ffffff');
         const panel = new THREE.Mesh(
           new THREE.PlaneGeometry(7.5, 2.2),
-          new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(0.55) }),
+          new LitMaterial({ color: new THREE.Color(color).multiplyScalar(0.55) }),
         );
         panel.position.set(x, 1.3, -hd + 0.03);
         group.add(panel);
@@ -337,7 +337,7 @@ function createMall(options = {}) {
     // Все мелкие боксы этажа — один InstancedMesh с цветом на каждый
     const goodsMesh = new THREE.InstancedMesh(
       new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshBasicMaterial({ color: 0xffffff }),
+      new LitMaterial({ color: 0xffffff }),
       goods.length,
     );
     const m4 = new THREE.Matrix4();
