@@ -630,7 +630,7 @@ function updateWeaponHud() {
     // Шкала заряда: голубая, полная — белая
     weaponHudParts.heat.style.background = bar >= 1 ? '#ffffff' : '#4ee6ff';
     weaponHudParts.hint.textContent =
-      bar >= 1 ? 'Заряд полный — отпустите' : 'Зажмите ЛКМ — заряд, отпустите — выстрел · K — то же по взгляду · R — сменить · Q — убрать';
+      bar >= 1 ? 'Заряд полный — отпустите' : 'ЛКМ — выстрел, зажать — супервыстрел · K — по взгляду · R — сменить · Q — убрать';
     return;
   }
   weaponHudParts.heat.style.background = heroWeapon.overheated ? '#e0483a' : heroWeapon.heat > 0.7 ? '#e8b83a' : '#4ee6ff';
