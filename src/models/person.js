@@ -18,7 +18,8 @@
 //   man.attach('handR', gun);       // вложить оружие в правую руку: ствол (-Z модели) идет вдоль руки
 //   man.setAim(true);               // правая рука вытянута вперед (держит оружие); setAim(false) — опустить
 //   man.attach('rifle', gun);       // винтовка у груди: приклад у правого плеча, ствол (-Z модели) вперед
-//   man.setAim('rifle');            // хват двумя руками: правая — на рукояти, левая — на цевье
+//   man.setAim('rifle');            // хват как у солдата: корпус левым плечом вперед, приклад в плече,
+//                                   // правая — на рукояти со спуском, левая держит ствол
 //
 // Прохожие: gender 'female' добавляет юбку и длинные волосы,
 // hairColor включает прическу (без него человечек лысый):
@@ -551,7 +552,7 @@ function createWalkingMan(options = {}) {
     if (aiming !== 'rifle') armL.rotation.x = -swing * 0.55; // с винтовкой руки держат оружие
     if (!aiming) armR.rotation.x = swing * 0.55;
     body.rotation.z = Math.sin(t) * 0.04 * amp; // легкое покачивание корпуса
-    body.rotation.y = Math.cos(t) * 0.06 * amp;
+    body.rotation.y = poseYaw + Math.cos(t) * 0.06 * amp;
     hips.position.y = Math.abs(Math.cos(t)) * 0.04 * amp; // «подпрыгивание» шага
   };
 
@@ -585,7 +586,7 @@ function createWalkingMan(options = {}) {
   };
 
   // Направить руку (pivot в плече) кистью в точку p корпуса: рука смотрит вниз (-Y), поворот X — вперед,
-  // Z — вбок. Кисть на длине ~0,69 от плеча
+  // Z — вбок. Кисть на длине ~0,69 от плеча; если точка дальше, рука чуть вытягивается (до ×1,3)
   function pointArm(arm, inner, p) {
     const dx = p[0] - arm.position.x;
     const dy = p[1] - arm.position.y;
@@ -593,21 +594,35 @@ function createWalkingMan(options = {}) {
     const len = Math.hypot(dx, dy, dz);
     arm.rotation.set(Math.atan2(-dz, -dy), 0, Math.asin(dx / len));
     inner.rotation.z = 0;
+    inner.scale.y = Math.min(1.3, Math.max(1, len / 0.69));
   }
-  // Где у винтовки рукоять и цевье (в осях корпуса) — туда тянутся кисти; приклад у правого плеча
-  const RIFLE_AT = { x: 0.14, y: 1.36, z: 0.02 };
-  const RIFLE_GRIP_R = [0.15, 1.2, -0.42];
-  const RIFLE_GRIP_L = [0.12, 1.26, -0.68];
+  // Винтовка — как у солдата с автоматом: корпус развернут левым плечом вперед (RIFLE_YAW), приклад упирается
+  // в правое плечо, правая кисть на рукояти со спуском, левая далеко впереди держит ствол снизу. Точки — в
+  // осях героя (стоит, смотрит в -Z); в оси корпуса их переводит toBody. Хват на модели: рукоять — 0,45
+  // от торца приклада, цевье — 0,7 (src/models/weapons.js)
+  const RIFLE_YAW = -0.45;
+  const RIFLE_AT = [0.24, 1.44, -0.02];
+  const RIFLE_GRIP_R = [0.24, 1.3, -0.47];
+  const RIFLE_GRIP_L = [0.22, 1.33, -0.72];
+  const toBody = ([x, y, z]) => [
+    x * Math.cos(-RIFLE_YAW) + z * Math.sin(-RIFLE_YAW),
+    y,
+    -x * Math.sin(-RIFLE_YAW) + z * Math.cos(-RIFLE_YAW),
+  ];
+  let poseYaw = 0; // базовый поворот корпуса (с винтовкой — RIFLE_YAW), шаг качает вокруг него
 
   // Позы «целится»: on = true ('hand') — правая рука вытянута вперед на уровне плеча (держит оружие),
   // левая шагает как обычно; 'rifle' — винтовка двумя руками; false — опустить
   root.setAim = function (on) {
     aiming = on === true ? 'hand' : on;
+    poseYaw = aiming === 'rifle' ? RIFLE_YAW : 0;
+    body.rotation.y = poseYaw;
     if (aiming === 'rifle') {
-      pointArm(armR, R.inner, RIFLE_GRIP_R);
-      pointArm(armL, L.inner, RIFLE_GRIP_L);
+      pointArm(armR, R.inner, toBody(RIFLE_GRIP_R));
+      pointArm(armL, L.inner, toBody(RIFLE_GRIP_L));
       return;
     }
+    R.inner.scale.y = L.inner.scale.y = 1;
     armR.rotation.set(aiming ? 1.5 : 0, 0, 0);
     armL.rotation.set(0, 0, 0);
     R.inner.rotation.z = aiming ? 0 : 0.28;
@@ -633,7 +648,8 @@ function createWalkingMan(options = {}) {
   root.attach = function (slot, obj) {
     root.userData.rig.attached.push([slot, obj]);
     if (slot === 'rifle') {
-      obj.position.set(RIFLE_AT.x, RIFLE_AT.y, RIFLE_AT.z);
+      obj.position.fromArray(toBody(RIFLE_AT));
+      obj.rotation.y = -RIFLE_YAW; // корпус развернут, а ствол смотрит прямо вперед
       body.add(obj);
       return obj;
     }

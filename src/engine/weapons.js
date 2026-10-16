@@ -14,7 +14,8 @@
 //   Q — достать / убрать оружие (берется последнее доставленное или первое из инвентаря)
 //   R — следующее оружие из инвентаря (по кругу); без оружия в руках — достает первое
 //   ЛКМ — выстрел туда, где курсор (герой разворачивается корпусом к точке, камера не дергается);
-//         зажать — очередь. Клик по вещи, которую можно взять, по-прежнему берет вещь
+//         зажать — очередь. У оружия с накоплением (charge, импульсный лазер) зажать — копить заряд,
+//         отпустить — выстрел. Клик по вещи, которую можно взять, по-прежнему берет вещь
 //   K — выстрел по направлению взгляда, с небольшим доводом на ближайшую цель
 //
 // API:
@@ -38,6 +39,10 @@ const WEAPONS = {};
 //   bolt — как выглядит заряд: 'pulse' (короткий светящийся брусок) | 'wave' (электромагнитная волна:
 //          две синусоиды — вертикальная и горизонтальная — вокруг светящейся оси; wave: { length,
 //          amplitude, wavelength })
+//   charge: { time, min, damage: [от, до], push: [от, до], stagger: [от, до], scale: [от, до] } — выстрел
+//         с накоплением: пока кнопка зажата, заряд растет от 0 до 1 за time секунд; отпустили — выстрел,
+//         урон, толчок, шатание и толщина заряда — между «от» и «до» по набранному заряду. Меньше min — не
+//         выстрелит. Полный заряд — удар 'blast'
 //   effects — что попадание делает с целью (состояния из src/engine/combat.js): { stagger, freeze, ... },
 //   push — сила толчка от попадания, hitFx — вспышка попадания ('spark' | 'microburst')
 //   model() — модель в руке (src/models/weapons.js), sound — набор звуков (см. playWeaponSound)
@@ -84,6 +89,15 @@ function spawnHitFx(w, x, y, z) {
     }
     spawnShockRing(x, y, z, w.color);
   }
+  // Полный заряд: большая белая вспышка и две волны — по земле и вокруг цели
+  if (w.hitFx === 'blast') {
+    spawnWeaponFx(x, y, z, 0xffffff, 0.35, 12, 1.2);
+    for (let i = 0; i < 10; i++) {
+      spawnWeaponFx(x + (Math.random() - 0.5) * 1.6, y + (Math.random() - 0.5) * 1.6, z + (Math.random() - 0.5) * 1.6, w.color, 0.09, 12, 1.15);
+    }
+    spawnShockRing(x, y, z, w.color, 0.5, 18, 1.2);
+    spawnShockRing(x, 0.1, z, 0xffffff, 0.4, 22, 1.18);
+  }
 }
 
 // Кольцо ударной волны: плоское кольцо расширяется и гаснет
@@ -110,6 +124,8 @@ const heroWeapon = {
   cooldown: 0, // кадров до следующего выстрела
   sinceShot: 999, // кадров после последнего выстрела
   mouseHeld: false,
+  charge: 0, // набранный заряд 0..1 (оружие с charge)
+  charging: false,
   aimHeading: 0, // куда развернут корпус при стрельбе (как playerHeading)
   aimFrames: 0, // сколько еще кадров держать корпус к цели
 };
@@ -141,6 +157,7 @@ function holsterWeapon(quiet = false) {
   heroWeapon.id = null;
   heroWeapon.mouseHeld = false;
   heroWeapon.aimFrames = 0;
+  stopCharge();
   player.setAim(false);
   if (!quiet) playWeaponSound('holster');
   updateWeaponHud();
@@ -208,15 +225,8 @@ function assistTarget(w, heading) {
   return best;
 }
 
-// Один выстрел. aim — точка в мире или null (по взгляду с доводом)
-function fireWeapon(aim) {
-  const w = WEAPONS[heroWeapon.id];
-  if (!w || !canUseWeapon() || heroWeapon.cooldown > 0) return false;
-  if (heroWeapon.overheated) {
-    if (heroWeapon.sinceShot > 20) playWeaponSound('dry');
-    heroWeapon.sinceShot = 0;
-    return false;
-  }
+// Куда стрелять: курс героя на точку aim (или по взгляду с доводом, если aim нет)
+function aimHeadingFor(w, aim) {
   let heading = playerHeading;
   if (!aim) {
     const t = assistTarget(w, playerHeading);
@@ -227,6 +237,33 @@ function fireWeapon(aim) {
     const dz = aim.z - playerWorldZ;
     if (Math.hypot(dx, dz) > 0.3) heading = Math.atan2(-dx, -dz);
   }
+  return { heading, aim };
+}
+
+// Оружие с накоплением: копия записи, в которой урон, толчок, шатание и вспышка — по набранному заряду
+const lerpRange = ([a, b], k) => a + (b - a) * k;
+function chargedWeapon(w, power) {
+  const c = w.charge;
+  return Object.assign({}, w, {
+    damage: Math.round(lerpRange(c.damage, power)),
+    push: lerpRange(c.push, power),
+    effects: Object.assign({}, w.effects, { stagger: Math.round(lerpRange(c.stagger, power)) }),
+    hitFx: power >= 0.95 ? 'blast' : w.hitFx,
+  });
+}
+
+// Один выстрел. aim — точка в мире или null (по взгляду с доводом); power — набранный заряд (оружие с charge)
+function fireWeapon(aim, power) {
+  let w = WEAPONS[heroWeapon.id];
+  if (!w || !canUseWeapon() || heroWeapon.cooldown > 0) return false;
+  if (w.charge) w = chargedWeapon(w, power || 0);
+  if (heroWeapon.overheated) {
+    if (heroWeapon.sinceShot > 20) playWeaponSound('dry');
+    heroWeapon.sinceShot = 0;
+    return false;
+  }
+  let heading;
+  ({ heading, aim } = aimHeadingFor(w, aim));
   const dirX = -Math.sin(heading);
   const dirZ = -Math.cos(heading);
   // Корпус разворачивается к цели, заряд выходит из дула (справа от груди)
@@ -241,7 +278,10 @@ function fireWeapon(aim) {
   const kind = WEAPON_KINDS[w.kind];
   if (kind && kind.fire) kind.fire(w, { x, y, z, dirX, dirZ, heading, aim });
   else spawnBolt(w, x, y, z, dirX, dirZ);
-  if (!w.noFlash) spawnWeaponFx(x, y, z, w.color, 0.14, 5, 1.12); // вспышка у ствола
+  // Заряд с накоплением: чем больше набрано, тем толще волна и ярче вспышка
+  const scale = w.charge ? lerpRange(w.charge.scale, power) : 1;
+  if (w.charge) weaponBolts[weaponBolts.length - 1].mesh.scale.set(scale, scale, 1);
+  if (!w.noFlash) spawnWeaponFx(x, y, z, w.color, 0.14 * scale, 5, 1.12); // вспышка у ствола
 
   heroWeapon.cooldown = Math.max(1, Math.round(60 / w.fireRate));
   heroWeapon.sinceShot = 0;
@@ -253,8 +293,43 @@ function fireWeapon(aim) {
       showToast(w.name + ': перегрев! Подождите, пока остынет');
     }
   }
-  if (w.sound) playWeaponSound(w.sound);
+  if (w.charge && power >= 0.95) playWeaponSound('blast');
+  else if (w.sound) playWeaponSound(w.sound);
   return true;
+}
+
+// ---------- Накопление заряда ----------
+// Пока кнопка зажата — заряд растет, корпус смотрит на цель, гудит; отпустили — выстрел силой заряда
+function updateCharge(w) {
+  const held = heroWeapon.mouseHeld || keys['KeyK'];
+  const aimNow = () => (heroWeapon.mouseHeld ? mouseAimPoint() : null);
+  if (held && canUseWeapon() && heroWeapon.cooldown === 0) {
+    if (!heroWeapon.charging) {
+      heroWeapon.charging = true;
+      heroWeapon.chargeByMouse = heroWeapon.mouseHeld;
+      heroWeapon.chargeStart = performance.now();
+      startChargeSound(w.charge.time);
+    }
+    // По часам, а не по кадрам: на медленном компьютере полный заряд — те же 1,2 секунды
+    heroWeapon.charge = Math.min(1, (performance.now() - heroWeapon.chargeStart) / (w.charge.time * 1000));
+    heroWeapon.aimHeading = aimHeadingFor(w, aimNow()).heading;
+    heroWeapon.aimFrames = 45;
+    return;
+  }
+  if (!heroWeapon.charging) return;
+  const power = heroWeapon.charge;
+  // Отпустили: точка — под курсором (если копили мышью), иначе по взгляду
+  const aim = heroWeapon.chargeByMouse ? mouseAimPoint() : null;
+  stopCharge();
+  if (!canUseWeapon()) return;
+  if (power >= w.charge.min) fireWeapon(aim, power);
+  else playWeaponSound('dry'); // отпустили слишком рано — заряд рассеялся
+}
+
+function stopCharge() {
+  heroWeapon.charging = false;
+  heroWeapon.charge = 0;
+  stopChargeSound();
 }
 
 // ---------- Заряды ----------
@@ -433,7 +508,8 @@ function updateWeapons() {
   const w = WEAPONS[heroWeapon.id];
   if (heroWeapon.cooldown > 0) heroWeapon.cooldown--;
   heroWeapon.sinceShot++;
-  if (w) {
+  if (w && w.charge) updateCharge(w);
+  else if (w) {
     if (heroWeapon.mouseHeld) fireWeapon(mouseAimPoint());
     else if (keys['KeyK']) fireWeapon(null);
   }
@@ -449,7 +525,18 @@ function updateWeapons() {
     player.rotation.y = heroWeapon.aimHeading + worldRotation;
   }
   // Катушки на стволе: от цвета заряда к оранжево-белому при нагреве, при перегреве мигают
-  if (heroWeapon.mesh && heroWeapon.mesh.userData.glow) {
+  // С накоплением: катушки разгораются от тусклого к белому и пульсируют все чаще, у дула растет шар
+  if (w && w.charge && heroWeapon.mesh) {
+    const k = heroWeapon.charge;
+    const pulse = k > 0 ? 0.8 + 0.2 * Math.sin(performance.now() / (120 - 90 * k)) : 1;
+    const c = weaponGlowColor.set(w.color).multiplyScalar(0.55 + 0.45 * k).lerp(weaponWhite, k * 0.7).multiplyScalar(pulse);
+    for (const m of heroWeapon.mesh.userData.glow || []) m.color.copy(c);
+    const orb = heroWeapon.mesh.userData.chargeOrb;
+    if (orb) {
+      orb.visible = heroWeapon.charging;
+      orb.scale.setScalar((0.03 + 0.11 * k) * pulse);
+    }
+  } else if (heroWeapon.mesh && heroWeapon.mesh.userData.glow) {
     const c = weaponGlowColor.set(w.color).lerp(weaponHotColor, heroWeapon.heat);
     if (heroWeapon.overheated && Math.floor(performance.now() / 150) % 2) c.multiplyScalar(0.4);
     for (const m of heroWeapon.mesh.userData.glow) m.color.copy(c);
@@ -461,6 +548,7 @@ function updateWeapons() {
 }
 const weaponGlowColor = new THREE.Color();
 const weaponHotColor = new THREE.Color(0xffc060);
+const weaponWhite = new THREE.Color(0xffffff);
 
 // ---------- Панель оружия (справа внизу) ----------
 const weaponHud = document.createElement('div');
@@ -483,13 +571,21 @@ let weaponHudKey = '';
 
 function updateWeaponHud() {
   const w = WEAPONS[heroWeapon.id];
-  const key = w ? w.id + '|' + Math.round(heroWeapon.heat * 50) + '|' + heroWeapon.overheated : '';
+  const bar = w && w.charge ? heroWeapon.charge : heroWeapon.heat;
+  const key = w ? w.id + '|' + Math.round(bar * 50) + '|' + heroWeapon.overheated : '';
   if (key === weaponHudKey) return;
   weaponHudKey = key;
   weaponHud.style.display = w ? 'block' : 'none';
   if (!w) return;
   weaponHudParts.name.textContent = w.name;
-  weaponHudParts.heat.style.width = Math.round(heroWeapon.heat * 100) + '%';
+  weaponHudParts.heat.style.width = Math.round(bar * 100) + '%';
+  if (w.charge) {
+    // Шкала заряда: голубая, полная — белая
+    weaponHudParts.heat.style.background = bar >= 1 ? '#ffffff' : '#4ee6ff';
+    weaponHudParts.hint.textContent =
+      bar >= 1 ? 'Заряд полный — отпустите' : 'Зажмите ЛКМ — заряд, отпустите — выстрел · K — то же по взгляду · R — сменить · Q — убрать';
+    return;
+  }
   weaponHudParts.heat.style.background = heroWeapon.overheated ? '#e0483a' : heroWeapon.heat > 0.7 ? '#e8b83a' : '#4ee6ff';
   weaponHudParts.hint.textContent = heroWeapon.overheated
     ? 'Перегрев — остывает'
@@ -498,6 +594,39 @@ function updateWeaponHud() {
 
 // ---------- Звук (синтез, как шаги в src/player/footsteps.js) ----------
 let weaponCtx = null;
+// Гул накопления: тон растет от низкого к высокому за time секунд и держится, пока кнопка зажата
+let chargeHum = null;
+function startChargeSound(time) {
+  stopChargeSound();
+  if (typeof muted !== 'undefined' && (muted || !audioUnlocked)) return;
+  if (!weaponCtx) weaponCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const ctx = weaponCtx;
+  const now = ctx.currentTime;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.001, now);
+  g.gain.exponentialRampToValueAtTime(0.12 * (typeof settings !== 'undefined' ? settings.volume : 1), now + 0.15);
+  g.connect(ctx.destination);
+  const oscs = [['sawtooth', 90, 520], ['sine', 180, 1500]].map(([type, f0, f1]) => {
+    const o = ctx.createOscillator();
+    o.type = type;
+    o.frequency.setValueAtTime(f0, now);
+    o.frequency.exponentialRampToValueAtTime(f1, now + time);
+    o.connect(g);
+    o.start(now);
+    return o;
+  });
+  chargeHum = { g, oscs };
+}
+function stopChargeSound() {
+  if (!chargeHum) return;
+  const t = weaponCtx.currentTime;
+  chargeHum.g.gain.cancelScheduledValues(t);
+  chargeHum.g.gain.setValueAtTime(chargeHum.g.gain.value, t);
+  chargeHum.g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+  for (const o of chargeHum.oscs) o.stop(t + 0.06);
+  chargeHum = null;
+}
+
 function playWeaponSound(kind) {
   if (typeof muted !== 'undefined' && (muted || !audioUnlocked)) return;
   if (!weaponCtx) weaponCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -542,6 +671,12 @@ function playWeaponSound(kind) {
   } else if (kind === 'hit') {
     noise(0.08, 0.35, 900, 'bandpass');
     tone('sine', 300, 120, 0.08, 0.3);
+  } else if (kind === 'blast') {
+    // Полный заряд: низкий удар, треск и долгий спад
+    tone('sawtooth', 900, 60, 0.5, 0.4);
+    tone('sine', 140, 40, 0.6, 0.6);
+    tone('square', 2400, 300, 0.2, 0.2);
+    noise(0.45, 0.6, 400, 'lowpass');
   } else if (kind === 'overheat') {
     noise(0.6, 0.35, 2500);
     tone('sawtooth', 500, 180, 0.45, 0.15);
@@ -594,13 +729,13 @@ window.addEventListener('keydown', (e) => {
   if (e.repeat || settingsOpen || dialogueOpen || inventoryOpen) return;
   if (e.code === 'KeyQ') toggleWeapon();
   if (e.code === 'KeyR') nextWeapon();
-  if (e.code === 'KeyK' && heroWeapon.id) fireWeapon(null);
+  if (e.code === 'KeyK' && heroWeapon.id && !WEAPONS[heroWeapon.id].charge) fireWeapon(null);
 });
 // ЛКМ по сцене с оружием в руках — огонь. Клик по подсвеченной вещи берет вещь (src/engine/input.js), не стреляет
 renderer.domElement.addEventListener('mousedown', (e) => {
   if (e.button !== 0 || !heroWeapon.id || hoveredPickable) return;
   heroWeapon.mouseHeld = true;
-  fireWeapon(mouseAimPoint());
+  if (!WEAPONS[heroWeapon.id].charge) fireWeapon(mouseAimPoint()); // с накоплением — выстрел, когда отпустят
 });
 document.addEventListener('mouseup', (e) => {
   if (e.button === 0) heroWeapon.mouseHeld = false;
