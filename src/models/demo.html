@@ -30,9 +30,10 @@
 
       scene.add(new THREE.GridHelper(20, 20, 0x555555, 0x333333));
 
-      // Ряд: детектив (игрок) и все типы прохожих
+      // Ряд: игрок-гик и все типы людей
       const lineup = [
-        createPerson('detective'),
+        createPerson('geek'),
+        createPerson('coat'),
         createPerson('police'),
         createPerson('police', { gender: 'female', hairColor: 0x5a3a22 }),
         createPerson('office', { hairColor: 0x1a1a1a, glasses: true }),
