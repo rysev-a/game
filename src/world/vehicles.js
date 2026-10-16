@@ -3,6 +3,9 @@
 // Остальной транспорт — запись в VEHICLE_KINDS: своя модель (src/models/vehicles.js), размер кузова для
 // столкновений (half — полуразмеры), езда (разгон, торможение, максимальная скорость, руль) и особенности:
 //   drift         — насколько заносит на ручнике (Space на компьютере, src/player/driving.js): 1 — как гоночную
+//   powerDrift    — дрифт: газ и тормоз вместе на ходу — машина едет боком (src/player/driving.js)
+//   launch, launchUntil — плавный старт: с места разгон — доля launch от полного, полный — к доле launchUntil
+//                   максимальной скорости (launchFactor, src/player/driving.js)
 //   gyro: true    — на телефоне на трассах автодрома руль — наклон телефона (src/engine/gyro-steer.js)
 //   crush: true   — давит биосуществ на ходу (crushUnder, src/player/driving.js)
 //   armored: true — бронемашина: враги видят в ней цель, попадания роботов отнимают ее прочность (hp);
@@ -19,7 +22,7 @@ const VEHICLE_KINDS = {
     desc: 'Болид для трека: очень быстрый и резкий в поворотах. На телефоне на трассах автодрома рулят наклоном телефона.',
     half: { w: 1.25, l: 2.6 },
     accel: 0.03, brake: 0.05, drag: 0.005, maxSpeed: 1.35, maxReverse: -0.3, turnRate: 0.05, drift: 1,
-    gyro: true,
+    launch: 0.12, launchUntil: 0.6, powerDrift: true, gyro: true,
   },
   jeep: {
     id: 'jeep', name: 'Джип', make: createJeep, color: 0x5d6e3c,

@@ -20,11 +20,22 @@ const carDrive = { accel: carAccel, brake: carBrake, drag: carDrag, maxSpeed: ca
 // руль поворачивает кузов сильнее, а машина по инерции едет прежним курсом — ее заносит (car.slip — угол
 // между носом и направлением движения). Отпустили — шины снова цепляются, и машина выравнивается.
 // Пока заносит, шины оставляют на земле темные следы (updateTireMarks). Глубина заноса — настройка
-// «Глубина заноса» (settings.driftDepth), резкость торможения, разгона и руля — тоже в настройках (вкладка «Вождение»).
+// «Глубина заноса» (settings.driftLevel), резкость торможения, разгона и руля — тоже в настройках (вкладка «Вождение»).
 // На телефоне Space — просто тормоз (им останавливает кнопка выхода), а занос — кнопкой ручника.
+// Шкала «Глубина заноса» 1–100% — это прежние 1–20%: регулировать можно мелко (driftScale).
+//
+// ДРИФТ (у гоночных, kind.powerDrift): газ и тормоз вместе на ходу (W+S, на телефоне — обе педали) — задние
+// колеса срываются, мотор держит скорость, и машина едет боком, пока держите обе педали. Рулем держат угол:
+// в сторону поворота — заносит глубже, против — выравнивается. Угол и легкость срыва — от глубины заноса
+// в настройках и от kind.drift машины.
+//
+// ПЛАВНЫЙ СТАРТ: у машины с kind.launch с места разгон слабее (launch — доля от полного), к launchUntil
+// доле максимальной скорости — полный (launchFactor).
 const handbrakeBrake = 0.3; // ручник тормозит слабее тормоза (доля от k.brake)
 const handbrakeMinSpeed = 0.06; // медленнее — ручник просто держит машину
 const slideFriction = 0.025; // потеря скорости боком (на радиан заноса)
+const driftScale = 0.2; // 100% на шкале «Глубина заноса» — это прежние 20%
+const powerDriftMinSpeed = 0.15; // медленнее — газ+тормоз просто разгоняют (старт с пробуксовкой)
 const cameraFollowEase = 0.04; // как быстро камера возвращается за машину (0..1 за кадр)
 let carTime = 0;
 
@@ -139,16 +150,31 @@ function updateDriving(c) {
   // Резкость разгона, торможения и руля — множители из настроек (src/engine/settings.js)
   const k = {
     ...base,
-    accel: base.accel * settings.accelSharp,
+    accel: base.accel * settings.accelSharp * launchFactor(base, car.speed),
     brake: base.brake * settings.brakeSharp,
     turnRate: base.turnRate * settings.steerSens,
   };
   const hasFuel = car.fuel > 0;
-  const handLever = touchUI ? typeof touchDrive !== 'undefined' && touchDrive.handbrake : keys['Space'];
+  const onTouch = touchUI && typeof touchDrive !== 'undefined';
+  const handLever = onTouch ? touchDrive.handbrake : keys['Space'];
   const handbrake = handLever && Math.abs(car.speed) > handbrakeMinSpeed;
-  const depth = settings.driftDepth * (base.drift === undefined ? carDrive.drift : base.drift);
-  // На телефоне — педали и коробка передач (src/engine/touch-drive.js), на компьютере — клавиши
-  if (typeof touchDriveStep === 'function' && touchDriveStep(car, k, hasFuel)) {
+  const carDrift = base.drift === undefined ? carDrive.drift : base.drift;
+  const driftLevel = settings.driftLevel * carDrift; // 0..1 по шкале настроек
+  const depth = driftLevel * driftScale;
+  // Дрифт: газ и тормоз вместе, вперед на скорости
+  const gasHeld = onTouch ? touchDrive.gas && touchDrive.gear !== 'R' && touchDrive.gear !== 'P' : c.up;
+  const brakeHeld = onTouch ? touchDrive.brake : c.down;
+  const bothPedals = !!base.powerDrift && gasHeld && brakeHeld && hasFuel && !handbrake && car.speed >= 0;
+  const powerDrift = bothPedals && car.speed > powerDriftMinSpeed;
+  if (bothPedals && !powerDrift) {
+    car.speed += k.accel; // с места газ+тормоз — старт с пробуксовкой, дрифт начнется на скорости
+  } else if (powerDrift) {
+    // Мотор почти держит скорость; потерю на боковом скольжении восполняет газ
+    const top = k.maxSpeed * 0.8;
+    if (car.speed < top) car.speed = Math.min(top, car.speed + k.accel * 0.9);
+    else car.speed -= k.drag;
+  } else if (onTouch && typeof touchDriveStep === 'function' && touchDriveStep(car, k, hasFuel)) {
+    // На телефоне — педали и коробка передач (src/engine/touch-drive.js), на компьютере — клавиши
     // скорость уже посчитана
   } else if (c.up && hasFuel && !handbrake) car.speed += car.speed < 0 ? k.brake : k.accel; // на ручнике газ не тянет
   else if (c.down && hasFuel) car.speed -= car.speed > 0 ? k.brake : k.accel * 0.7;
@@ -165,11 +191,20 @@ function updateDriving(c) {
   // На ручнике кузов поворачивает резче, а шины держат слабо — заносит тем сильнее, чем больше глубина заноса.
   // Без ручника шины цепляются почти сразу (у гоночной на большой глубине — чуть скользит и в обычных поворотах)
   if (handbrake) turn *= 1 + 1.3 * depth;
-  const grip = handbrake ? 0.12 - 0.1 * depth : 0.55 - 0.3 * depth;
+  let grip = handbrake ? 0.12 - 0.1 * depth : 0.55 - 0.3 * depth;
+  let maxSlip = 0.35 + 0.9 * depth;
+  // Дрифт: кузов поворачивает резче, шины почти не держат — машина идет боком (до ~70° на полной глубине)
+  if (powerDrift) {
+    const d = Math.min(1.2, 0.15 + driftLevel);
+    turn *= 1.2 + 0.8 * d;
+    grip = Math.max(0.004, 0.04 - 0.04 * d);
+    maxSlip = 0.45 + 0.7 * d;
+  }
 
-  const { appliedTurn, blockedX, blockedZ, vx, vz } = moveCarWithCollisions(car, turn, grip, 0.35 + 0.9 * depth);
-  car.speed *= 1 - slideFriction * Math.abs(Math.sin(car.slip)); // боком машина быстро теряет скорость
-  updateTireMarks(car, handbrake);
+  const { appliedTurn, blockedX, blockedZ, vx, vz } = moveCarWithCollisions(car, turn, grip, maxSlip);
+  car.speed *= 1 - slideFriction * (powerDrift ? 0.6 : 1) * Math.abs(Math.sin(car.slip)); // боком машина быстро теряет скорость
+  car.drifting = powerDrift;
+  updateTireMarks(car, handbrake || powerDrift);
   // Бензин расходуется на пройденный путь
   const travelled = Math.hypot(vx, vz);
   car.fuel = Math.max(0, car.fuel - travelled / fuelRange);
@@ -190,6 +225,14 @@ function updateDriving(c) {
   playerWorldX = car.x;
   playerWorldZ = car.z;
   followCamera(car, appliedTurn);
+}
+
+// Плавный старт: доля разгона на скорости speed (1 — полный). launch — доля с места, launchUntil — к какой доле
+// максимальной скорости разгон уже полный
+function launchFactor(kind, speed) {
+  if (!kind.launch || speed <= 0) return 1;
+  const t = Math.min(1, speed / (kind.maxSpeed * (kind.launchUntil || 0.35)));
+  return kind.launch + (1 - kind.launch) * t * t * (3 - 2 * t);
 }
 
 // СЛЕДЫ ШИН: пока машину заносит (или она скользит на ручнике), под задними колесами остаются темные полосы.
