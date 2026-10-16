@@ -10,13 +10,14 @@
 // Броня и ботинки — вещи с ITEMS[id].slot = 'armor' | 'boots' (их пока нет, ячейки пустые).
 //
 // API:
-//   heroStats              — { hp, maxHp, elixir }; после изменения — renderEquipHud()
+//   heroStats              — { hp, maxHp, elixir, maxElixir }; после изменения — renderEquipHud()
+//   spendElixir(n)         — списать эликсир (может быть дробным); false — не хватает
 //   heroEquip              — { armor, boots, weapons: [id|null ×5], active } (браслет — в heroDevices)
 //   equipSlotOf(id)        — 'bracelet' | 'armor' | 'boots' | 'weapon' | null
 //   isEquipped(id), equipItem(id), unequipSlot(slot, i)
 //   weaponSlotIds()        — оружие в ячейках по порядку (без пустых)
 
-const heroStats = { hp: 100, maxHp: 100, elixir: 0 };
+const heroStats = { hp: 100, maxHp: 100, elixir: 0, maxElixir: 100 };
 const WEAPON_SLOTS = 5; // ячеек оружия на нижней панели
 const heroEquip = { armor: null, boots: null, weapons: Array(WEAPON_SLOTS).fill(null), active: 0 };
 
@@ -132,6 +133,14 @@ function setActiveWeaponSlot(id) {
   }
 }
 
+// Потратить эликсир (дробное число, супероружие тратит понемногу). false — не хватает, ничего не списано
+function spendElixir(amount) {
+  if (heroStats.elixir < amount) return false;
+  heroStats.elixir = Math.max(0, heroStats.elixir - amount);
+  renderEquipHud();
+  return true;
+}
+
 // Для сохранения (src/player/saves.js)
 const captureEquip = () => ({ armor: heroEquip.armor, boots: heroEquip.boots, weapons: [...heroEquip.weapons], active: heroEquip.active });
 
@@ -167,7 +176,7 @@ Object.assign(PIXEL_ART, {
   },
   elixir: {
     // колба с эликсиром: стекло, пробка, светящаяся жидкость
-    palette: { k: '#8a5a32', g: '#cfe6ee', e: '#3fe0b0', E: '#c8fff0' },
+    palette: { k: '#8a5a32', g: '#cfe6ee', e: '#a05cf0', E: '#e4ccff' },
     rows: [
       '.....kk.....',
       '....kkkk....',
@@ -247,8 +256,8 @@ equipHudStyle.textContent = `
 #equipHud .px { width:28px; height:28px; image-rendering:pixelated; pointer-events:none; }
 #equipHud .stat { display:flex; align-items:center; gap:6px; }
 #equipHud .stat .px { width:22px; height:22px; }
-#equipHud .hpBar { width:110px; height:12px; background:rgba(255,255,255,0.15); border-radius:3px; overflow:hidden; }
-#equipHud .hpFill { height:100%; background:#e0483a; }
+#equipHud .statBar { width:110px; height:12px; background:rgba(255,255,255,0.15); border-radius:3px; overflow:hidden; }
+#equipHud .statFill { height:100%; }
 #equipHud .num { min-width:22px; font-weight:bold; }
 #equipHud .group { display:flex; gap:4px; padding-left:10px; border-left:1px solid rgba(255,255,255,0.2); }
 #equipHud .slot { width:40px; height:40px; box-sizing:border-box; border:1px solid rgba(255,255,255,0.28);
@@ -278,35 +287,32 @@ function equipSlotCell(icon, id, title, onClick, extra = '') {
   return c;
 }
 
+function statBar(icon, title, value, max, color) {
+  const box = document.createElement('div');
+  box.className = 'stat';
+  box.title = title + ': ' + Math.ceil(value) + ' из ' + max;
+  box.appendChild(pixelIcon(icon));
+  const bar = document.createElement('div');
+  bar.className = 'statBar';
+  const fill = document.createElement('div');
+  fill.className = 'statFill';
+  fill.style.width = Math.round(Math.max(0, Math.min(1, value / max)) * 100) + '%';
+  fill.style.background = color;
+  bar.appendChild(fill);
+  box.appendChild(bar);
+  const num = document.createElement('span');
+  num.className = 'num';
+  num.textContent = Math.ceil(value);
+  box.appendChild(num);
+  return box;
+}
+
 function renderEquipHud() {
   equipHudEl.innerHTML = '';
 
-  const hp = document.createElement('div');
-  hp.className = 'stat';
-  hp.title = 'Здоровье';
-  hp.appendChild(pixelIcon('heart'));
-  const bar = document.createElement('div');
-  bar.className = 'hpBar';
-  const fill = document.createElement('div');
-  fill.className = 'hpFill';
-  fill.style.width = Math.round((heroStats.hp / heroStats.maxHp) * 100) + '%';
-  bar.appendChild(fill);
-  hp.appendChild(bar);
-  const hpNum = document.createElement('span');
-  hpNum.className = 'num';
-  hpNum.textContent = Math.ceil(heroStats.hp);
-  hp.appendChild(hpNum);
-  equipHudEl.appendChild(hp);
-
-  const el = document.createElement('div');
-  el.className = 'stat';
-  el.title = 'Эликсир с собой';
-  el.appendChild(pixelIcon('elixir'));
-  const elNum = document.createElement('span');
-  elNum.className = 'num';
-  elNum.textContent = '×' + heroStats.elixir;
-  el.appendChild(elNum);
-  equipHudEl.appendChild(el);
+  // Здоровье — красная полоса, эликсир — фиолетовая, рядом число
+  equipHudEl.appendChild(statBar('heart', 'Здоровье', heroStats.hp, heroStats.maxHp, '#e0483a'));
+  equipHudEl.appendChild(statBar('elixir', 'Эликсир', heroStats.elixir, heroStats.maxElixir, '#a05cf0'));
 
   const gear = document.createElement('div');
   gear.className = 'group';
