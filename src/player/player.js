@@ -97,7 +97,9 @@ function updateWalking(c) {
     const strafe = inCombatMode() ? side : 0;
     if (!strafe) turn = -side * playerTurnRate; // налево — плюс, как у машины
     // В боевом режиме герой поворачивается вслед за камерой (стрелки ←/→ или зажатое колесо мыши)
-    if (inCombatMode()) {
+    // От первого лица (src/engine/mouse-look.js) — сразу, без сглаживания: взгляд и есть направление героя
+    if (firstPersonOn()) playerHeading = -worldRotation;
+    else if (inCombatMode()) {
       const d = -worldRotation - playerHeading;
       playerHeading += Math.atan2(Math.sin(d), Math.cos(d)) * 0.3;
     }
@@ -215,4 +217,21 @@ function updateCamera() {
   const h = cameraHeight + (lookHeight - cameraHeight) * mouseLookBlend;
   camera.position.set(0, h * z, cameraDistance * z);
   camera.lookAt(0, 1 + mouseLookBlend * 1.5, 0);
+  // Вид от первого лица: камера быстро въезжает в глаза героя и смотрит по прицелу (наклон — aimPitch)
+  firstPersonBlend += ((firstPersonOn() ? 1 : 0) - firstPersonBlend) * 0.25;
+  if (firstPersonBlend < 0.002) firstPersonBlend = 0;
+  if (firstPersonBlend > 0.998) firstPersonBlend = 1;
+  const k = firstPersonBlend;
+  const fov = 60 + (firstPersonFov - 60) * k;
+  const near = k > 0.5 ? 0.1 : 0.5; // оружие у самой камеры не обрезается
+  if (camera.fov !== fov || camera.near !== near) {
+    camera.fov = fov;
+    camera.near = near;
+    camera.updateProjectionMatrix();
+  }
+  if (!k) return;
+  const eye = firstPersonEye + player.position.y;
+  const ty = 1 + mouseLookBlend * 1.5;
+  camera.position.set(0, camera.position.y + (eye - camera.position.y) * k, camera.position.z * (1 - k));
+  camera.lookAt(0, ty + (eye + Math.sin(aimPitch) * 10 - ty) * k, -Math.cos(aimPitch) * 10 * k);
 }
