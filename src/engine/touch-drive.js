@@ -6,6 +6,7 @@
 //     стрелками вверх и вниз. На каждой передаче свой предел скорости, на низких — сильнее тянет; без газа
 //     машина катится и плавно сбрасывает скорость.
 //   • рядом — ручник: держите на ходу и поворачивайте — машину заносит, остаются следы шин (src/player/driving.js);
+//     у гоночных газ с ручником — дрифт: машина едет боком (в R — задом);
 //   • над ними — скорость в км/ч;
 //   • руль — наклон телефона (src/engine/gyro-steer.js), а если датчика нет — кнопки ◀ ▶ справа.
 // Садясь в машину, коробка стоит в P. Кнопка 🚪 рядом с оружием — выйти (src/engine/touch.js).
@@ -144,7 +145,8 @@ if (touchUI) {
     const slow = (amount) => (car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), amount));
     const toward = (target, step) => (car.speed += Math.max(-step, Math.min(step, target - car.speed)));
     const g = touchDrive.gear;
-    const gas = touchDrive.gas && hasFuel && !touchDrive.handbrake; // на ручнике газ не тянет (как на компьютере)
+    // на ручнике газ не тянет (как на компьютере); у гоночных тянет — газ с ручником это дрифт (src/player/driving.js)
+    const gas = touchDrive.gas && hasFuel && (!touchDrive.handbrake || !!(car.kind && car.kind.powerDrift));
     if (touchDrive.brake) {
       slow(k.brake);
     } else if (g === 'P') {

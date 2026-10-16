@@ -24,8 +24,9 @@ const carDrive = { accel: carAccel, brake: carBrake, drag: carDrag, maxSpeed: ca
 // На телефоне Space — просто тормоз (им останавливает кнопка выхода), а занос — кнопкой ручника.
 // Шкала «Глубина заноса» 1–100% — это прежние 1–20%: регулировать можно мелко (driftScale).
 //
-// ДРИФТ (у гоночных, kind.powerDrift): газ и тормоз вместе на ходу (W+S, на телефоне — обе педали) — задние
-// колеса срываются, мотор держит скорость, и машина едет боком, пока держите обе педали. Рулем держат угол:
+// ДРИФТ (у гоночных, kind.powerDrift): газ и ручник вместе на ходу (W+Space, на телефоне — газ и «ручник») — задние
+// колеса срываются, мотор держит скорость, и машина едет боком, пока держите оба. Задним ходом (S+Space,
+// на телефоне — R, газ и ручник) — дрифт задом. Рулем держат угол:
 // в сторону поворота — заносит глубже, против — выравнивается. Угол и легкость срыва — от глубины заноса
 // в настройках и от kind.drift машины.
 //
@@ -35,7 +36,7 @@ const handbrakeBrake = 0.3; // ручник тормозит слабее тор
 const handbrakeMinSpeed = 0.06; // медленнее — ручник просто держит машину
 const slideFriction = 0.025; // потеря скорости боком (на радиан заноса)
 const driftScale = 0.2; // 100% на шкале «Глубина заноса» — это прежние 20%
-const powerDriftMinSpeed = 0.15; // медленнее — газ+тормоз просто разгоняют (старт с пробуксовкой)
+const powerDriftMinSpeed = 0.15; // медленнее — газ с ручником просто разгоняют (старт с пробуксовкой)
 const cameraFollowEase = 0.04; // как быстро камера возвращается за машину (0..1 за кадр)
 let carTime = 0;
 
@@ -157,29 +158,33 @@ function updateDriving(c) {
   const hasFuel = car.fuel > 0;
   const onTouch = touchUI && typeof touchDrive !== 'undefined';
   const handLever = onTouch ? touchDrive.handbrake : keys['Space'];
-  const handbrake = handLever && Math.abs(car.speed) > handbrakeMinSpeed;
   const carDrift = base.drift === undefined ? carDrive.drift : base.drift;
   const driftLevel = settings.driftLevel * carDrift; // 0..1 по шкале настроек
   const depth = driftLevel * driftScale;
-  // Дрифт: газ и тормоз вместе, вперед на скорости
-  const gasHeld = onTouch ? touchDrive.gas && touchDrive.gear !== 'R' && touchDrive.gear !== 'P' : c.up;
-  const brakeHeld = onTouch ? touchDrive.brake : c.down;
-  const bothPedals = !!base.powerDrift && gasHeld && brakeHeld && hasFuel && !handbrake && car.speed >= 0;
-  const powerDrift = bothPedals && car.speed > powerDriftMinSpeed;
-  if (bothPedals && !powerDrift) {
-    car.speed += k.accel; // с места газ+тормоз — старт с пробуксовкой, дрифт начнется на скорости
-  } else if (powerDrift) {
+  // Дрифт: газ (или задний ход) и ручник вместе на скорости
+  const gasHeld = onTouch ? touchDrive.gas && (touchDrive.gear === 'D' || touchDrive.gear === 'M') : c.up;
+  const backHeld = onTouch ? touchDrive.gas && touchDrive.gear === 'R' : c.down && !c.up;
+  const engineOn = !!base.powerDrift && hasFuel && (gasHeld || backHeld); // у гоночных газ на ручнике тянет
+  const powerDrift = engineOn && handLever &&
+    ((gasHeld && car.speed > powerDriftMinSpeed) || (backHeld && car.speed < -powerDriftMinSpeed * 0.5));
+  const handbrake = handLever && !powerDrift && Math.abs(car.speed) > handbrakeMinSpeed;
+  if (powerDrift && car.speed > 0) {
     // Мотор почти держит скорость; потерю на боковом скольжении восполняет газ
     const top = k.maxSpeed * 0.8;
     if (car.speed < top) car.speed = Math.min(top, car.speed + k.accel * 0.9);
     else car.speed -= k.drag;
+  } else if (powerDrift) {
+    // Задом: так же, но к пределу заднего хода
+    const top = k.maxReverse * 0.9;
+    if (car.speed > top) car.speed = Math.max(top, car.speed - k.accel * 0.7);
   } else if (onTouch && typeof touchDriveStep === 'function' && touchDriveStep(car, k, hasFuel)) {
     // На телефоне — педали и коробка передач (src/engine/touch-drive.js), на компьютере — клавиши
     // скорость уже посчитана
-  } else if (c.up && hasFuel && !handbrake) car.speed += car.speed < 0 ? k.brake : k.accel; // на ручнике газ не тянет
+  } else if (c.up && hasFuel && (!handbrake || engineOn)) car.speed += car.speed < 0 ? k.brake : k.accel; // на ручнике газ не тянет (кроме гоночных)
   else if (c.down && hasFuel) car.speed -= car.speed > 0 ? k.brake : k.accel * 0.7;
   else car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.drag);
-  if (keys['Space'] || handLever) car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.brake * (handbrake ? handbrakeBrake : 1));
+  // Ручник тормозит; у гоночных с газом — нет: с места это старт с пробуксовкой, на скорости — дрифт
+  if ((keys['Space'] || handLever) && !(engineOn && handLever)) car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.brake * (handbrake ? handbrakeBrake : 1));
   car.speed = Math.min(Math.max(car.speed, k.maxReverse), k.maxSpeed);
 
   // Поворачивать можно только в движении; задним ходом руль работает наоборот.
