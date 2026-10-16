@@ -198,19 +198,21 @@ function toggleWeapon() {
     return;
   }
   // Достаем из активной ячейки, а если она пуста — первое оружие из ячеек
-  const ids = weaponSlotIds();
-  const id = heroEquip.weapons[heroEquip.active] || ids[0];
+  const id = activeWeaponId();
   if (id) drawWeapon(id);
-  else if (inventory.items.some(isWeapon)) showToast('Оружие лежит в инвентаре: откройте его (I) и кликните по оружию, чтобы взять в ячейку');
+  else if (inventory.items.some(isWeapon)) {
+    showToast(touchUI ? 'Оружие лежит в инвентаре: откройте его и коснитесь оружия, чтобы взять в ячейку'
+      : 'Оружие лежит в инвентаре: откройте его (I) и перетащите оружие в активную ячейку справа');
+  }
   else showToast('Оружия нет. В ДЕМО оно лежит в тире и на столе предметов');
 }
 
-// Следующее оружие из пяти ячеек оружия по кругу (R, колесо вниз); dir = −1 — предыдущее (колесо вверх).
+// Следующее оружие из активных ячеек по кругу (R, колесо вниз); dir = −1 — предыдущее (колесо вверх).
 // Одно оружие — подсказка, что сменить не на что
 function nextWeapon(dir = 1) {
   const ids = weaponSlotIds();
   if (!ids.length) return toggleWeapon();
-  if (!heroWeapon.id) return drawWeapon(heroEquip.weapons[heroEquip.active] || ids[0]);
+  if (!heroWeapon.id) return drawWeapon(activeWeaponId());
   const i = ids.indexOf(heroWeapon.id);
   const id = ids[(i + dir + ids.length) % ids.length];
   if (id === heroWeapon.id) return showToast('В других ячейках оружия нет — возьмите еще в тире');

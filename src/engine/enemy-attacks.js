@@ -50,7 +50,7 @@ function hitHero(hit) {
     const robot = hit.robot !== undefined ? hit.robot : enemyAttackerKind === 'robot';
     return robot ? damageVehicle(drivingCar, hit.damage) : 0; // клыки и плевки броню не берут
   }
-  const dmg = Math.max(1, Math.round(hit.damage));
+  const dmg = Math.max(1, Math.round(hit.damage * heroArmorFactor())); // куртка и бронежилет снимают часть урона
   heroStats.hp = Math.max(0, heroStats.hp - dmg);
   heroLastHurt = performance.now();
   renderEquipHud();

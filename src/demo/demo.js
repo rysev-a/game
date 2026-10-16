@@ -393,7 +393,7 @@ addInteractable({
 // Бесконечный рюкзак — сразу с собой: в нем всё оружие и все вещи, место не кончается (src/player/inventory.js)
 if (!hasItem('backpack')) inventory.items.unshift('backpack');
 if (!hasItem('bracelet')) inventory.items.push('bracelet');
-// Всё оружие сразу с собой: первые пять — в ячейках оружия внизу, остальное — в инвентаре
+// Всё оружие сразу с собой: первые восемь — в активных ячейках внизу, остальное — в инвентаре
 for (const id of Object.keys(WEAPONS)) {
   if (hasItem(id)) continue;
   inventory.items.push(id);

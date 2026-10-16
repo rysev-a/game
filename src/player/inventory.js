@@ -18,8 +18,8 @@
 //
 // API для остального кода:
 //   addItem(id) — положить вещь, hasItem(id) — есть ли (в сетке или надета), removeItem(id)
-// Надеваемое (браслет, броня, ботинки, оружие) в раскрытом инвентаре надевается кликом —
-// уходит в ячейку нижней панели (src/player/equipment.js)
+// Надеваемое (браслет, куртка, бронежилет, ботинки) и оружие на компьютере перетаскивают из раскрытого инвентаря
+// в панель снаряжения справа от него, на телефоне — кликом (src/player/equipment.js)
 //   showToast(текст, мс) — короткое сообщение внизу экрана
 
 const ITEMS = {
@@ -76,6 +76,7 @@ function openCells() {
 }
 
 function renderInventory() {
+  if (typeof renderEquipPanel === 'function') renderEquipPanel(); // панель снаряжения справа видна, пока инвентарь раскрыт
   inventoryEl.innerHTML = '';
   inventoryEl.className = inventoryOpen ? 'open' : 'closed';
 
@@ -91,8 +92,9 @@ function renderInventory() {
     if (id) {
       c.appendChild(pixelIcon(ITEMS[id].icon));
       c.title = ITEMS[id].name;
-      // В раскрытом инвентаре клик по надеваемой вещи — надеть (в ячейку нижней панели)
-      if (inventoryOpen && typeof equipSlotOf === 'function' && equipSlotOf(id)) {
+      // На телефоне в раскрытом инвентаре касание надеваемой вещи — надеть (в ячейку нижней панели);
+      // на компьютере вещи перетаскивают в панель снаряжения справа (src/player/equipment.js)
+      if (inventoryOpen && touchUI && typeof equipSlotOf === 'function' && equipSlotOf(id)) {
         c.classList.add('wearable');
         c.title += ' — клик надевает';
         c.addEventListener('click', (e) => {
@@ -101,6 +103,7 @@ function renderInventory() {
         });
       }
     }
+    if (inventoryOpen && !touchUI && typeof invCellDnD === 'function') invCellDnD(c, i, id);
     grid.appendChild(c);
   }
 

@@ -90,7 +90,7 @@ function clickEnemy() {
 function clickStartCombat(t) {
   clickMoveStop();
   const ids = weaponSlotIds();
-  const id = ids.includes(heroWeapon.last) ? heroWeapon.last : heroEquip.weapons[heroEquip.active] || ids[0];
+  const id = ids.includes(heroWeapon.last) ? heroWeapon.last : activeWeaponId();
   if (!id) return toggleWeapon();
   if (!drawWeapon(id)) return;
   playerHeading = Math.atan2(-(t.x - playerWorldX), -(t.z - playerWorldZ));
