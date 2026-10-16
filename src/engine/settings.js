@@ -5,11 +5,13 @@
 //   остальные звуки (машина, фраза, шаги, выстрелы) продолжают играть.
 // - «Дождь» — сняли галочку, и дождя не бывает никогда: ни по расписанию, ни по клавише P,
 //   всегда хорошая погода (src/world/weather.js).
+// - «Вид от первого лица в бою» (только компьютер) — в боевом режиме камера в глазах героя, мышь двигает
+//   взгляд резче, как в 3D-шутерах, автонаведения нет (src/engine/mouse-look.js).
 // Значения запоминаются в браузере (localStorage). Пока меню открыто, игровые клавиши не работают.
 // В самом низу меню — версия игры; нажали — окно с историей версий на русском. Версии пишет в version.json
 // выкладка на GitHub Pages (.github/workflows/pages.yml) из истории main, русский текст — changelog.json.
 
-const settings = { volume: 1, ambient: true, rain: true };
+const settings = { volume: 1, ambient: true, rain: true, firstPerson: false };
 try {
   const saved = parseFloat(localStorage.getItem('game.volume'));
   if (!Number.isNaN(saved)) settings.volume = Math.min(1, Math.max(0, saved));
@@ -26,6 +28,12 @@ try {
   if (localStorage.getItem('game.rain') === 'off') settings.rain = false;
 } catch (e) {
   // то же: дождь остается включен
+}
+
+try {
+  if (localStorage.getItem('game.firstPerson') === 'on') settings.firstPerson = true;
+} catch (e) {
+  // то же: бой остается от третьего лица
 }
 
 const settingsBtn = document.getElementById('settingsBtn');
@@ -82,6 +90,23 @@ rainToggle.addEventListener('change', () => {
   rainToggle.blur();
   try {
     localStorage.setItem('game.rain', settings.rain ? 'on' : 'off');
+  } catch (e) {
+    // не страшно: просто не запомнится
+  }
+});
+
+// Галочка «Вид от первого лица в бою» — под «Дождем»; на телефоне ее нет (там нет захвата мыши)
+const firstPersonLabel = document.createElement('label');
+firstPersonLabel.className = 'check';
+firstPersonLabel.innerHTML = '<input id="firstPersonToggle" type="checkbox" /> Вид от первого лица в бою';
+if (!touchUI) rainLabel.after(firstPersonLabel);
+const firstPersonToggle = firstPersonLabel.querySelector('input');
+firstPersonToggle.checked = settings.firstPerson;
+firstPersonToggle.addEventListener('change', () => {
+  settings.firstPerson = firstPersonToggle.checked;
+  firstPersonToggle.blur();
+  try {
+    localStorage.setItem('game.firstPerson', settings.firstPerson ? 'on' : 'off');
   } catch (e) {
     // не страшно: просто не запомнится
   }

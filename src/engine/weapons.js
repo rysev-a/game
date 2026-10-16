@@ -149,8 +149,9 @@ const heroWeapon = {
 
 // Наклон прицела вверх-вниз (рад, плюс — вверх). Меняет его только захваченная мышь (src/engine/mouse-look.js),
 // иначе 0 — заряды летят горизонтально. aimSlope — сколько заряд поднимается на единицу пути
+// От первого лица (src/engine/mouse-look.js) наклон берется такой, чтобы заряд прилетел в точку под перекрестием
 let aimPitch = 0;
-const aimSlope = () => Math.tan(aimPitch);
+const aimSlope = () => (firstPersonOn() ? firstPersonSlope : Math.tan(aimPitch));
 const mouseLookActive = () => !touchUI && document.pointerLockElement === renderer.domElement;
 
 const weaponBolts = []; // летящие заряды
@@ -242,6 +243,7 @@ function mouseAimPoint() {
 
 // Довод при стрельбе по взгляду: ближайшая живая цель в конусе aimAssist и в пределах дальности
 function assistTarget(w, heading) {
+  if (firstPersonOn()) return null; // от первого лица автонаведения нет: куда смотрит перекрестие, туда и летит
   let best = null;
   let bestD = Infinity;
   for (const t of combatTargets) {
