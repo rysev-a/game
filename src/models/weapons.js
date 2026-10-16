@@ -6,6 +6,7 @@
 //   player.attach('rifle', gun);           // к груди, приклад у правого плеча; руки — player.setAim('rifle')
 //   createGaussCannonModel(), createPlasmaFlamerModel(), createCryoRifleModel(), createArcDischargerModel() —
 //                                          // остальные винтовки (так же к груди); createTachyonPistolModel() — в руку
+//   createPlasmaGunModel(), createMinigunModel() (userData.spin — блок стволов), createShotgunModel()
 //   const d = createTrainingDummy({ armor: true });  // манекен на столбе, лицом в -Z, стоит на y = 0
 //   createRobotDummy(), createRangeCrate() — робот-мишень и ящик для тира
 //
@@ -178,6 +179,70 @@ function createTachyonPistolModel() {
   glow.push(weaponPart(g, 0.05, 0.05, 0.02, 0xffd8f4, 0, 0.1, -0.48, { glow: true }).material);
   g.userData.glow = glow;
   g.userData.muzzle = new THREE.Vector3(0, 0.1, -0.52);
+  return g;
+}
+
+// Плазмомет — как в Unreal: короткий массивный корпус, сверху прозрачная колба с зеленой плазмой,
+// спереди три зеленых кольца-ускорителя и широкое дуло
+function createPlasmaGunModel() {
+  const g = new THREE.Group();
+  const body = 0x3a4436;
+  const green = 0x5cff6a;
+  rifleBase(g, body);
+  weaponPart(g, 0.19, 0.22, 0.62, body, 0, 0, -0.55); // корпус
+  weaponPart(g, 0.15, 0.14, 0.34, 0x2a3028, 0, -0.03, -0.98); // цевье
+  weaponPart(g, 0.13, 0.13, 0.3, 0x2a3028, 0, 0.01, -1.28); // ствол
+  weaponPart(g, 0.2, 0.2, 0.06, 0x2a3028, 0, 0.01, -1.45); // дуло
+  const glow = [];
+  glow.push(weaponPart(g, 0.11, 0.08, 0.36, green, 0, 0.16, -0.58, { glow: true }).material); // колба
+  for (let i = 0; i < 3; i++) glow.push(weaponPart(g, 0.17, 0.17, 0.03, green, 0, 0.01, -1.16 - i * 0.1, { glow: true }).material);
+  glow.push(weaponPart(g, 0.12, 0.12, 0.02, 0xc8ffc8, 0, 0.01, -1.49, { glow: true }).material); // дуло светится
+  g.userData.glow = glow;
+  g.userData.muzzle = new THREE.Vector3(0, 0.01, -1.5);
+  return g;
+}
+
+// Пулемет — шестиствольный, как у Терминатора: короб с лентой сбоку, мотор, блок из шести стволов
+// вокруг оси (userData.spin — его крутят при стрельбе), рукоять сверху для левой руки
+function createMinigunModel() {
+  const g = new THREE.Group();
+  const steel = 0x3a3d42;
+  const dark = 0x1f2226;
+  rifleBase(g, steel);
+  weaponPart(g, 0.2, 0.24, 0.55, steel, 0, 0, -0.5); // корпус с мотором
+  weaponPart(g, 0.16, 0.2, 0.3, 0x4a4f2a, 0.18, -0.06, -0.5); // короб с лентой
+  for (let i = 0; i < 5; i++) weaponPart(g, 0.04, 0.03, 0.05, 0xc89a3a, 0.12, -0.17 - i * 0.03, -0.42 + i * 0.012, { edges: false }); // патроны ленты
+  weaponPart(g, 0.18, 0.18, 0.1, dark, 0, 0.01, -0.82); // передний подшипник
+  const spin = new THREE.Group();
+  spin.position.set(0, 0.01, 0);
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    weaponPart(spin, 0.035, 0.035, 0.85, 0x55595f, Math.cos(a) * 0.06, Math.sin(a) * 0.06, -1.25, { edges: false });
+  }
+  weaponPart(spin, 0.17, 0.17, 0.04, dark, 0, 0, -1.05);
+  weaponPart(spin, 0.17, 0.17, 0.04, dark, 0, 0, -1.6);
+  g.add(spin);
+  g.userData.spin = spin;
+  g.userData.glow = [];
+  g.userData.muzzle = new THREE.Vector3(0, 0.01, -1.68);
+  return g;
+}
+
+// Дробовик — помповый: деревянный приклад и цевье-помпа, длинный ствол и под ним трубчатый магазин
+function createShotgunModel() {
+  const g = new THREE.Group();
+  const wood = 0x7a4a26;
+  const steel = 0x2e3136;
+  weaponPart(g, 0.09, 0.16, 0.36, wood, 0, -0.04, -0.16); // приклад
+  const grip = weaponPart(g, 0.08, 0.17, 0.1, wood, 0, -0.14, -0.44); // шейка приклада под правую руку
+  grip.rotation.x = 0.35;
+  weaponPart(g, 0.11, 0.15, 0.36, steel, 0, 0, -0.5); // ствольная коробка
+  weaponPart(g, 0.11, 0.1, 0.26, wood, 0, -0.08, -0.74); // помпа под левую руку
+  weaponPart(g, 0.06, 0.06, 0.95, steel, 0, 0.03, -1.12); // ствол
+  weaponPart(g, 0.05, 0.05, 0.75, steel, 0, -0.04, -1.0); // трубчатый магазин
+  weaponPart(g, 0.02, 0.03, 0.02, 0xd0d0d0, 0, 0.07, -1.56, { edges: false }); // мушка
+  g.userData.glow = [];
+  g.userData.muzzle = new THREE.Vector3(0, 0.03, -1.6);
   return g;
 }
 
