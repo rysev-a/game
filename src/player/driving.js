@@ -16,12 +16,12 @@ const carTurnRate = 0.045;
 // drift — насколько машину заносит на ручнике (1 — как гоночную)
 const carDrive = { accel: carAccel, brake: carBrake, drag: carDrag, maxSpeed: carMaxSpeed, maxReverse: carMaxReverse, turnRate: carTurnRate, drift: 0.6 };
 
-// ЗАНОС (компьютер). Space на ходу — ручник: задние колеса скользят, тормозит он слабее обычного тормоза,
+// ЗАНОС. Space на компьютере (на телефоне — кнопка «ручник», src/engine/touch-drive.js) на ходу — ручник: задние колеса скользят, тормозит он слабее обычного тормоза,
 // руль поворачивает кузов сильнее, а машина по инерции едет прежним курсом — ее заносит (car.slip — угол
 // между носом и направлением движения). Отпустили — шины снова цепляются, и машина выравнивается.
 // Пока заносит, шины оставляют на земле темные следы (updateTireMarks). Глубина заноса — настройка
 // «Глубина заноса» (settings.driftDepth), резкость торможения, разгона и руля — тоже в настройках (вкладка «Вождение»).
-// На телефоне Space — просто тормоз (src/engine/touch-drive.js), заноса нет.
+// На телефоне Space — просто тормоз (им останавливает кнопка выхода), а занос — кнопкой ручника.
 const handbrakeBrake = 0.3; // ручник тормозит слабее тормоза (доля от k.brake)
 const handbrakeMinSpeed = 0.06; // медленнее — ручник просто держит машину
 const slideFriction = 0.025; // потеря скорости боком (на радиан заноса)
@@ -144,7 +144,8 @@ function updateDriving(c) {
     turnRate: base.turnRate * settings.steerSens,
   };
   const hasFuel = car.fuel > 0;
-  const handbrake = keys['Space'] && !touchUI && Math.abs(car.speed) > handbrakeMinSpeed;
+  const handLever = touchUI ? typeof touchDrive !== 'undefined' && touchDrive.handbrake : keys['Space'];
+  const handbrake = handLever && Math.abs(car.speed) > handbrakeMinSpeed;
   const depth = settings.driftDepth * (base.drift === undefined ? carDrive.drift : base.drift);
   // На телефоне — педали и коробка передач (src/engine/touch-drive.js), на компьютере — клавиши
   if (typeof touchDriveStep === 'function' && touchDriveStep(car, k, hasFuel)) {
@@ -152,7 +153,7 @@ function updateDriving(c) {
   } else if (c.up && hasFuel && !handbrake) car.speed += car.speed < 0 ? k.brake : k.accel; // на ручнике газ не тянет
   else if (c.down && hasFuel) car.speed -= car.speed > 0 ? k.brake : k.accel * 0.7;
   else car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.drag);
-  if (keys['Space']) car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.brake * (handbrake ? handbrakeBrake : 1));
+  if (keys['Space'] || handLever) car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.brake * (handbrake ? handbrakeBrake : 1));
   car.speed = Math.min(Math.max(car.speed, k.maxReverse), k.maxSpeed);
 
   // Поворачивать можно только в движении; задним ходом руль работает наоборот.
@@ -164,7 +165,7 @@ function updateDriving(c) {
   // На ручнике кузов поворачивает резче, а шины держат слабо — заносит тем сильнее, чем больше глубина заноса.
   // Без ручника шины цепляются почти сразу (у гоночной на большой глубине — чуть скользит и в обычных поворотах)
   if (handbrake) turn *= 1 + 1.3 * depth;
-  const grip = touchUI ? 1 : handbrake ? 0.12 - 0.1 * depth : 0.55 - 0.3 * depth;
+  const grip = handbrake ? 0.12 - 0.1 * depth : 0.55 - 0.3 * depth;
 
   const { appliedTurn, blockedX, blockedZ, vx, vz } = moveCarWithCollisions(car, turn, grip, 0.35 + 0.9 * depth);
   car.speed *= 1 - slideFriction * Math.abs(Math.sin(car.slip)); // боком машина быстро теряет скорость
