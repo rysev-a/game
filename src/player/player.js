@@ -13,6 +13,7 @@ let playerYaw = 0; // куда повернут человечек (в экра�
 let playerHeading = 0; // куда смотрит игрок в мире (как heading у машины: плюс — налево)
 const playerTurnRate = 0.05; // поворот за кадр (рад)
 const playerBackFactor = 0.6; // назад идем медленнее
+const playerStrafeFactor = 0.8; // в боевом режиме боком — чуть медленнее, чем вперед
 
 
 // НАСТРОЙКИ ПОЗИЦИОНИРОВАНИЯ
@@ -47,7 +48,7 @@ let playerWorldZ = 0;
 let worldRotation = 0;
 
 // КЛАВИШИ УПРАВЛЕНИЯ
-//   W / S — вперед / назад      A / D — поворот (налево / направо)
+//   W / S — вперед / назад      A / D — поворот (налево / направо); в боевом режиме — шаг боком
 //   E — действие               F — выйти из машины / отпустить   стрелки — камера (←→ вращать, ↑↓ наклон)
 //   Shift — в боевом режиме (оружие в руках) идти шагом, а не бежать
 // За рулем и при толкании машины A/D — руль: left/right
@@ -57,7 +58,7 @@ function readControls() {
     down: keys['KeyS'],
     left: keys['KeyA'], // руль машины
     right: keys['KeyD'],
-    turnLeft: keys['KeyA'], // пешком A/D поворачивают
+    turnLeft: keys['KeyA'], // пешком A/D поворачивают (в боевом режиме — шаг боком)
     turnRight: keys['KeyD'],
   };
 }
@@ -79,7 +80,7 @@ function updateRotationKeys() {
   cameraHoldFrames = held ? cameraHoldDelay : Math.max(0, cameraHoldFrames - 1);
 }
 
-// ХОДЬБА ПЕШКОМ. A/D поворачивают игрока на месте, W/S — вперед/назад вдоль взгляда (назад медленнее).
+// ХОДЬБА ПЕШКОМ. A/D поворачивают игрока на месте (в боевом режиме — шагает боком), W/S — вперед/назад вдоль взгляда (назад медленнее).
 // Камера поворачивается вместе с игроком (followCamera из src/player/driving.js),
 // так что он смотрит «вверх по экрану». Возвращает { moving, dir, turn } для анимации шагов
 function updateWalking(c) {
@@ -89,13 +90,27 @@ function updateWalking(c) {
   let turn = 0;
   const onFoot = !drivingCar && !pushingCar;
   if (onFoot) {
-    turn = ((c.turnLeft ? 1 : 0) - (c.turnRight ? 1 : 0)) * playerTurnRate; // налево — плюс, как у машины
+    // В боевом режиме A/D — шаг боком (стрейф), иначе поворот
+    const side = (c.turnRight ? 1 : 0) - (c.turnLeft ? 1 : 0); // направо — плюс
+    const strafe = inCombatMode() ? side : 0;
+    if (!strafe) turn = -side * playerTurnRate; // налево — плюс, как у машины
+    // В боевом режиме герой поворачивается вслед за камерой (стрелки ←/→ или зажатое колесо мыши)
+    if (inCombatMode()) {
+      const d = -worldRotation - playerHeading;
+      playerHeading += Math.atan2(Math.sin(d), Math.cos(d)) * 0.3;
+    }
     const f = (c.up ? 1 : 0) - (c.down ? 1 : 0);
     const speed = playerSpeed * (isRunning() ? combatRunFactor : 1);
-    const fwd = f > 0 ? speed : f < 0 ? -speed * playerBackFactor : 0;
-    // Вперед в мире — (−sin h, −cos h), как у машины
-    vx = -Math.sin(playerHeading + turn) * fwd;
-    vz = -Math.cos(playerHeading + turn) * fwd;
+    let fwd = f > 0 ? speed : f < 0 ? -speed * playerBackFactor : 0;
+    let sideSpeed = strafe * speed * playerStrafeFactor;
+    if (fwd && sideSpeed) {
+      fwd *= Math.SQRT1_2; // по диагонали не быстрее, чем прямо
+      sideSpeed *= Math.SQRT1_2;
+    }
+    // Вперед в мире — (−sin h, −cos h), как у машины; вправо — (cos h, −sin h)
+    const h = playerHeading + turn;
+    vx = -Math.sin(h) * fwd + Math.cos(h) * sideSpeed;
+    vz = -Math.cos(h) * fwd - Math.sin(h) * sideSpeed;
     if (f < 0) dir = -1;
   }
   playerHeading += turn;

@@ -364,8 +364,8 @@ WEAPON_KINDS.arc = {
     }
     const pts = [new THREE.Vector3(s.x, s.y, s.z)];
     if (!first) {
-      // Никого рядом — разряд бьет в пустоту на короткую дистанцию
-      const len = Math.min(7, freePath(s.x, s.z, s.dirX, s.dirZ, 7));
+      // Никого рядом — разряд бьет в пустоту на 21
+      const len = Math.min(21, freePath(s.x, s.z, s.dirX, s.dirZ, 21));
       pts.push(new THREE.Vector3(s.x + s.dirX * len, s.y - 0.4, s.z + s.dirZ * len));
     } else {
       const chain = [first];
