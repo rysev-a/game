@@ -181,55 +181,107 @@ function createWalkingMan(options = {}) {
     m.userData.noFlash = true;
     return m;
   }
+  // Граненая призма (6 граней, ребро смотрит вперед, как на листе): ширина w и глубина d внизу,
+  // wTop и dTop наверху. Из таких призм собраны торс, руки, ноги и кисти — без грубых коробок
+  function prism(w, h, d, color, wTop = w, dTop = d, sides = 6) {
+    const geo = new THREE.CylinderGeometry(1, 1, h, sides);
+    let maxX = 0;
+    for (let k = 0; k < sides; k++) maxX = Math.max(maxX, Math.abs(Math.sin((k * Math.PI * 2) / sides)));
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const top = pos.getY(i) > 0;
+      pos.setX(i, (pos.getX(i) / maxX) * ((top ? wTop : w) / 2));
+      pos.setZ(i, pos.getZ(i) * ((top ? dTop : d) / 2));
+    }
+    return new THREE.Mesh(geo, personMat(color));
+  }
 
   const root = new THREE.Group();
   root.scale.setScalar(o.scale);
   const hips = new THREE.Group(); // качается вверх при ходьбе
   root.add(hips);
 
-  const shoulder = female ? 0.31 : 0.36; // полуширина плеч
-  const front = -0.13; // передняя плоскость корпуса (модель смотрит в -Z)
-
-  // ---------- Ноги: вращается группа-«бедро», нога сужается к щиколотке ----------
+  // ---------- Ноги: вращается группа-«бедро», граненая нога сужается к щиколотке ----------
   function makeLeg(sideX) {
     const leg = new THREE.Group();
     leg.position.set(sideX, 0.95, 0);
-    at(part(0.17, 0.84, 0.18, o.pantsColor, 0.22, 0.22), 0, -0.42, 0, leg);
+    at(prism(0.13, 0.84, 0.15, o.pantsColor, 0.19, 0.2), 0, -0.42, 0, leg);
     // Ботинок или кроссовок: носок вперед
     if (o.sneakers) {
-      at(part(0.17, 0.11, 0.3, o.sneakerColor), 0, -0.85, -0.05, leg);
-      at(part(0.18, 0.04, 0.31, personShade(o.sneakerColor, 0.25)), 0, -0.92, -0.05, leg);
-      at(part(0.01, 0.04, 0.18, o.sneakerStripeColor), sideX > 0 ? 0.088 : -0.088, -0.85, -0.06, leg);
+      at(part(0.15, 0.1, 0.28, o.sneakerColor, 0.13, 0.2), 0, -0.86, -0.05, leg);
+      at(part(0.16, 0.035, 0.29, personShade(o.sneakerColor, 0.25)), 0, -0.925, -0.05, leg);
+      at(part(0.01, 0.04, 0.16, o.sneakerStripeColor), sideX > 0 ? 0.078 : -0.078, -0.86, -0.06, leg);
     } else {
-      at(part(0.19, 0.14, 0.34, o.shoeColor, 0.17, 0.22), 0, -0.87, -0.06, leg);
+      at(part(0.16, 0.12, 0.3, o.shoeColor, 0.13, 0.2), 0, -0.88, -0.05, leg);
     }
-    if (o.stripes !== null) at(part(0.012, 0.8, 0.05, o.stripes), sideX > 0 ? 0.088 : -0.088, -0.42, 0, leg);
+    if (o.stripes !== null) {
+      const st = at(part(0.012, 0.8, 0.04, o.stripes), sideX > 0 ? 0.08 : -0.08, -0.42, 0, leg);
+      st.rotation.z = sideX > 0 ? 0.03 : -0.03;
+    }
     return leg;
   }
-  const legL = makeLeg(-0.12);
-  const legR = makeLeg(0.12);
+  const legL = makeLeg(-0.1);
+  const legR = makeLeg(0.1);
   hips.add(legL);
   hips.add(legR);
   // Таз связывает ноги с корпусом
-  at(part(0.46, 0.14, 0.25, o.pantsColor, 0.44), 0, 0.98, 0, hips);
+  at(prism(0.38, 0.14, 0.22, o.pantsColor, 0.4, 0.24), 0, 0.98, 0, hips);
 
   // ---------- Корпус с руками и головой ----------
   const body = new THREE.Group();
   hips.add(body);
 
-  // Торс: трапеция, плечи шире пояса. Под пальто и пиджаком — тот же торс цвета верхней одежды
+  // Торс: грудь (пояс уже, грудь шире) и покатые плечи, сходящиеся к шее. Ребро спереди делит грудь
+  // на светлую и темную половины, как на листе. Под пальто и пиджаком торс цвета верхней одежды
   const torsoColor = outer !== null ? outer : o.shirtColor;
-  at(part(female ? 0.44 : 0.48, 0.62, 0.26, torsoColor, shoulder * 2 - 0.08, 0.28), 0, 1.33, 0, body);
+  const waistW = female ? 0.34 : 0.36;
+  const chestW = female ? 0.42 : 0.46;
+  const chestY0 = 1.02;
+  const chestY1 = 1.5;
+  at(prism(waistW, chestY1 - chestY0, 0.24, torsoColor, chestW, 0.28), 0, (chestY0 + chestY1) / 2, 0, body);
+  at(prism(chestW, 0.14, 0.28, torsoColor, 0.24, 0.2), 0, chestY1 + 0.07, 0, body);
+  const shoulder = chestW / 2; // где крепятся руки
   // Шея
-  at(part(0.1, 0.1, 0.1, o.skinColor), 0, 1.68, 0, body);
+  at(prism(0.1, 0.12, 0.1, o.skinColor, 0.1, 0.1), 0, 1.68, 0, body);
+
+  // Передняя поверхность груди: z на смещении x и высоте y, и наклон грани (детали лежат на ней)
+  function chest(y) {
+    const t = Math.min(1, Math.max(0, (y - chestY0) / (chestY1 - chestY0)));
+    return { hw: (waistW + (chestW - waistW) * t) / 2, hd: (0.24 + 0.04 * t) / 2 };
+  }
+  const frontZ = (x, y) => {
+    const c = chest(y);
+    return -c.hd + (c.hd / 2) * Math.min(1, Math.abs(x) / c.hw);
+  };
+  const faceTilt = (y) => {
+    const c = chest(y);
+    return Math.atan2(c.hd / 2, c.hw);
+  };
+  // Плоская деталь на груди (w x h, отступ out от поверхности). Если она пересекает ребро посередине,
+  // собирается из двух половин, каждая лежит на своей грани
+  function onChest(w, h, color, x, y, out = 0.006, wTop = w, mk = part) {
+    const halves = x - w / 2 < -0.001 && x + w / 2 > 0.001 ? [[x - w / 2, 0], [0, x + w / 2]] : [[x - w / 2, x + w / 2]];
+    const k = wTop / w;
+    return halves.map(([x0, x1]) => {
+      const cx = (x0 + x1) / 2;
+      const m = mk === glow ? glow(x1 - x0, h, 0.012) : part(x1 - x0, h, 0.012, color, (x1 - x0) * k);
+      const side = cx === 0 ? 0 : Math.sign(cx);
+      m.rotation.y = side * faceTilt(y);
+      return at(m, cx, y, frontZ(cx, y) - out, body);
+    });
+  }
+  // Полоса вокруг торса (резинка свитера, ремень)
+  const wrap = (y, h, color, extra = 0.012) => {
+    const c = chest(y);
+    return at(prism(c.hw * 2 + extra, h, c.hd * 2 + extra, color), 0, y, 0, body);
+  };
 
   if (outer !== null) {
     // Распахнутая верхняя одежда: спереди полоса рубашки, лацканы по бокам
-    at(part(0.14, 0.58, 0.01, o.shirtColor, 0.18), 0, 1.34, front - 0.005, body);
+    onChest(0.14, 0.46, o.shirtColor, 0, 1.3, 0.004, 0.18);
     const lapelColor = personShade(outer, 0.12);
     [-1, 1].forEach((s) => {
-      const lapel = at(part(0.07, 0.26, 0.02, lapelColor), s * 0.11, 1.5, front - 0.012, body);
-      lapel.rotation.z = s * 0.3;
+      onChest(0.06, 0.24, lapelColor, s * 0.1, 1.42, 0.01).forEach((m) => (m.rotation.z = s * 0.3));
     });
   }
   // Рубашка: воротник уголками; планка с пуговицами и нагрудные карманы — по опциям
@@ -237,70 +289,69 @@ function createWalkingMan(options = {}) {
   if (shirtShows) {
     const collarColor = personShade(o.shirtColor, -0.15);
     [-1, 1].forEach((s) => {
-      const tip = at(part(0.08, 0.05, 0.02, collarColor), s * 0.045, 1.615, front - 0.016, body);
+      const tip = at(part(0.07, 0.045, 0.02, collarColor), s * 0.04, 1.6, -0.1, body);
       tip.rotation.z = s * -0.6;
     });
   }
   if (o.buttons) {
     const placket = outer !== null ? outer : o.shirtColor;
-    at(part(0.025, 0.56, 0.012, personShade(placket, 0.18)), 0, 1.33, front - 0.006, body);
-    for (const y of [1.5, 1.38, 1.26, 1.14]) at(part(0.025, 0.025, 0.014, personShade(placket, 0.35)), 0, y, front - 0.01, body);
+    onChest(0.022, 0.5, personShade(placket, 0.18), 0, 1.28, 0.003);
+    for (const y of [1.46, 1.34, 1.22, 1.1]) onChest(0.022, 0.022, personShade(placket, 0.35), 0, y, 0.008);
   }
   if (o.pockets) {
     const c = personShade(outer !== null ? outer : o.shirtColor, 0.12);
-    [-1, 1].forEach((s) => at(part(0.11, 0.1, 0.012, c), s * 0.13, 1.44, front - 0.008, body));
+    [-1, 1].forEach((s) => onChest(0.09, 0.09, c, s * 0.12, 1.38));
   }
-  if (o.tie) at(part(0.06, 0.4, 0.012, o.tieColor, 0.04), 0, 1.38, front - 0.016, body);
+  if (o.tie) onChest(0.05, 0.38, o.tieColor, 0, 1.36, 0.012, 0.035);
   if (o.sweater) {
-    for (const y of [1.38, 1.48]) at(part(0.55, 0.05, 0.27, o.sweaterStripeColor), 0, y, 0, body);
-    at(part(0.46, 0.08, 0.26, personShade(o.shirtColor, 0.15)), 0, 1.05, 0, body);
+    for (const y of [1.34, 1.43]) wrap(y, 0.045, o.sweaterStripeColor);
+    wrap(1.06, 0.08, personShade(o.shirtColor, 0.15));
   }
   if (o.stripes !== null) {
     // Спортивный костюм: две полосы по груди и молния
-    [-0.11, 0.11].forEach((x) => at(part(0.05, 0.62, 0.012, o.stripes, 0.06), x, 1.33, front - 0.005, body));
-    at(part(0.02, 0.62, 0.012, o.stripes), 0, 1.33, front - 0.005, body);
+    [-0.1, 0.1].forEach((x) => onChest(0.045, 0.46, o.stripes, x, 1.26));
+    onChest(0.018, 0.46, o.stripes, 0, 1.26);
   }
   if (o.hoodie) {
     // Карман-кенгуру и шнурки капюшона
-    at(part(0.26, 0.16, 0.012, personShade(o.shirtColor, 0.12), 0.22), 0, 1.13, front - 0.005, body);
-    [-0.05, 0.05].forEach((x) => at(part(0.015, 0.16, 0.012, 0xe8e8e4), x, 1.54, front - 0.008, body));
+    onChest(0.24, 0.14, personShade(o.shirtColor, 0.12), 0, 1.12, 0.005, 0.2);
+    [-0.045, 0.045].forEach((x) => onChest(0.014, 0.15, 0xe8e8e4, x, 1.48));
   }
   if (o.neon !== null) {
     // Светящиеся «схемы» по груди
     [-1, 1].forEach((s) => {
-      at(glow(0.02, 0.3, 0.012), s * 0.1, 1.43, front - 0.008, body);
-      at(glow(0.08, 0.02, 0.012), s * 0.14, 1.28, front - 0.008, body);
-      at(glow(0.02, 0.18, 0.012), s * 0.18, 1.19, front - 0.008, body);
-      at(glow(0.06, 0.02, 0.012), s * 0.07, 1.58, front - 0.008, body);
+      onChest(0.018, 0.26, null, s * 0.09, 1.38, 0.008, 0.018, glow);
+      onChest(0.07, 0.018, null, s * 0.125, 1.24, 0.008, 0.07, glow);
+      onChest(0.018, 0.14, null, s * 0.16, 1.16, 0.008, 0.018, glow);
     });
   }
   if (o.apron !== null) {
-    at(part(0.3, 0.5, 0.012, o.apron, 0.24), 0, 1.3, front - 0.01, body);
-    at(part(0.4, 0.06, 0.25, personShade(o.apron, 0.2)), 0, 1.08, 0, body); // завязки на поясе
+    onChest(0.26, 0.44, o.apron, 0, 1.26, 0.008, 0.2);
+    wrap(1.07, 0.05, personShade(o.apron, 0.2)); // завязки на поясе
   }
   if (o.scarf !== null) {
-    [-0.06, 0.06].forEach((x) => at(part(0.09, 0.5, 0.015, o.scarf), x, 1.38, front - 0.02, body));
-    at(part(0.24, 0.07, 0.2, o.scarf), 0, 1.64, 0, body);
+    [-0.05, 0.05].forEach((x) => onChest(0.08, 0.44, o.scarf, x, 1.34, 0.016));
+    at(prism(0.24, 0.07, 0.2, o.scarf), 0, 1.64, 0, body);
   }
-  if (o.collar !== null) at(part(0.5, 0.1, 0.3, o.collar, 0.34), 0, 1.6, 0, body);
+  if (o.collar !== null) at(prism(0.42, 0.1, 0.3, o.collar, 0.3, 0.24), 0, 1.6, 0, body);
   if (o.belt !== null) {
-    at(part(0.47, 0.05, 0.26, o.belt), 0, 1.04, 0, body);
-    at(part(0.06, 0.045, 0.012, 0xb8bcc0), 0, 1.04, -0.137, body); // пряжка
+    wrap(1.04, 0.05, o.belt);
+    onChest(0.055, 0.04, 0xb8bcc0, 0, 1.04, 0.014); // пряжка
   }
-  if (o.badge) at(part(0.06, 0.07, 0.012, 0xe8c547), -0.13, 1.47, front - 0.01, body);
-  if (o.nametag) at(part(0.08, 0.03, 0.012, 0xf2f0e8), 0.13, 1.45, front - 0.01, body);
+  if (o.badge) onChest(0.055, 0.065, 0xe8c547, -0.12, 1.42, 0.008);
+  if (o.nametag) onChest(0.075, 0.028, 0xf2f0e8, 0.12, 1.4, 0.008);
   if (o.bag === 'backpack') {
-    at(part(0.38, 0.46, 0.18, o.bagColor), 0, 1.32, 0.21, body);
-    [-0.14, 0.14].forEach((x) => at(part(0.05, 0.46, 0.01, o.bagColor), x, 1.36, front - 0.005, body));
+    at(prism(0.34, 0.44, 0.18, o.bagColor, 0.32, 0.16), 0, 1.3, 0.2, body);
+    [-0.12, 0.12].forEach((x) => onChest(0.045, 0.42, o.bagColor, x, 1.3, 0.004));
   }
   if (o.wings !== null) {
     // Механические крылья: два граненых щита за плечами, разведены в стороны
     [-1, 1].forEach((s) => {
       const wing = new THREE.Group();
-      wing.position.set(s * 0.14, 1.45, 0.16);
+      wing.position.set(s * 0.12, 1.45, 0.15);
       wing.rotation.set(0.15, s * 0.5, s * -0.35);
-      at(part(0.24, 0.9, 0.04, o.wings, 0.12), s * 0.14, 0, 0, wing);
-      at(part(0.07, 0.8, 0.05, personShade(o.wings, -0.4)), s * 0.1, 0, -0.005, wing);
+      at(prism(0.24, 0.9, 0.05, o.wings, 0.1, 0.03), s * 0.14, 0, 0, wing);
+      at(part(0.06, 0.78, 0.02, personShade(o.wings, -0.4)), s * 0.1, 0, -0.02, wing);
       body.add(wing);
     });
   }
@@ -309,36 +360,33 @@ function createWalkingMan(options = {}) {
   const handColor = o.gloves !== null ? o.gloves : o.skinColor;
   function makeArm(side) {
     const arm = new THREE.Group();
-    arm.position.set(side * (shoulder + 0.06), 1.58, 0);
+    arm.position.set(side * (shoulder + 0.02), 1.56, 0);
     const inner = new THREE.Group();
     inner.rotation.z = side * 0.28; // руки разведены, как на листе
     arm.add(inner);
-    // Покатое плечо: скос от шеи к руке
-    const cap = at(part(0.2, 0.09, 0.24, bareArms && o.sleeveless ? o.skinColor : sleeveColor), -side * 0.06, -0.02, 0, arm);
-    cap.rotation.z = -side * 0.42;
     if (bareArms) {
-      at(part(0.12, 0.62, 0.13, o.skinColor, 0.14, 0.14), 0, -0.31, 0, inner);
-      if (o.tshirt) at(part(0.15, 0.22, 0.15, o.shirtColor, 0.16, 0.16), 0, -0.09, 0, inner);
+      at(prism(0.09, 0.62, 0.1, o.skinColor, 0.12, 0.12), 0, -0.31, 0, inner);
+      if (o.tshirt) at(prism(0.13, 0.22, 0.14, o.shirtColor, 0.15, 0.15), 0, -0.09, 0, inner);
     } else {
-      at(part(0.14, 0.62, 0.15, sleeveColor, 0.17, 0.17), 0, -0.31, 0, inner);
-      at(part(0.145, 0.06, 0.155, personShade(sleeveColor, 0.15)), 0, -0.6, 0, inner); // манжета
+      at(prism(0.11, 0.62, 0.12, sleeveColor, 0.14, 0.15), 0, -0.31, 0, inner);
+      at(prism(0.115, 0.05, 0.125, personShade(sleeveColor, 0.15)), 0, -0.6, 0, inner); // манжета
     }
     if (o.gauntlets) {
-      at(part(0.2, 0.3, 0.2, 0x8a9096, 0.17, 0.17), 0, -0.6, 0, inner);
-      at(part(0.21, 0.05, 0.21, 0xd88a2a), 0, -0.52, 0, inner);
-      at(part(0.18, 0.16, 0.18, 0x6a7076), 0, -0.8, 0, inner);
+      at(prism(0.2, 0.3, 0.2, 0x8a9096, 0.16, 0.16, 8), 0, -0.6, 0, inner);
+      at(prism(0.21, 0.05, 0.21, 0xd88a2a, 0.21, 0.21, 8), 0, -0.52, 0, inner);
+      at(prism(0.17, 0.16, 0.17, 0x6a7076, 0.18, 0.18, 8), 0, -0.8, 0, inner);
     } else {
-      // Кисть-«варежка» с большим пальцем, обращенным вперед
-      at(part(0.1, 0.15, 0.13, handColor, 0.11, 0.13), 0, -0.7, 0, inner);
-      at(part(0.04, 0.07, 0.04, handColor), -side * 0.035, -0.67, -0.07, inner);
+      // Кисть: граненая, к пальцам уже, большой палец смотрит вперед
+      at(prism(0.07, 0.15, 0.1, handColor, 0.1, 0.11), 0, -0.7, 0, inner);
+      at(prism(0.035, 0.07, 0.035, handColor), -side * 0.03, -0.67, -0.055, inner);
     }
     if (o.sweater) {
-      at(part(0.13, 0.05, 0.14, o.sweaterStripeColor), 0, -0.24, 0, inner);
+      at(prism(0.13, 0.045, 0.14, o.sweaterStripeColor), 0, -0.24, 0, inner);
     }
-    if (o.stripes !== null) at(part(0.014, 0.6, 0.04, o.stripes), side * 0.068, -0.31, 0, inner);
+    if (o.stripes !== null) at(part(0.012, 0.6, 0.04, o.stripes), side * 0.058, -0.31, 0, inner);
     if (o.neon !== null) {
-      at(glow(0.014, 0.5, 0.03), side * 0.066, -0.32, 0, inner);
-      at(glow(0.13, 0.02, 0.14), 0, -0.58, 0, inner);
+      at(glow(0.012, 0.5, 0.03), side * 0.056, -0.32, 0, inner);
+      at(glow(0.12, 0.018, 0.13), 0, -0.58, 0, inner);
     }
     return { arm, inner };
   }
@@ -515,18 +563,18 @@ function createWalkingMan(options = {}) {
   if (skirt) {
     const long = skirt === 'long';
     const h = long ? 0.82 : 0.42;
-    at(part(long ? 0.56 : 0.5, h, 0.34, o.dressColor, 0.42, 0.26), 0, 1.04 - h / 2, 0, hips);
+    at(prism(long ? 0.52 : 0.46, h, long ? 0.4 : 0.34, o.dressColor, 0.38, 0.26), 0, 1.04 - h / 2, 0, hips);
   }
   if (o.coat) {
     // Полы пальто: две половины, между ними видны брюки
     [-1, 1].forEach((s) => {
-      at(part(0.25, 0.6, 0.3, o.coatColor, 0.22, 0.26), s * 0.12, 0.74, 0, hips);
+      at(prism(0.24, 0.6, 0.3, o.coatColor, 0.2, 0.25), s * 0.105, 0.74, 0, hips);
     });
   }
-  if (o.apron !== null) at(part(0.38, 0.5, 0.012, o.apron, 0.3), 0, 0.8, -0.16, hips);
+  if (o.apron !== null) at(part(0.34, 0.5, 0.012, o.apron, 0.26), 0, 0.8, -0.13, hips);
   if (o.hoodie || o.jacket !== null || o.stripes !== null) {
     // Низ кофты или куртки чуть шире пояса
-    at(part(0.44, 0.08, 0.26, personShade(torsoColor, 0.1)), 0, 1.04, 0, hips);
+    at(prism(waistW + 0.03, 0.08, 0.27, personShade(torsoColor, 0.1)), 0, 1.04, 0, hips);
   }
 
   // Цикл шага: t — фаза в радианах, полный шаг за 2*PI.
