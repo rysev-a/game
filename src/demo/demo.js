@@ -384,7 +384,7 @@ addInteractable({
 
 // ---------- Снаряжение ----------
 // Браслет возврата сразу лежит в инвентаре: открыть инвентарь (I) и кликнуть — он защелкнется на руке
-// и встанет в ячейку «браслет» нижней панели. Всё оружие — тоже с собой. С собой — немного эликсира (src/player/equipment.js)
+// и встанет в ячейку «браслет» нижней панели. Всё оружие — тоже с собой. С собой — полный запас эликсира (src/player/equipment.js)
 if (!hasItem('bracelet')) inventory.items.push('bracelet');
 // Всё оружие сразу с собой: первые пять — в ячейках оружия внизу, остальное — в инвентаре
 for (const id of Object.keys(WEAPONS)) {
@@ -392,7 +392,7 @@ for (const id of Object.keys(WEAPONS)) {
   inventory.items.push(id);
   autoEquip(id);
 }
-heroStats.elixir = 5;
+heroStats.elixir = heroStats.maxElixir;
 renderInventory();
 renderEquipHud();
 
