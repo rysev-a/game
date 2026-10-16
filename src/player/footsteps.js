@@ -16,7 +16,7 @@ function playStep(leg = 0) {
   const ctx = stepCtx;
   const now = ctx.currentTime;
   const out = ctx.createGain();
-  out.gain.value = 0.55 * settings.volume; // общая громкость из настроек
+  out.gain.value = 0.55 * effectsGain(); // громкость «Звуков» из настроек
   out.connect(ctx.destination);
 
   // Шорох подошвы: короткий белый шум через полосовой фильтр, быстро затухает
@@ -69,7 +69,7 @@ function playPickupClick() {
   if (stepCtx.state === 'suspended') stepCtx.resume();
   const ctx = stepCtx;
   const out = ctx.createGain();
-  out.gain.value = 0.5 * settings.volume;
+  out.gain.value = 0.5 * effectsGain();
   out.connect(ctx.destination);
   for (const [dt, freq] of [[0, 2600], [0.045, 3400]]) {
     const t = ctx.currentTime + dt;

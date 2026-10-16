@@ -13,7 +13,11 @@ window.addEventListener('keydown', (e) => {
   if (settingsOpen || dialogueOpen) return; // в меню и в разговоре играть нельзя; раскрытый инвентарь игре не мешает
   keys[e.code] = true;
   if (e.code === 'KeyE' && !e.repeat) onInteract(); // все действия — клавишей E
-  if (e.code === 'KeyP' && !e.repeat) rainManual = !rainOn;
+  // P — дождь (или снег, если сейчас его время) вручную, Shift+P — снег вручную (src/world/weather.js)
+  if (e.code === 'KeyP' && !e.repeat) {
+    if (e.shiftKey) toggleSnowManual();
+    else rainManual = !(rainOn || snowOn);
+  }
 });
 window.addEventListener('keyup', (e) => (keys[e.code] = false));
 
@@ -84,10 +88,10 @@ document.addEventListener('mousemove', (e) => {
     viewDragging = false; // отпустили где-то вне окна
     return;
   }
-  worldRotation += e.movementX * mouseSensitivity;
+  worldRotation += e.movementX * mouseSensitivity * settings.mouseSens; // чувствительность — в настройках
   // Мышь вверх — камера поднимается (как ↑), вниз — опускается (как ↓)
   cameraHeight = Math.min(
-    Math.max(cameraHeight - e.movementY * mouseTiltSensitivity, cameraHeightMin),
+    Math.max(cameraHeight - e.movementY * mouseTiltSensitivity * settings.mouseSens, cameraHeightMin),
     cameraHeightMax,
   );
   cameraHoldFrames = cameraHoldDelay; // пока крутим и чуть после — камера не возвращается за игроком

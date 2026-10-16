@@ -61,7 +61,7 @@ function captureGame() {
     inventory: [...inventory.items],
     devices: [...heroDevices.worn],
     equip: captureEquip(), // броня, ботинки, оружие в ячейках (src/player/equipment.js)
-    weather: { gameTime, rainOn, weather, rainManual, rainEndedAt },
+    weather: { gameTime, rainOn, snowOn, weather, rainManual, snowManual, rainEndedAt },
     // Игровое время обязательно сохраняется: минуты от старта истории и то же в виде даты
     time: {
       gameMinutes,
@@ -112,6 +112,8 @@ function applyGame(data) {
   rainManual = w.rainManual;
   rainEndedAt = w.rainEndedAt;
   rainOn = w.rainOn;
+  snowOn = !!w.snowOn;
+  snowManual = w.snowManual === undefined ? null : w.snowManual;
   weather = w.weather;
 
   // Игрок: положение и вид; если ехал — снова за рулем

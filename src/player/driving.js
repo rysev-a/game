@@ -13,7 +13,18 @@ const carMaxSpeed = 0.8;
 const carMaxReverse = -0.3;
 const carTurnRate = 0.045;
 // Езда обычной легковушки; у гоночной, джипа, трактора и БТР — свои числа (VEHICLE_KINDS, src/world/vehicles.js)
-const carDrive = { accel: carAccel, brake: carBrake, drag: carDrag, maxSpeed: carMaxSpeed, maxReverse: carMaxReverse, turnRate: carTurnRate };
+// drift — насколько машину заносит на ручнике (1 — как гоночную)
+const carDrive = { accel: carAccel, brake: carBrake, drag: carDrag, maxSpeed: carMaxSpeed, maxReverse: carMaxReverse, turnRate: carTurnRate, drift: 0.6 };
+
+// ЗАНОС (компьютер). Space на ходу — ручник: задние колеса скользят, тормозит он слабее обычного тормоза,
+// руль поворачивает кузов сильнее, а машина по инерции едет прежним курсом — ее заносит (car.slip — угол
+// между носом и направлением движения). Отпустили — шины снова цепляются, и машина выравнивается.
+// Пока заносит, шины оставляют на земле темные следы (updateTireMarks). Глубина заноса — настройка
+// «Глубина заноса» (settings.driftDepth), резкость торможения, разгона и руля — тоже в настройках (вкладка «Вождение»).
+// На телефоне Space — просто тормоз (src/engine/touch-drive.js), заноса нет.
+const handbrakeBrake = 0.3; // ручник тормозит слабее тормоза (доля от k.brake)
+const handbrakeMinSpeed = 0.06; // медленнее — ручник просто держит машину
+const slideFriction = 0.025; // потеря скорости боком (на радиан заноса)
 const cameraFollowEase = 0.04; // как быстро камера возвращается за машину (0..1 за кадр)
 let carTime = 0;
 
@@ -85,6 +96,7 @@ addInteractable({
 // Сесть за руль
 function enterCar(car) {
   drivingCar = car;
+  car.slip = 0;
   playerWorldX = car.x;
   playerWorldZ = car.z;
   player.visible = false;
@@ -112,6 +124,7 @@ function exitCar(force = false) {
   playerHeading = h; // вышел — смотрит туда же, куда машина
   playerYaw = h + worldRotation;
   drivingCar.speed = 0;
+  drivingCar.slip = 0;
   drivingCar = null;
   player.visible = true;
 }
@@ -122,15 +135,24 @@ function updateDriving(c) {
   carTime += 1 / 60;
   if (!drivingCar) return;
   const car = drivingCar;
-  const k = car.kind || carDrive;
+  const base = car.kind || carDrive;
+  // Резкость разгона, торможения и руля — множители из настроек (src/engine/settings.js)
+  const k = {
+    ...base,
+    accel: base.accel * settings.accelSharp,
+    brake: base.brake * settings.brakeSharp,
+    turnRate: base.turnRate * settings.steerSens,
+  };
   const hasFuel = car.fuel > 0;
+  const handbrake = keys['Space'] && !touchUI && Math.abs(car.speed) > handbrakeMinSpeed;
+  const depth = settings.driftDepth * (base.drift === undefined ? carDrive.drift : base.drift);
   // На телефоне — педали и коробка передач (src/engine/touch-drive.js), на компьютере — клавиши
   if (typeof touchDriveStep === 'function' && touchDriveStep(car, k, hasFuel)) {
     // скорость уже посчитана
-  } else if (c.up && hasFuel) car.speed += car.speed < 0 ? k.brake : k.accel;
+  } else if (c.up && hasFuel && !handbrake) car.speed += car.speed < 0 ? k.brake : k.accel; // на ручнике газ не тянет
   else if (c.down && hasFuel) car.speed -= car.speed > 0 ? k.brake : k.accel * 0.7;
   else car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.drag);
-  if (keys['Space']) car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.brake);
+  if (keys['Space']) car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.brake * (handbrake ? handbrakeBrake : 1));
   car.speed = Math.min(Math.max(car.speed, k.maxReverse), k.maxSpeed);
 
   // Поворачивать можно только в движении; задним ходом руль работает наоборот.
@@ -138,9 +160,15 @@ function updateDriving(c) {
   let steer = (c.left ? 1 : 0) - (c.right ? 1 : 0);
   if (!steer && typeof touchDriveSteer === 'function') steer = touchDriveSteer();
   if (!steer && typeof gyroSteer === 'function') steer = gyroSteer(car) || 0;
-  const turn = steer * k.turnRate * Math.min(1, Math.abs(car.speed) / 0.15) * Math.sign(car.speed);
+  let turn = steer * k.turnRate * Math.min(1, Math.abs(car.speed) / 0.15) * Math.sign(car.speed);
+  // На ручнике кузов поворачивает резче, а шины держат слабо — заносит тем сильнее, чем больше глубина заноса.
+  // Без ручника шины цепляются почти сразу (у гоночной на большой глубине — чуть скользит и в обычных поворотах)
+  if (handbrake) turn *= 1 + 1.3 * depth;
+  const grip = touchUI ? 1 : handbrake ? 0.12 - 0.1 * depth : 0.55 - 0.3 * depth;
 
-  const { appliedTurn, blockedX, blockedZ, vx, vz } = moveCarWithCollisions(car, turn);
+  const { appliedTurn, blockedX, blockedZ, vx, vz } = moveCarWithCollisions(car, turn, grip, 0.35 + 0.9 * depth);
+  car.speed *= 1 - slideFriction * Math.abs(Math.sin(car.slip)); // боком машина быстро теряет скорость
+  updateTireMarks(car, handbrake);
   // Бензин расходуется на пройденный путь
   const travelled = Math.hypot(vx, vz);
   car.fuel = Math.max(0, car.fuel - travelled / fuelRange);
@@ -156,10 +184,61 @@ function updateDriving(c) {
   }
   if (blockedX && blockedZ) car.speed *= -0.25;
   else if (blockedX || blockedZ) car.speed *= 0.85;
+  if (blockedX || blockedZ) car.slip *= 0.5; // ударились — занос гаснет
   if (car.crush) crushUnder(car);
   playerWorldX = car.x;
   playerWorldZ = car.z;
   followCamera(car, appliedTurn);
+}
+
+// СЛЕДЫ ШИН: пока машину заносит (или она скользит на ручнике), под задними колесами остаются темные полосы.
+// Полосы — один InstancedMesh на весь мир: новые занимают место самых старых (tireMarkCount штук)
+const tireMarkCount = 2400;
+const tireMarkWidth = 0.32;
+const tireMarks = new THREE.InstancedMesh(
+  new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
+  new LitMaterial({ color: 0x141414, transparent: true, opacity: 0.55, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }),
+  tireMarkCount,
+);
+tireMarks.count = 0;
+tireMarks.frustumCulled = false;
+tireMarks.renderOrder = 1;
+cityGroup.add(tireMarks);
+let tireMarkNext = 0;
+const tireMarkMatrix = new THREE.Matrix4();
+const tireMarkPos = new THREE.Vector3();
+const tireMarkQuat = new THREE.Quaternion();
+const tireMarkScale = new THREE.Vector3();
+const tireMarkUp = new THREE.Vector3(0, 1, 0);
+
+function addTireMark(x1, z1, x2, z2) {
+  const len = Math.hypot(x2 - x1, z2 - z1);
+  if (len < 0.01) return;
+  tireMarkPos.set((x1 + x2) / 2, 0.06, (z1 + z2) / 2);
+  tireMarkQuat.setFromAxisAngle(tireMarkUp, Math.atan2(x2 - x1, z2 - z1));
+  tireMarkScale.set(tireMarkWidth, 1, len + 0.05); // чуть внахлест, чтобы полоса была сплошной
+  tireMarks.setMatrixAt(tireMarkNext, tireMarkMatrix.compose(tireMarkPos, tireMarkQuat, tireMarkScale));
+  tireMarkNext = (tireMarkNext + 1) % tireMarkCount;
+  tireMarks.count = Math.max(tireMarks.count, tireMarkNext === 0 ? tireMarkCount : tireMarkNext);
+  tireMarks.instanceMatrix.needsUpdate = true;
+}
+
+function updateTireMarks(car, handbrake) {
+  const sliding = Math.abs(car.speed) > 0.08 && (handbrake || Math.abs(car.slip) > 0.12);
+  // Задние колеса: сзади от центра (нос машины — по -z модели) и по бокам
+  const h = car.heading;
+  const back = car.half.l * 0.65;
+  const side = car.half.w * 0.78;
+  const bx = car.x + Math.sin(h) * back;
+  const bz = car.z + Math.cos(h) * back;
+  const wheels = [
+    [bx + Math.cos(h) * side, bz - Math.sin(h) * side],
+    [bx - Math.cos(h) * side, bz + Math.sin(h) * side],
+  ];
+  if (sliding && car.lastWheels) {
+    for (let i = 0; i < 2; i++) addTireMark(car.lastWheels[i][0], car.lastWheels[i][1], wheels[i][0], wheels[i][1]);
+  }
+  car.lastWheels = sliding ? wheels : null;
 }
 
 // БТР ДАВИТ БИОСУЩЕСТВ: на ходу живое существо, которого коснулся корпус, погибает сразу (броня и
@@ -179,13 +258,17 @@ function crushUnder(car) {
 
 // Поворот и движение машины на car.speed с учетом столкновений: упираясь в стену, машина
 // скользит вдоль нее (по осям отдельно). Возвращает, что получилось, — вызывающий решает,
-// как гасить скорость при ударе
-function moveCarWithCollisions(car, turn) {
+// как гасить скорость при ударе.
+// grip (0..1) — как держат шины: 1 — машина едет туда, куда смотрит нос; меньше — по инерции продолжает
+// прежний курс, и нос уходит в сторону (занос, car.slip не больше maxSlip радиан)
+function moveCarWithCollisions(car, turn, grip = 1, maxSlip = 1) {
   let heading = car.heading + turn;
   if (!carFree(car, car.x, car.z, heading)) heading = car.heading;
   const appliedTurn = heading - car.heading;
-  const vx = -Math.sin(heading) * car.speed;
-  const vz = -Math.cos(heading) * car.speed;
+  car.slip = Math.max(-maxSlip, Math.min(maxSlip, ((car.slip || 0) - appliedTurn) * (1 - grip)));
+  const dir = heading + car.slip; // куда на самом деле едет машина
+  const vx = -Math.sin(dir) * car.speed;
+  const vz = -Math.cos(dir) * car.speed;
   let blockedX = false;
   let blockedZ = false;
   if (carFree(car, car.x + vx, car.z, heading)) car.x += vx;

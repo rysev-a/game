@@ -14,7 +14,7 @@
 // и до ног. Тела не видно, только оружие в руках внизу справа. Перекрестие всегда в центре экрана; довода на
 // цель нет: заряд летит в ту точку, на которую смотрит перекрестие (firstPersonSlope, aimSlope в weapons.js).
 
-const mouseLookYawSens = 0.0025; // рад на пиксель движения мыши
+const mouseLookYawSens = 0.0025; // рад на пиксель движения мыши (умножается на чувствительность из настроек)
 const mouseLookPitchSens = 0.0015;
 const aimPitchMax = 0.16; // ≈9°: на 20 шагах заряд пройдет на 3 единицы выше или ниже
 const firstPersonYawSens = 0.0022; // от первого лица: взгляд без сглаживания, вверх-вниз так же резво, как вбок
@@ -66,12 +66,12 @@ document.addEventListener('mousemove', (e) => {
   const mx = Math.max(-150, Math.min(150, e.movementX || 0));
   const my = Math.max(-150, Math.min(150, e.movementY || 0));
   if (firstPersonOn()) {
-    worldRotation += mx * firstPersonYawSens;
-    aimPitch = Math.max(-firstPersonPitchMax, Math.min(firstPersonPitchMax, aimPitch - my * firstPersonPitchSens));
+    worldRotation += mx * firstPersonYawSens * settings.mouseSens; // чувствительность мыши — в настройках
+    aimPitch = Math.max(-firstPersonPitchMax, Math.min(firstPersonPitchMax, aimPitch - my * firstPersonPitchSens * settings.mouseSens));
     return;
   }
-  worldRotation += mx * mouseLookYawSens; // вправо — поворот направо (герой идет за камерой, src/player/player.js)
-  aimPitch = Math.max(-aimPitchMax, Math.min(aimPitchMax, aimPitch - my * mouseLookPitchSens)); // вверх — выше
+  worldRotation += mx * mouseLookYawSens * settings.mouseSens; // вправо — поворот направо (герой идет за камерой, src/player/player.js)
+  aimPitch = Math.max(-aimPitchMax, Math.min(aimPitchMax, aimPitch - my * mouseLookPitchSens * settings.mouseSens)); // вверх — выше
 });
 
 // ---------- Перекрестие ----------

@@ -244,8 +244,10 @@ function mouseAimPoint() {
 }
 
 // Довод при стрельбе по взгляду: ближайшая живая цель в конусе aimAssist и в пределах дальности
+// Автонаведение можно выключить в настройках (вкладка «Режим боя») — тогда заряд летит ровно по взгляду
 function assistTarget(w, heading) {
   if (firstPersonOn()) return null; // от первого лица автонаведения нет: куда смотрит перекрестие, туда и летит
+  if (typeof settings !== 'undefined' && !settings.autoAim) return null;
   let best = null;
   let bestD = Infinity;
   for (const t of combatTargets) {
@@ -506,7 +508,7 @@ function startBeamSound() {
   if (!weaponCtx) weaponCtx = new (window.AudioContext || window.webkitAudioContext)();
   const ctx = weaponCtx;
   const g = ctx.createGain();
-  g.gain.value = 0.1 * (typeof settings !== 'undefined' ? settings.volume : 1);
+  g.gain.value = 0.1 * (typeof effectsGain === 'function' ? effectsGain() : 1);
   g.connect(ctx.destination);
   const lfo = ctx.createOscillator();
   const lfoGain = ctx.createGain();
@@ -934,7 +936,7 @@ function startChargeSound(time) {
   const now = ctx.currentTime;
   const g = ctx.createGain();
   g.gain.setValueAtTime(0.001, now);
-  g.gain.exponentialRampToValueAtTime(0.12 * (typeof settings !== 'undefined' ? settings.volume : 1), now + 0.15);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0001, 0.12 * (typeof effectsGain === 'function' ? effectsGain() : 1)), now + 0.15); // экспонента не доходит до 0
   g.connect(ctx.destination);
   const oscs = [['sawtooth', 90, 520], ['sine', 180, 1500]].map(([type, f0, f1]) => {
     const o = ctx.createOscillator();
@@ -964,7 +966,7 @@ function playWeaponSound(kind) {
   const ctx = weaponCtx;
   const now = ctx.currentTime;
   const out = ctx.createGain();
-  out.gain.value = 0.35 * (typeof settings !== 'undefined' ? settings.volume : 1);
+  out.gain.value = 0.35 * (typeof effectsGain === 'function' ? effectsGain() : 1);
   out.connect(ctx.destination);
   const tone = (type, f0, f1, dur, vol, delay = 0) => {
     const o = ctx.createOscillator();
