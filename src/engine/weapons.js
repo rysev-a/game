@@ -6,7 +6,8 @@
 //
 // Виды (kind) — реестр WEAPON_KINDS: { fire(w, shot), update() }. Здесь — 'pulse' (заряды летят по прямой,
 // попадают в первую цель или стену); остальные виды — src/engine/weapon-kinds.js: 'rail' (гаусс),
-// 'stream' (плазмомет), 'canister' (крио), 'arc' (разрядник), 'tachyon' (тахионный пистолет).
+// 'stream' (плазмомет), 'canister' (крио), 'arc' (разрядник), 'tachyon' (тахионный пистолет), 'spread' (дробовик),
+// 'rocket' (базука).
 // Попадание любого вида — weaponHit(w, t, ...): урон, эффекты w.effects (состояния цели, толчок) и
 // вспышка w.hitFx.
 //
@@ -260,13 +261,24 @@ function assistTarget(w, heading) {
   return best;
 }
 
-// Куда стрелять: курс героя на точку aim (или по взгляду с доводом, если aim нет)
+// Упреждение: заряд летит не мгновенно, поэтому по движущейся цели целимся туда, где она будет, когда
+// заряд долетит (скорость цели — по ее последним кадрам, t.hist). Только для зарядов, летящих по прямой
+const LEAD_KINDS = ['pulse', 'spread', 'canister', 'rail'];
+function leadAim(w, t) {
+  const h = t.hist;
+  if (!LEAD_KINDS.includes(w.kind) || h.length < 5) return { x: t.x, z: t.z };
+  const a = h[h.length - 5];
+  const b = h[h.length - 1];
+  const frames = Math.hypot(t.x - playerWorldX, t.z - playerWorldZ) / w.speed;
+  return { x: t.x + ((b.x - a.x) / 4) * frames, z: t.z + ((b.z - a.z) / 4) * frames };
+}
+
+// Куда стрелять: курс героя на точку aim (или по взгляду с доводом, если aim нет). Цель под курсором или
+// найденная доводом — с упреждением
 function aimHeadingFor(w, aim) {
   let heading = playerHeading;
-  if (!aim) {
-    const t = assistTarget(w, playerHeading);
-    if (t) aim = { x: t.x, z: t.z };
-  }
+  const t = aim ? combatTargets.find((c) => !c.dead && Math.abs(c.x - aim.x) + Math.abs(c.z - aim.z) < 0.01) : assistTarget(w, playerHeading);
+  if (t) aim = leadAim(w, t);
   if (aim) {
     const dx = aim.x - playerWorldX;
     const dz = aim.z - playerWorldZ;
@@ -1050,6 +1062,17 @@ function playWeaponSound(kind) {
     // Обратный звук: тон растет, а не падает
     tone('sine', 200, 2400, 0.16, 0.3);
     tone('triangle', 100, 1200, 0.16, 0.15);
+  } else if (kind === 'rocket') {
+    // Базука: глухой хлопок вышибного заряда и шипение разгонного двигателя
+    tone('sine', 160, 50, 0.25, 0.5);
+    noise(0.15, 0.5, 500, 'lowpass');
+    noise(0.7, 0.25, 2500);
+  } else if (kind === 'explosion') {
+    // Взрыв ракеты: тяжелый удар и долгий рокочущий спад
+    tone('sine', 110, 28, 0.8, 0.8);
+    tone('sawtooth', 300, 40, 0.5, 0.25);
+    noise(0.9, 0.8, 350, 'lowpass');
+    noise(0.25, 0.4, 2000);
   } else if (kind === 'echo') {
     // Сработал упреждающий удар: звенящее эхо
     tone('sine', 2400, 600, 0.3, 0.25);
