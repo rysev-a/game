@@ -117,7 +117,7 @@
   {
     const geo = new THREE.CylinderGeometry(0.55, 0.65, ravineHalf * 2 + 4, 7);
     geo.rotateX(Math.PI / 2);
-    const log = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0x6b4a2e }));
+    const log = new THREE.Mesh(geo, new LitMaterial({ color: 0x6b4a2e }));
     log.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), cityEdgeMat));
     log.position.set(gx, 0.35, ravineZ);
     cityGroup.add(log);

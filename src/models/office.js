@@ -31,14 +31,14 @@ function createOffice(options = {}) {
   const edgeMat = new THREE.LineBasicMaterial({ color: 0x111111 });
   const part = (pw, ph, pd, color, x, y, z) => {
     const geo = new THREE.BoxGeometry(pw, ph, pd);
-    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color }));
+    const mesh = new THREE.Mesh(geo, new LitMaterial({ color }));
     mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));
     mesh.position.set(x, y, z);
     root.add(mesh);
     return mesh;
   };
 
-  const wallMat = new THREE.MeshBasicMaterial({ color: o.wallColor, transparent: true });
+  const wallMat = new LitMaterial({ color: o.wallColor, transparent: true });
   const lineMat = new THREE.LineBasicMaterial({ color: 0x111111, transparent: true });
   const bodyGeo = new THREE.BoxGeometry(w, h, d);
   const body = new THREE.Mesh(bodyGeo, wallMat);
@@ -83,7 +83,7 @@ function createGenerator() {
   const edgeMat = new THREE.LineBasicMaterial({ color: 0x111111 });
   const part = (pw, ph, pd, color, x, y, z) => {
     const geo = new THREE.BoxGeometry(pw, ph, pd);
-    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color }));
+    const mesh = new THREE.Mesh(geo, new LitMaterial({ color }));
     mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));
     mesh.position.set(x, y, z);
     root.add(mesh);
