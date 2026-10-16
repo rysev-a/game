@@ -60,6 +60,7 @@ if (touchUI) {
       overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; background: rgba(5, 8, 12, 0.92);
     }
     body.touch.invOpen #inventory.open { width: auto; max-width: 372px; margin: 0 auto; }
+    body.touch.invOpen #inventory .invGrid.items { max-height: none; overflow: visible; } /* прокручивается вся панель */
     /* Сохранения — полоса на всю ширину сверху (10 слотов), под ней вещи слева и снаряжение справа */
     body.touch.invOpen #inventory .invSaves {
       position: fixed; top: 0; left: 0; right: 0; height: 64px; z-index: 32; box-sizing: border-box;

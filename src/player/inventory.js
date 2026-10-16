@@ -4,6 +4,10 @@
 // по заполненному — загрузить. По клику на инвентарь (или клавише I) панель раскрывается: сетка 8 × 5
 // и под ней все сохранения — две строки по 8 слотов (быстрые слоты — это первые четыре из них).
 // Все значки пиксельные (src/player/icons.js). В начале игры инвентарь пуст.
+// БЕСКОНЕЧНЫЙ РЮКЗАК. Пока его нет, с собой можно носить только то, что помещается в карманах
+// (pocket: true — ключи от машины, телефон; канистру несут в руке) — остальное не берется, и в раскрытом
+// инвентаре видны только три ячейки. Рюкзак герой находит в домике на дереве (src/content/buildings/treehouse.js);
+// с ним инвентарь бесконечный: сетка 8 × 5 растет на строку, как только заполнится. В ДЕМО рюкзак есть сразу.
 // Сохранения появляются только с браслетом возврата на руке (тег 'saves', src/player/devices.js):
 // до него ни быстрых слотов, ни панели сохранений нет.
 //
@@ -21,13 +25,14 @@
 const ITEMS = {
   wrench: { name: 'Гаечный ключ', icon: 'wrench', desc: 'Тяжелый, надежный. Пригодится в гараже.' },
   screwdriver: { name: 'Отвертка', icon: 'screwdriver', desc: 'Крестовая. Открывает корпуса приборов.' },
-  keys: { name: 'Ключи от машины', icon: 'keys', desc: 'Ключи от вашей бирюзовой машины.' },
+  keys: { name: 'Ключи от машины', icon: 'keys', pocket: true, desc: 'Ключи от вашей бирюзовой машины.' },
   wallet: { name: 'Кошелек', icon: 'wallet', desc: 'Немного денег и старый пропуск в спортзал.' },
-  phone: { name: 'Телефон', icon: 'phone', desc: 'Связь, карта и фонарик, пока не сядет батарейка.' },
+  phone: { name: 'Телефон', icon: 'phone', pocket: true, desc: 'Связь, карта и фонарик, пока не сядет батарейка.' },
   itpass: { name: 'Пропуск в IT-компанию', icon: 'itpass', desc: 'Пропуск через турникет IT-компании.' },
   notebook: { name: 'Блокнот', icon: 'notebook', desc: 'Записи по делу. Пока почти пустой.' },
   flashlight: { name: 'Фонарик', icon: 'flashlight', desc: 'Светит далеко. Ночью без него никуда.' },
-  canister: { name: 'Канистра с бензином', icon: 'canister', desc: 'Бензин от соседа. E у своей машины — залить в бак.' }, // от соседа; E у своей машины — залить
+  canister: { name: 'Канистра с бензином', icon: 'canister', pocket: true, desc: 'Бензин от соседа. E у своей машины — залить в бак.' }, // от соседа; E у своей машины — залить
+  backpack: { name: 'Бесконечный рюкзак', icon: 'backpack', desc: 'Супер-предмет Веры: внутри он бездонный, влезает сколько угодно вещей.' },
 };
 
 // Надеваемые приборы (браслет) тоже лежат в инвентаре, пока их не надели
@@ -35,8 +40,13 @@ for (const id in DEVICES) {
   if (!ITEMS[id]) ITEMS[id] = { name: DEVICES[id].name, icon: id, kind: 'device', desc: DEVICES[id].desc };
 }
 
+const hasBackpack = () => inventory.items.includes('backpack');
+
 const inventory = {
-  size: 40, // 8 × 5 клеток в раскрытом виде
+  get size() {
+    return hasBackpack() ? Infinity : 40; // с рюкзаком места сколько угодно
+  },
+  rows: 5, // 8 × 5 клеток в раскрытом виде (с рюкзаком — больше, по мере заполнения)
   columns: 8,
   collapsedCells: 3, // в свернутом виде видны первые три
   quickSlots: 4, // под ними всегда видны четыре слота сохранения (первые четыре из 16)
@@ -57,6 +67,14 @@ function cell(extraClass = '') {
   return el;
 }
 
+// Сколько ячеек в раскрытом инвентаре: без рюкзака — только карманы, с ним — 8 × 5 и всегда есть пустая строка
+function openCells() {
+  const n = inventory.items.length;
+  if (!hasBackpack()) return Math.max(inventory.collapsedCells, n);
+  const c = inventory.columns;
+  return Math.max(inventory.rows * c, (Math.ceil(n / c) + 1) * c);
+}
+
 function renderInventory() {
   inventoryEl.innerHTML = '';
   inventoryEl.className = inventoryOpen ? 'open' : 'closed';
@@ -65,7 +83,8 @@ function renderInventory() {
   const grid = document.createElement('div');
   grid.className = 'invGrid';
   grid.style.gridTemplateColumns = 'repeat(' + (inventoryOpen ? inventory.columns : inventory.collapsedCells) + ', 40px)';
-  const count = inventoryOpen ? inventory.size : inventory.collapsedCells;
+  grid.classList.add('items');
+  const count = inventoryOpen ? openCells() : inventory.collapsedCells;
   for (let i = 0; i < count; i++) {
     const c = cell();
     const id = inventory.items[i];
@@ -239,6 +258,10 @@ const hasItem = (id) => inventory.items.includes(id) || (typeof isEquipped === '
 
 function addItem(id) {
   if (hasItem(id) || inventory.items.length >= inventory.size) return false;
+  if (!hasBackpack() && id !== 'backpack' && !ITEMS[id].pocket) {
+    showToast('Некуда положить: без рюкзака с собой только ключи и телефон.');
+    return false;
+  }
   inventory.items.push(id);
   if (typeof autoEquip === 'function') autoEquip(id); // оружие — сразу в свободную ячейку
   renderInventory();
@@ -250,7 +273,7 @@ function addItem(id) {
 // Ключи от другой машины (когда сюжет даст их игроку): registerCarKey(car, 'Ключи от красной машины')
 // заводит вещь в ITEMS и привязывает ее к машине; потом addItem(car.keyId) кладет ключи в инвентарь
 function registerCarKey(car, name) {
-  ITEMS[car.keyId] = { name, icon: 'keys' };
+  ITEMS[car.keyId] = { name, icon: 'keys', pocket: true };
   return car.keyId;
 }
 
