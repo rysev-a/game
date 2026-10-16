@@ -22,7 +22,7 @@ function updatePrompt() {
     promptText =
       Math.abs(drivingCar.speed) <= exitMaxSpeed
         ? 'E или F — выйти из машины'
-        : 'W/S — газ, A/D — руль, Space — тормоз. Остановитесь, чтобы выйти';
+        : 'W/S — газ, A/D — руль, Space — ручник (занос). Остановитесь, чтобы выйти';
   }
   if (touchUI && promptText) promptText = touchPromptText(promptText); // на телефоне — без клавиш (src/engine/touch.js)
   promptEl.textContent = promptText;

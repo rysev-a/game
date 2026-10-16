@@ -5,6 +5,8 @@
 // Зажатое колесико (на телефоне — свайп) двигает карту (двойной клик — вернуть к игроку). Кнопка в углу
 // карты разворачивает ее на весь экран (src/engine/mapfull.js). Клик по карте — переместиться (src/player/travel.js). Когда игрок за рулем, та часть карты, докуда
 // не хватит бензина, чуть бледнее.
+// Настройки (вкладка «Карта», src/engine/settings.js): миникарту можно скрыть, поменять ее размер (компьютер),
+// поставить север всегда сверху (карта не крутится с камерой) и убрать прохожих.
 
 const minimap = document.getElementById('minimap');
 const mmCtx = minimap.getContext('2d');
@@ -50,8 +52,8 @@ document.addEventListener('mousemove', (e) => {
   }
   // Карта идет за курсором: центр сдвигается в обратную сторону
   const k = 1 / mmView.scale;
-  const c = Math.cos(worldRotation);
-  const s = Math.sin(worldRotation);
+  const c = Math.cos(minimapRot());
+  const s = Math.sin(minimapRot());
   mmPan.x = Math.min(Math.max(mmPan.x - (e.movementX * c - e.movementY * s) * k, -mmPanLimit), mmPanLimit);
   mmPan.z = Math.min(Math.max(mmPan.z - (e.movementX * s + e.movementY * c) * k, -mmPanLimit), mmPanLimit);
 });
@@ -66,8 +68,8 @@ let mmSwiped = false;
 function panMinimapBy(dx, dy) {
   const r = minimap.getBoundingClientRect();
   const k = minimap.width / (r.width || minimap.width) / mmView.scale; // пиксели экрана → юниты мира
-  const c = Math.cos(worldRotation);
-  const s = Math.sin(worldRotation);
+  const c = Math.cos(minimapRot());
+  const s = Math.sin(minimapRot());
   mmPan.x = Math.min(Math.max(mmPan.x - (dx * c - dy * s) * k, -mmPanLimit), mmPanLimit);
   mmPan.z = Math.min(Math.max(mmPan.z - (dx * s + dy * c) * k, -mmPanLimit), mmPanLimit);
 }
@@ -108,10 +110,12 @@ function minimapPoint(e) {
 }
 
 // Точка мира по точке холста (u, v). Холст повернут на -worldRotation, масштаб S / range
+const minimapRot = () => (settings.mapNorthUp ? 0 : worldRotation); // север сверху — карта не крутится
+
 function minimapUVToWorld(u, v) {
   const k = 1 / mmView.scale;
-  const c = Math.cos(worldRotation);
-  const s = Math.sin(worldRotation);
+  const c = Math.cos(minimapRot());
+  const s = Math.sin(minimapRot());
   return { x: playerWorldX + mmPan.x + (u * c - v * s) * k, z: playerWorldZ + mmPan.z + (u * s + v * c) * k };
 }
 
@@ -127,7 +131,7 @@ function drawMinimap() {
   const range = (ci ? ci.def.minimapRange : minimapRange) * mapZoom(!!ci); // масштаб карты следует за камерой
   mmView.scale = S / range;
   // Центр карты: игрок плюс сдвиг, на который карту утащили (колесиком или пальцем)
-  drawMapView(mmCtx, S, S, playerWorldX + mmPan.x, playerWorldZ + mmPan.z, mmView.scale, worldRotation, ci);
+  drawMapView(mmCtx, S, S, playerWorldX + mmPan.x, playerWorldZ + mmPan.z, mmView.scale, minimapRot(), ci);
 }
 
 // Карта в прямоугольнике W × H пикселей: центр (cx, cz) в мире, scale — пикселей на юнит, вид повернут на rot.
@@ -190,7 +194,7 @@ function drawMapView(ctx, W, H, cx, cz, mmScale, rot, ci, highlight) {
   // Прохожие — кружки: розовые — женщины, голубые — мужчины, полицейские — синие с белой обводкой
   const dot = Math.max(1.2, 1.8 * px);
   for (const n of npcs) {
-    if (!near(n.x, n.z)) continue;
+    if (!settings.mapPeople || !near(n.x, n.z)) continue;
     const police = n.type === 'police' || n.kind === 'officer';
     ctx.fillStyle = police ? '#2f5bd8' : n.gender === 'female' ? '#ff8fb3' : '#8fd0ff';
     ctx.beginPath();
@@ -204,7 +208,7 @@ function drawMapView(ctx, W, H, cx, cz, mmScale, rot, ci, highlight) {
   }
 
   // Люди в зданиях (координаты внутри этажа смещены по Z)
-  for (const def of interiors) {
+  for (const def of settings.mapPeople ? interiors : []) {
     for (const p of def.people) {
       const wz = p.z + def.floorZ[p.floor];
       if (!near(p.x, wz)) continue;
@@ -312,3 +316,20 @@ function drawMapIcon(kind, c = mmCtx) {
     c.stroke();
   }
 }
+
+// Миникарта из настроек: показать или скрыть, размер (на компьютере; на телефоне размер задает touch.js)
+const minimapWrapBox = document.getElementById('minimapWrap');
+const mmInfoBox = document.getElementById('mmInfo');
+function applyMinimapSettings() {
+  minimapWrapBox.style.display = settings.minimap ? '' : 'none';
+  mmInfoBox.style.visibility = settings.minimap ? '' : 'hidden';
+  if (touchUI) return;
+  const size = settings.minimapSize + 'px';
+  minimapWrapBox.style.width = minimapWrapBox.style.height = size;
+  minimap.style.width = minimap.style.height = size;
+  mmInfoBox.style.top = 60 + settings.minimapSize + 8 + 'px';
+}
+applyMinimapSettings();
+onSettingChange((key) => {
+  if (key === 'minimap' || key === 'minimapSize') applyMinimapSettings();
+});

@@ -1,12 +1,13 @@
 // src/world/weather.js
 // ПОГОДА: дождь (капли-штрихи в «коробке» вокруг камеры, круги на земле — кроме телефона, темнее небо и туман),
-// просветление после дождя и расписание.
+// снег (с ноября по март вместо дождя), просветление после дождя и расписание.
 
 // ДОЖДЬ. Капли — штрихи (LineSegments) в «коробке» вокруг камеры: коробка
 // живет в экранных осях, а не в мире, поэтому вращение города ее не задевает,
 // и масштабируется под зум. Круги от капель на земле — InstancedMesh колец.
 // Пока идет дождь, небо и туман темнеют, а поверх экрана ложится легкое затемнение
 let rainOn = false; // P — включить/выключить вручную; по расписанию — см. updateSchedule
+let snowOn = false; // идет снег (вместо дождя): с ноября по март или Shift+P
 let weather = 0; // 0 — ясно, 1 — ливень; плавно догоняет цель
 const clearSky = new THREE.Color(0x334455);
 const rainSky = new THREE.Color(0x1c2733);
@@ -58,14 +59,39 @@ const rippleData = Array.from({ length: rippleCount }, () => ({
   z: Math.random() * 2 - 1,
   age: Math.random(),
 }));
+// СНЕГ — белые точки в такой же «коробке» вокруг камеры: падают медленно и покачиваются
+const snowCount = 4000;
+const snowFlakes = Array.from({ length: snowCount }, () => ({
+  x: Math.random() * 2 - 1,
+  y: Math.random(),
+  z: Math.random() * 2 - 1,
+  v: 0.0025 + Math.random() * 0.002,
+  ph: Math.random() * Math.PI * 2,
+}));
+const snowPos = new Float32Array(snowCount * 3);
+const snowGeo = new THREE.BufferGeometry();
+snowGeo.setAttribute('position', new THREE.BufferAttribute(snowPos, 3).setUsage(THREE.DynamicDrawUsage));
+const snow = new THREE.Points(
+  snowGeo,
+  new THREE.PointsMaterial({ color: 0xffffff, size: 0.22, transparent: true, opacity: 0.85, depthWrite: false }),
+);
+snow.frustumCulled = false;
+snow.visible = false;
+scene.add(snow);
+let snowAmount = 0; // 0..1 — плавно догоняет snowOn
+
 const rippleMatrix = new THREE.Matrix4();
 const rippleTint = new THREE.Color();
 
 function updateRain() {
   // В зданиях дождя нет
-  const target = rainOn && !insideBuilding() ? 1 : 0;
+  const target = (rainOn || snowOn) && !insideBuilding() ? 1 : 0;
   weather += (target - weather) * 0.03;
   if (Math.abs(target - weather) < 0.002) weather = target;
+  const snowTarget = snowOn && !insideBuilding() ? 1 : 0;
+  snowAmount += (snowTarget - snowAmount) * 0.03;
+  if (Math.abs(snowTarget - snowAmount) < 0.002) snowAmount = snowTarget;
+  const rainAmount = Math.max(0, weather - snowAmount); // пока идет снег, капель нет
 
   // После дождя на короткое время чуть светлее: растет по мере того, как стихает ливень,
   // и за glowDuration секунд гаснет
@@ -82,18 +108,19 @@ function updateRain() {
   sunTint.style.opacity = (0.1 * glow).toFixed(3);
   rainTint.style.opacity = (0.22 * weather).toFixed(3);
 
-  const active = weather > 0.01;
+  // Коробка дождя и снега: растет с зумом и высотой камеры, чтобы покрывать весь вид
+  const half = 25 + 35 * zoom;
+  const height = Math.max(cameraHeight * zoom, 12) + 12;
+  updateSnow(half, height);
+
+  const active = rainAmount > 0.01;
   rain.visible = active;
   ripples.visible = active && !touchUI; // на телефоне кругов на земле нет: только капли
   if (!active) return;
-
-  // Коробка дождя: растет с зумом и высотой камеры, чтобы покрывать весь вид
-  const half = 25 + 35 * zoom;
-  const height = Math.max(cameraHeight * zoom, 12) + 12;
   rain.scale.set(half, height, half);
 
   // Плавное начало и конец ливня — меняем число видимых капель
-  const n = Math.ceil(rainCount * weather);
+  const n = Math.ceil(rainCount * rainAmount);
   rainGeo.setDrawRange(0, n * 2);
   for (let i = 0; i < n; i++) {
     const d = rainDrops[i];
@@ -117,7 +144,7 @@ function updateRain() {
 
   // Круги на земле: растут и гаснут, потом возникают в новом месте
   if (!ripples.visible) return;
-  ripples.count = Math.ceil(rippleCount * weather);
+  ripples.count = Math.ceil(rippleCount * rainAmount);
   for (let i = 0; i < ripples.count; i++) {
     const r = rippleData[i];
     r.age += 0.035;
@@ -136,18 +163,49 @@ function updateRain() {
   ripples.instanceColor.needsUpdate = true;
 }
 
+function updateSnow(half, height) {
+  snow.visible = snowAmount > 0.01;
+  if (!snow.visible) return;
+  snow.scale.set(half, height, half);
+  const n = Math.ceil(snowCount * snowAmount);
+  snowGeo.setDrawRange(0, n);
+  for (let i = 0; i < n; i++) {
+    const f = snowFlakes[i];
+    f.y -= f.v;
+    f.ph += 0.03;
+    f.x += windX * 0.4 + Math.sin(f.ph) * 0.0008; // ветер слабее, хлопья покачиваются
+    if (f.y < 0) {
+      f.y += 1;
+      f.x = Math.random() * 2 - 1;
+      f.z = Math.random() * 2 - 1;
+    }
+    if (f.x > 1) f.x -= 2;
+    if (f.x < -1) f.x += 2;
+    snowPos[i * 3] = f.x;
+    snowPos[i * 3 + 1] = f.y;
+    snowPos[i * 3 + 2] = f.z;
+  }
+  snowGeo.attributes.position.needsUpdate = true;
+}
+
 // РАСПИСАНИЕ ПОГОДЫ идет по ИГРОВОМУ времени (src/engine/clock.js), а не по реальному:
 //   • стартовый ливень — через 20 игровых минут после начала истории, длится 30 (как и задумывалось: 20–50 с);
 //   • дальше время делится на часовые отрезки; в каждом дождь либо есть (на 25–55 минут в случайный момент),
 //     либо нет. Ночью (22:00–6:00) дождь бывает почти в каждом отрезке (85%), днем — примерно в одном из семи.
 //     «Случайность» детерминирована номером отрезка, поэтому после загрузки сохранения погода та же.
+//   • как часто идет дождь — настройка «Как часто идет дождь» (rainFreq): редко — шанс в 0,4 раза меньше, часто — вдвое больше.
 // P включает/выключает дождь вручную до ближайшей смены по расписанию.
 // Если в настройках дождь выключен, его не бывает вовсе — ни по расписанию, ни по P.
+// СНЕГ: с ноября по март (по игровой дате) вместо дождя идет снег; Shift+P — снег вручную (до смены расписания).
+// Галочка «Снег» в настройках выключает его: тогда и зимой идет дождь (если он не выключен).
 const rainFirstAt = 20; // игровых минут от начала истории
 const rainDuration = 30;
 const rainSlotMinutes = 60;
 const rainChanceNight = 0.85;
 const rainChanceDay = 0.15;
+const rainFreqFactor = { rare: 0.4, normal: 1, often: 2 };
+const snowMonths = [10, 11, 0, 1, 2]; // ноябрь–март (месяцы Date с нуля)
+const coldSeason = (min = gameMinutes) => snowMonths.includes(gameDateTime(min).getMonth());
 
 function slotRandom(n, salt) {
   const v = Math.sin(n * 127.1 + salt * 311.7) * 43758.5453;
@@ -157,7 +215,8 @@ function slotRandom(n, salt) {
 function rainScheduled(min) {
   if (min >= rainFirstAt && min < rainFirstAt + rainDuration) return true;
   const slot = Math.floor(min / rainSlotMinutes);
-  const chance = isNightHour(gameHour(slot * rainSlotMinutes + rainSlotMinutes / 2)) ? rainChanceNight : rainChanceDay;
+  const base = isNightHour(gameHour(slot * rainSlotMinutes + rainSlotMinutes / 2)) ? rainChanceNight : rainChanceDay;
+  const chance = Math.min(0.95, base * (rainFreqFactor[settings.rainFreq] || 1));
   if (slotRandom(slot, 1) >= chance) return false;
   const len = 25 + slotRandom(slot, 2) * 30;
   const start = slotRandom(slot, 3) * (rainSlotMinutes - len);
@@ -169,6 +228,18 @@ let gameTime = 0; // реальные секунды игры: по ним га�
 let lastFrameTime = performance.now();
 let scheduledNow = false;
 let rainManual = null; // null — по расписанию, true/false — вручную
+let snowManual = null; // null — снег по времени года, true/false — вручную (Shift+P)
+
+// Shift+P: снег вручную — включить (сразу и осадки) или выключить
+function toggleSnowManual() {
+  if (snowOn) {
+    snowManual = false;
+    if (!coldSeason()) rainManual = false; // летом снег был только вручную — просто перестал
+  } else {
+    snowManual = true;
+    rainManual = true;
+  }
+}
 let rainEndedAt = -1; // когда закончился последний дождь (для просветления)
 
 function updateSchedule() {
@@ -181,9 +252,13 @@ function updateSchedule() {
   if (scheduled !== scheduledNow) {
     scheduledNow = scheduled;
     rainManual = null; // расписание сменилось — ручной режим сбрасывается
+    snowManual = null;
   }
-  const wasOn = rainOn;
-  // Дождь выключен в настройках (src/engine/settings.js) — его нет совсем, всегда хорошая погода
-  rainOn = settings.rain && (rainManual !== null ? rainManual : scheduled);
-  if (wasOn && !rainOn) rainEndedAt = gameTime;
+  const wasOn = rainOn || snowOn;
+  const falling = rainManual !== null ? rainManual : scheduled; // идут осадки
+  // Снег или дождь; выключенные в настройках (src/engine/settings.js) не идут совсем
+  const isSnow = settings.snow && (snowManual !== null ? snowManual : coldSeason());
+  snowOn = falling && isSnow;
+  rainOn = falling && !isSnow && settings.rain;
+  if (wasOn && !(rainOn || snowOn)) rainEndedAt = gameTime;
 }

@@ -2,6 +2,7 @@
 // ВИДЫ ТРАНСПОРТА. Обычная легковушка — createCar (src/models/car.js) с ездой по умолчанию (src/player/driving.js).
 // Остальной транспорт — запись в VEHICLE_KINDS: своя модель (src/models/vehicles.js), размер кузова для
 // столкновений (half — полуразмеры), езда (разгон, торможение, максимальная скорость, руль) и особенности:
+//   drift         — насколько заносит на ручнике (Space на компьютере, src/player/driving.js): 1 — как гоночную
 //   gyro: true    — на телефоне на трассах автодрома руль — наклон телефона (src/engine/gyro-steer.js)
 //   crush: true   — давит биосуществ на ходу (crushUnder, src/player/driving.js)
 //   armored: true — бронемашина: враги видят в ней цель, попадания роботов отнимают ее прочность (hp);
@@ -17,26 +18,26 @@ const VEHICLE_KINDS = {
     id: 'race', name: 'Гоночная машина', make: createRaceCar, color: 0xd8282a,
     desc: 'Болид для трека: очень быстрый и резкий в поворотах. На телефоне на трассах автодрома рулят наклоном телефона.',
     half: { w: 1.25, l: 2.6 },
-    accel: 0.03, brake: 0.05, drag: 0.005, maxSpeed: 1.35, maxReverse: -0.3, turnRate: 0.05,
+    accel: 0.03, brake: 0.05, drag: 0.005, maxSpeed: 1.35, maxReverse: -0.3, turnRate: 0.05, drift: 1,
     gyro: true,
   },
   jeep: {
     id: 'jeep', name: 'Джип', make: createJeep, color: 0x5d6e3c,
     desc: 'Внедорожник на больших колесах: быстрый разгон, тяжелый руль.',
     half: { w: 1.1, l: 2.15 },
-    accel: 0.022, brake: 0.04, drag: 0.006, maxSpeed: 0.9, maxReverse: -0.35, turnRate: 0.04,
+    accel: 0.022, brake: 0.04, drag: 0.006, maxSpeed: 0.9, maxReverse: -0.35, turnRate: 0.04, drift: 0.7,
   },
   tractor: {
     id: 'tractor', name: 'Трактор', make: createTractor, color: 0x2f8a3a,
     desc: 'Медленный, зато разворачивается почти на месте.',
     half: { w: 1.3, l: 2.0 },
-    accel: 0.008, brake: 0.03, drag: 0.008, maxSpeed: 0.32, maxReverse: -0.18, turnRate: 0.06,
+    accel: 0.008, brake: 0.03, drag: 0.008, maxSpeed: 0.32, maxReverse: -0.18, turnRate: 0.06, drift: 0.25,
   },
   apc: {
     id: 'apc', name: 'БТР', make: createApc, color: 0x55603e,
     desc: 'Бронетранспортер: давит биосуществ, клыки и плевки его не берут. Но роботы пробивают броню за пару попаданий: подбитый БТР дымит, и приходится выбираться.',
     half: { w: 1.45, l: 3.15 },
-    accel: 0.012, brake: 0.035, drag: 0.007, maxSpeed: 0.6, maxReverse: -0.25, turnRate: 0.032,
+    accel: 0.012, brake: 0.035, drag: 0.007, maxSpeed: 0.6, maxReverse: -0.25, turnRate: 0.032, drift: 0.35,
     crush: true, armored: true, hp: 30,
   },
 };
