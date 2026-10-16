@@ -223,7 +223,8 @@ addInteractable({
 });
 
 // ---------- Предметы ----------
-// Длинный стол, на нем все предметы из ITEMS. Вещь со стола не пропадает: бери сколько угодно
+// Длинный стол, на нем все предметы из ITEMS. Взятая вещь со стола исчезает; если ее выбросить
+// из инвентаря (ее там больше нет), она снова появляется на столе
 {
   const tableZ = 34;
   const ids = Object.keys(ITEMS);
@@ -237,6 +238,7 @@ addInteractable({
   mapObjects.push({ x: 0, z: tableZ, hx: tableW / 2, hz: 0.8, color: '#8a6a3c' });
   demoLabel('ПРЕДМЕТЫ — E, чтобы взять', 0, 3.4, tableZ, { size: 1.6, color: '#ffe08a' });
 
+  const onTable = []; // { id, model, label }
   ids.forEach((id, i) => {
     const x = x0 + i * step;
     // Объемная пиксельная модель вещи (src/models/items.js), медленно вращается
@@ -246,20 +248,24 @@ addInteractable({
       model.rotation.y = performance.now() / 1000 + i;
     };
     cityGroup.add(model);
-    demoLabel(ITEMS[id].name, x, 2.1, tableZ, { size: 0.85 });
+    const label = demoLabel(ITEMS[id].name, x, 2.1, tableZ, { size: 0.85 });
+    onTable.push({ id, model, label });
     const take = () => {
-      if (hasItem(id)) showToast('Уже в инвентаре: ' + ITEMS[id].name);
-      else if (!addItem(id)) showToast('Инвентарь полон');
+      if (!hasItem(id) && !addItem(id)) showToast('Инвентарь полон');
     };
     addInteractable({
       priority: 2,
-      near: () => !drivingCar && !insideBuilding() && Math.hypot(playerWorldX - x, playerWorldZ - tableZ) < 2.2,
+      near: () => !drivingCar && !insideBuilding() && !hasItem(id) && Math.hypot(playerWorldX - x, playerWorldZ - tableZ) < 2.2,
       prompt: () => 'E — взять: ' + ITEMS[id].name,
       act: take,
     });
     // Мышью: навести на вещь (подсветится) и кликнуть
-    addPickable({ mesh: model, canPick: () => !drivingCar && !insideBuilding(), pick: take });
+    addPickable({ mesh: model, canPick: () => !drivingCar && !insideBuilding() && !hasItem(id), pick: take });
   });
+  // Каждый кадр, пока стол на экране: на нем видны только вещи, которых нет в инвентаре
+  table.onBeforeRender = () => {
+    for (const t of onTable) t.model.visible = t.label.visible = !hasItem(t.id);
+  };
 }
 
 // ---------- Приборы ----------
@@ -303,4 +309,7 @@ addInteractable({
 }
 
 demoLabel('ДЕМО-РЕЖИМ', 0, 9, -6, { size: 2.4, color: '#ffe08a' });
-setTimeout(() => showToast('ДЕМО: выйдите из дома — через дорогу стоят все персонажи и стол с предметами', 8000), 7500);
+
+// Старт на улице, за подставкой с приборами: впереди приборы, стол с предметами, персонажи, дорога и дом
+const demoStart = { x: 0, z: 48 };
+showToast('ДЕМО: впереди приборы, стол со всеми предметами и персонажи; дом с машиной — за дорогой', 8000);

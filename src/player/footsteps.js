@@ -60,3 +60,29 @@ function updateFootsteps(walking) {
   if (!walking || !enabled) return;
   playStep(stepIndex++ % 2);
 }
+
+// Щелчок, когда вещь взята в инвентарь (addItem в src/player/inventory.js): два коротких
+// высоких «тика» подряд, как застежка. Тот же синтезатор, что и у шагов
+function playPickupClick() {
+  if (muted || !audioUnlocked) return;
+  if (!stepCtx) stepCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (stepCtx.state === 'suspended') stepCtx.resume();
+  const ctx = stepCtx;
+  const out = ctx.createGain();
+  out.gain.value = 0.5 * settings.volume;
+  out.connect(ctx.destination);
+  for (const [dt, freq] of [[0, 2600], [0.045, 3400]]) {
+    const t = ctx.currentTime + dt;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(freq, t);
+    osc.frequency.exponentialRampToValueAtTime(freq * 0.5, t + 0.03);
+    g.gain.setValueAtTime(0.5, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
+    osc.connect(g);
+    g.connect(out);
+    osc.start(t);
+    osc.stop(t + 0.04);
+  }
+}

@@ -2,10 +2,15 @@
 // ГЛАВНЫЙ ЦИКЛ. Порядок кадра: ввод → движение пешком → езда → люди и сцены → подсказка →
 // вращение мира вокруг игрока → тело игрока → камера → затухание зданий → погода, звук, карта → вещь под мышью → рендер.
 
-// Старт: в доме, в прихожей на первом этаже
-playerWorldX = home.door.x;
-playerWorldZ = homeFloorZ[0] + 2;
-showToast('Чтобы поехать: возьмите ключи, пройдите в гараж и откройте дверь', 7000);
+// Старт: в доме, в прихожей на первом этаже. ДЕМО задает свою точку (demoStart в src/demo/demo.js)
+if (typeof demoStart !== 'undefined') {
+  playerWorldX = demoStart.x;
+  playerWorldZ = demoStart.z;
+} else {
+  playerWorldX = home.door.x;
+  playerWorldZ = homeFloorZ[0] + 2;
+  showToast('Чтобы поехать: возьмите ключи, пройдите в гараж и откройте дверь', 7000);
+}
 
 function updatePrompt() {
   const promptEl = document.getElementById('prompt');
