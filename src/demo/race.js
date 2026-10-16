@@ -26,7 +26,7 @@ let onRaceTrack = () => false;
   const trackW = 18; // ширина полотна трасс
   const TAU = Math.PI * 2;
 
-  // Замкнутая кривая по функции f(u) → [x, z] (u от 0 до 1): точки через равные ~2 юнита пути
+  // Замкнутая кривая по функции f(u) → [x, z] или [x, z, высота] (u от 0 до 1): точки через равные ~2 юнита пути
   const closedCurve = (f, step = 2) => {
     const raw = [];
     for (let i = 0; i < 2000; i++) raw.push(f(i / 2000));
@@ -47,15 +47,29 @@ let onRaceTrack = () => false;
       const a = raw[j];
       const b = raw[(j + 1) % raw.length];
       const t = (s - acc[j]) / (acc[j + 1] - acc[j] || 1);
-      pts.push({ x: a[0] + (b[0] - a[0]) * t, z: a[1] + (b[1] - a[1]) * t });
+      const y = a.length > 2 ? Math.max(0, a[2] + (b[2] - a[2]) * t) : 0;
+      pts.push({ x: a[0] + (b[0] - a[0]) * t, z: a[1] + (b[1] - a[1]) * t, y });
     }
     return pts;
   };
+  // Гладкое кольцо через опорные точки [x, z, высота] (сплайн Катмулла — Рома) — функция f(u) для closedCurve
+  const spline = (ctrl) => (u) => {
+    const n = ctrl.length;
+    const f = u * n;
+    const i = Math.floor(f) % n;
+    const t = f - Math.floor(f);
+    const [p0, p1, p2, p3] = [ctrl[(i - 1 + n) % n], ctrl[i], ctrl[(i + 1) % n], ctrl[(i + 2) % n]];
+    return p1.map((_, c) => 0.5 * (2 * p1[c] + (p2[c] - p0[c]) * t + (2 * p0[c] - 5 * p1[c] + 4 * p2[c] - p3[c]) * t * t +
+      (3 * p1[c] - p0[c] - 3 * p2[c] + p3[c]) * t * t * t));
+  };
+  const gauss = (d, w) => Math.exp(-((d / w) ** 2));
+  const angDist = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+  const smooth01 = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
   // Отрезок дороги (подъезд): точки через ~2 юнита
   const line = (x1, z1, x2, z2) => {
     const n = Math.max(1, Math.round(Math.hypot(x2 - x1, z2 - z1) / 2));
     const pts = [];
-    for (let i = 0; i <= n; i++) pts.push({ x: x1 + ((x2 - x1) * i) / n, z: z1 + ((z2 - z1) * i) / n });
+    for (let i = 0; i <= n; i++) pts.push({ x: x1 + ((x2 - x1) * i) / n, z: z1 + ((z2 - z1) * i) / n, y: 0 });
     return pts;
   };
 
@@ -112,6 +126,56 @@ let onRaceTrack = () => false;
         return [-340 + r * Math.cos(a) * 1.15, 178 + r * Math.sin(a) * 0.95];
       }),
     },
+    // ---- Гоночный комплекс (южнее автодрома): трассы уже (16), с подъемами и спусками ----
+    {
+      id: 'hill', name: 'Холм', start: 0, w: 16,
+      desc: 'Трасса через холм высотой 8 метров: затяжной подъем, вершина с крутыми шпильками и спуск, где машина сама набирает скорость.',
+      pts: closedCurve(spline([
+        [-190, -300, 0], [-190, -400, 0], [-195, -490, 0], [-225, -535, 0], [-285, -535, 1], [-330, -512, 3], [-370, -525, 6],
+        [-425, -530, 8], [-440, -480, 8], [-415, -440, 6], [-360, -430, 3], [-300, -455, 1], [-255, -420, 0], [-290, -375, 1],
+        [-370, -370, 4], [-430, -340, 5], [-420, -290, 4], [-350, -282, 2], [-260, -282, 0],
+      ])),
+    },
+    {
+      id: 'bridge', name: 'Мост', start: 0.5, w: 16,
+      desc: 'Восьмерка с путепроводом: одна ветка поднимается на мост высотой 7 метров и проходит над другой.',
+      // Лемниската, вытянутая с севера на юг; перекресток при a = π/2 — там мост, при 3π/2 — проезд под ним
+      pts: closedCurve((u) => {
+        const a = TAU * u;
+        return [-630 + 100 * Math.sin(2 * a), -410 + 132 * Math.cos(a), 7 * smooth01(1 - angDist(a, Math.PI / 2))];
+      }),
+    },
+    {
+      id: 'coaster', name: 'Горки', start: 0.08, w: 16,
+      desc: 'Кольцо с тремя горбами по 5 метров: на скорости с вершины машина взлетает и приземляется на спуске.',
+      pts: closedCurve((u) => {
+        const a = TAU * u;
+        const r = 108 + 14 * Math.sin(2 * a);
+        let h = 0;
+        for (const c of [Math.PI / 3, Math.PI, (5 * Math.PI) / 3]) h += 5 * gauss(angDist(a, c) * r, 30);
+        return [-630 + r * Math.cos(a) * 1.1, -740 + r * Math.sin(a) * 1.15, h];
+      }),
+    },
+    {
+      id: 'jump', name: 'Трамплин', start: 0, w: 16,
+      desc: 'Быстрая трасса с трамплином на западной прямой: разгонитесь — и машина пролетит несколько десятков метров.',
+      pts: closedCurve(spline([
+        [-190, -625, 0], [-190, -740, 0], [-195, -840, 0], [-235, -872, 0], [-300, -860, 0], [-350, -835, 0], [-410, -860, 0],
+        [-440, -825, 0], [-440, -800, 0], [-440, -780, 1.4], [-440, -762, 3], [-440, -758, 0], [-440, -700, 0], [-415, -618, 0],
+        [-360, -615, 0], [-320, -645, 0], [-270, -615, 0], [-225, -610, 0],
+      ])),
+    },
+    {
+      id: 'gp', name: 'Гран-при', start: 0.04, w: 16,
+      desc: 'Длинная трасса как настоящий автодром: главная прямая, шпильки, связки поворотов для дрифта и пологие подъемы.',
+      pts: closedCurve(spline([
+        [-650, -915, 1], [-450, -915, 0], [-250, -915, 0], [-195, -940, 0], [-192, -1000, 0], [-225, -1040, 0], [-300, -1010, 1],
+        [-350, -965, 2], [-410, -975, 3], [-430, -1040, 3], [-380, -1080, 2], [-280, -1080, 1], [-215, -1110, 0], [-230, -1145, 0],
+        [-330, -1150, 1], [-470, -1145, 2], [-560, -1110, 3], [-610, -1060, 4], [-560, -1010, 4], [-500, -990, 3], [-510, -950, 2],
+        [-600, -955, 2], [-700, -990, 3], [-720, -1060, 3], [-690, -1100, 3], [-712, -1143, 2], [-760, -1135, 1], [-772, -1080, 1],
+        [-770, -960, 1], [-740, -922, 1],
+      ])),
+    },
   ];
 
   // Линия старта — в начале осевой линии: сдвигаем начало на прямую, подальше от перекрестков и подъездов
@@ -124,17 +188,25 @@ let onRaceTrack = () => false;
   const spineX = -148;
   const ROADS = [
     { pts: line(-118, 0, spineX, 0), w: 12 }, // от дороги площадки
-    { pts: line(spineX, -150, spineX, 178), w: 12 }, // продольная
+    { pts: line(spineX, -1000, spineX, 178), w: 12 }, // продольная (на юг — к гоночному комплексу)
     { pts: line(spineX, -135, -160, -135), w: 12 }, // к восьмерке (ее восточный край)
     { pts: line(-400, -135, -404, -135), w: 12 }, // восьмерка → овал
     { pts: line(spineX, 20, -195, 20), w: 12 }, // к шикане
     { pts: line(-376, 20, -414, 20), w: 12 }, // шикана → серпантин
     { pts: line(spineX, 178, -262, 178), w: 12, color: 0x7a5a3a }, // к грунтовке
+    // Гоночный комплекс: поперечная дорога на запад, дорога между столбцами трасс и подъезды
+    { pts: line(spineX, -250, -640, -250), w: 12 },
+    { pts: line(-475, -250, -475, -745), w: 12 },
+    { pts: line(spineX, -400, -190, -400), w: 12 }, // к «Холму»
+    { pts: line(-630, -250, -630, -279), w: 12 }, // к «Мосту»
+    { pts: line(-475, -740, -497, -740), w: 12 }, // к «Горкам»
+    { pts: line(spineX, -740, -190, -740), w: 12 }, // к «Трамплину»
+    { pts: line(spineX, -1000, -192, -1000), w: 12 }, // к «Гран-при»
   ];
 
   // Все полотна — один список: осевая линия, полуширина, замкнута ли
   const surfaces = [
-    ...TRACKS.map((t) => ({ pts: t.pts, hw: trackW / 2, closed: true, color: t.color || asphaltColor, track: t })),
+    ...TRACKS.map((t) => ({ pts: t.pts, hw: (t.w || trackW) / 2, closed: true, color: t.color || asphaltColor, track: t })),
     ...ROADS.map((r) => ({ pts: r.pts, hw: r.w / 2, closed: false, color: r.color || asphaltColor })),
   ];
 
@@ -194,6 +266,20 @@ let onRaceTrack = () => false;
     return false;
   };
   onRaceTrack = (x, z) => nearSegs(x, z).some((s) => surfaces[s.si].track && segDist(x, z, s) < s.hw + 1.5);
+  // Высота полотна под точкой (groundHeightAt, src/player/driving.js): из полотен, что под ней, — самое высокое, но не выше y + 1,5 (на мосту — мост,
+  // под мостом — нижняя дорога). Вне полотна — земля (0)
+  groundHeightAt = (x, z, y = 0) => {
+    let best = 0;
+    for (const s of nearSegs(x, z)) {
+      if (segDist(x, z, s) > s.hw + 0.3) continue;
+      const dx = s.b.x - s.a.x;
+      const dz = s.b.z - s.a.z;
+      const t = Math.max(0, Math.min(1, ((x - s.a.x) * dx + (z - s.a.z) * dz) / (dx * dx + dz * dz || 1)));
+      const h = s.a.y + (s.b.y - s.a.y) * t;
+      if (h > best && h <= y + 1.5) best = h;
+    }
+    return best;
+  };
 
   // Нормаль к осевой линии в точке i
   const normalAt = (sf, i) => {
@@ -209,6 +295,10 @@ let onRaceTrack = () => false;
   flatRect(area.x2 - area.x1, area.z2 - area.z1, 0x46703e, 0.005, (area.x1 + area.x2) / 2, (area.z1 + area.z2) / 2);
   mapObjects.push({ x: (area.x1 + area.x2) / 2, z: (area.z1 + area.z2) / 2, hx: (area.x2 - area.x1) / 2, hz: (area.z2 - area.z1) / 2, color: '#35583a', ground: true });
   registerZone('autodrome', 'Автодром', area, { birds: 0.3 });
+  const area2 = { x1: -790, x2: -125, z1: -1170, z2: -220 }; // гоночный комплекс
+  flatRect(area2.x2 - area2.x1, area2.z2 - area2.z1, 0x46703e, 0.005, (area2.x1 + area2.x2) / 2, (area2.z1 + area2.z2) / 2);
+  mapObjects.push({ x: (area2.x1 + area2.x2) / 2, z: (area2.z1 + area2.z2) / 2, hx: (area2.x2 - area2.x1) / 2, hz: (area2.z2 - area2.z1) / 2, color: '#35583a', ground: true });
+  registerZone('circuits', 'Гоночный комплекс', area2, { birds: 0.3 });
 
   // ---------- Полотно ----------
   // Лента по осевой линии. Вторая половина каждой трассы чуть выше: на перекрестке восьмерки не мерцает
@@ -220,7 +310,7 @@ let onRaceTrack = () => false;
       const i = k % n;
       const p = sf.pts[i];
       const { nx, nz } = normalAt(sf, i);
-      const y = sf.track ? (k > n / 2 ? 0.02 : 0.016) : 0.012;
+      const y = p.y + (sf.track ? (k > n / 2 ? 0.02 : 0.016) : 0.012);
       pos.push(p.x + nx * sf.hw, y, p.z + nz * sf.hw, p.x - nx * sf.hw, y, p.z - nz * sf.hw);
     }
     const idx = [];
@@ -243,6 +333,54 @@ let onRaceTrack = () => false;
     }
   });
 
+  // ---------- Насыпи и мост ----------
+  // Где полотно поднято, по краям — бетонные стенки до земли (насыпь). Над другим полотном (мост «Моста») —
+  // только кромка пролета толщиной 0,8, под ней проезд
+  const skirtMat = new LitMaterial({ color: 0x8c8a84, side: THREE.DoubleSide });
+  surfaces.forEach((sf, si) => {
+    if (!sf.track || !sf.pts.some((p) => p.y > 0.05)) return;
+    const n = sf.pts.length;
+    for (const side of [-1, 1]) {
+      const pos = [];
+      const idx = [];
+      for (let k = 0; k <= n; k++) {
+        const i = k % n;
+        const p = sf.pts[i];
+        const { nx, nz } = normalAt(sf, i);
+        const x = p.x + nx * side * sf.hw;
+        const z = p.z + nz * side * sf.hw;
+        const over = p.y > 1.5 && onOtherSurface(p.x, p.z, si, i, 0);
+        pos.push(x, p.y + 0.02, z, x, over ? p.y - 0.8 : 0, z);
+        const a = sf.pts[(i + 1) % n];
+        if (k < n && (p.y > 0.05 || a.y > 0.05)) {
+          const l = k * 2;
+          idx.push(l, l + 1, l + 2, l + 1, l + 3, l + 2);
+        }
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      geo.setIndex(idx);
+      geo.computeVertexNormals();
+      const mesh = new THREE.Mesh(geo, skirtMat);
+      cityGroup.add(mesh);
+      addHoverInfo(mesh, { kind: 'Автодром', name: 'Насыпь трассы «' + sf.track.name + '»', desc: 'Полотно поднято на насыпь: съехать с него можно только по трассе.' });
+    }
+    // Опоры моста: под краями пролета, где внизу другое полотно, — по паре колонн по бокам проезда
+    for (let i = 0; i < n; i += 6) {
+      const p = sf.pts[i];
+      if (p.y < 3 || !onOtherSurface(p.x, p.z, si, i, 0)) continue;
+      const { nx, nz } = normalAt(sf, i);
+      for (const side of [-1, 1]) {
+        const x = p.x + nx * side * (sf.hw - 0.6);
+        const z = p.z + nz * side * (sf.hw - 0.6);
+        if (onOtherSurface(x, z, si, i, 1.5)) continue; // на проезжей части внизу колонн нет
+        const col = new THREE.Mesh(new THREE.BoxGeometry(1, p.y - 0.8, 1), skirtMat);
+        col.position.set(x, (p.y - 0.8) / 2, z);
+        cityGroup.add(col); // не препятствие: стенки задаются на плоскости, а по мосту над колонной едут
+      }
+    }
+  });
+
   // ---------- Поребрики, стенки из покрышек, линии старта ----------
   const curbs = [];
   const tires = [];
@@ -257,12 +395,12 @@ let onRaceTrack = () => false;
         if (sf.track.curbs !== false) {
           const cx = p.x + nx * side * (sf.hw - 0.45);
           const cz = p.z + nz * side * (sf.hw - 0.45);
-          if (!onOtherSurface(cx, cz, si, i, 0.3)) curbs.push({ x: cx, z: cz, a: Math.atan2(tx, tz), red: i % 2 === 0 });
+          if (!onOtherSurface(cx, cz, si, i, 0.3)) curbs.push({ x: cx, z: cz, y: p.y, a: Math.atan2(tx, tz), red: i % 2 === 0 });
         }
         // Покрышки — сразу за краем, через одну точку (каждые ~2,2 юнита на прямой)
         const x = p.x + nx * side * (sf.hw + 0.9);
         const z = p.z + nz * side * (sf.hw + 0.9);
-        if (!onOtherSurface(x, z, si, i, 1.2)) tires.push({ x, z, red: (i >> 1) % 2 === 0 });
+        if (!onOtherSurface(x, z, si, i, 1.2)) tires.push({ x, z, y: p.y, red: (i >> 1) % 2 === 0 });
       }
     }
     // Линия старта — шашечки поперек полотна в начале осевой линии
@@ -284,7 +422,7 @@ let onRaceTrack = () => false;
     startLine.rotation.order = 'YXZ';
     startLine.rotation.y = Math.atan2(tx, tz);
     startLine.rotation.x = -Math.PI / 2;
-    startLine.position.set(p.x, 0.03, p.z);
+    startLine.position.set(p.x, p.y + 0.03, p.z);
     cityGroup.add(startLine);
   });
 
@@ -314,7 +452,7 @@ let onRaceTrack = () => false;
   const white = new THREE.Color(0xeeeeee);
   const tireMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.55, 0.55, 0.95, 10), new LitMaterial({ color: 0xffffff }), keptTires.length);
   keptTires.forEach((t, i) => {
-    m4.makeTranslation(t.x, 0.475, t.z);
+    m4.makeTranslation(t.x, t.y + 0.475, t.z);
     tireMesh.setMatrixAt(i, m4);
     tireMesh.setColorAt(i, t.red ? red : black);
     addObstacle({ x: t.x, z: t.z, hx: 0.5, hz: 0.5, bouncy: true }); // покрышки упругие: машина отскакивает
@@ -331,7 +469,7 @@ let onRaceTrack = () => false;
   const at = new THREE.Vector3();
   curbs.forEach((c, i) => {
     q.setFromAxisAngle(up, c.a);
-    at.set(c.x, 0.03, c.z);
+    at.set(c.x, c.y + 0.03, c.z);
     m4.compose(at, q, one);
     curbMesh.setMatrixAt(i, m4);
     curbMesh.setColorAt(i, c.red ? red : white);
