@@ -9,7 +9,9 @@
 //   правая часть экрана — провести пальцем: вращать камеру и наклонять горизонт (как зажатое колесо мыши);
 //                         два пальца — масштаб; короткое касание — что это (сканер справа сверху, гаснет сам; с оружием в руках его нет), взять вещь
 //   мирный режим        — справа внизу одна кнопка «в бой». Коснулись человека, двери, машины рядом — сразу
-//                         действие (разговор, войти, сесть / выйти из машины); подсказка внизу — тоже кнопка
+//                         действие (разговор, войти, сесть / выйти из машины); несколько действий рядом (этажи,
+//                         дверь и машина) — меню выбора на весь экран; подсказка внизу — тоже кнопка.
+//                         Разговор — на весь экран, ответы — крупными кнопками
 //   боевой режим        — та же кнопка — прицел: зажать — огонь, не отпуская палец влево/вправо — камера,
 //                         вверх/вниз — смена оружия. Слева внизу кнопка 🕊 — в мирный режим
 //   внизу по центру     — оружие в ячейках маленькими значками: касание — в бой с ним, свайп — смена оружия
@@ -95,7 +97,28 @@ if (touchUI) {
     body.touch #infoPanel #ipName { font-size: 12px; letter-spacing: 0; }
     body.touch #infoPanel.empty, body.touch.armed #infoPanel { display: none; }
     body.touch #fuel { bottom: 34px; left: 12px; font-size: 13px; padding: 4px 8px; }
-    body.touch #dialogue { bottom: 12px; }
+    /* Разговор на телефоне — на весь экран, ответы — крупные кнопки; без ответов — коснуться, чтобы продолжить */
+    body.touch #dialogue {
+      position: fixed; inset: 0; width: auto; max-width: none; transform: none; z-index: 45; border: none; border-radius: 0;
+      padding: max(18px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) 18px max(24px, env(safe-area-inset-left));
+      overflow-y: auto; background: rgba(8, 11, 16, 0.96);
+    }
+    body.touch #dialogue .text { font-size: 17px; }
+    body.touch #dialogue .option { padding: 12px 14px; margin-top: 8px; font-size: 16px; border: 1px solid rgba(255, 255, 255, 0.2); }
+    body.touch #dialogue .hint { font-size: 0; }
+    body.touch #dialogue .hint::after { content: 'Коснитесь, чтобы продолжить'; font-size: 13px; }
+    /* Выбор из нескольких действий рядом (например, этаж) — меню на весь экран */
+    #choiceMenu {
+      position: fixed; inset: 0; z-index: 46; display: none; flex-direction: column; align-items: center; justify-content: center;
+      gap: 10px; padding: 18px; background: rgba(8, 11, 16, 0.94); color: white; font-family: sans-serif;
+    }
+    #choiceMenu.on { display: flex; }
+    #choiceMenu .title { font-size: 15px; opacity: 0.7; margin-bottom: 6px; }
+    #choiceMenu button {
+      min-width: min(420px, 80vw); padding: 14px 18px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.08); color: white; font-size: 17px;
+    }
+    #choiceMenu button.cancel { background: none; border-color: transparent; opacity: 0.7; font-size: 15px; }
     body.touch #prompt { bottom: 40px; font-size: 13px; }
     body.touch #toast { bottom: 64px; max-width: 60vw; text-align: center; }
     #mStats {
@@ -260,8 +283,7 @@ if (touchUI) {
     // Мирный режим: коснулись человека, двери, машины рядом с героем — сразу действие (как E):
     // разговор, войти, сесть в машину; за рулем касание своей машины — выйти, у толкаемой — отпустить
     if (!heroWeapon.id && findHovered(pickMouse) && tapNearHero(pickMouse)) {
-      if (pushingCar && !activeInteractable()) releaseCar();
-      else onInteract();
+      touchAct();
       return;
     }
   }
@@ -614,10 +636,56 @@ if (touchUI) {
 
   // Подсказка действия — кнопка: касание делает то же, что E (или F — отпустить толкаемую машину)
   document.getElementById('prompt').addEventListener('click', () => {
-    if (!canPlay()) return;
-    if (pushingCar && !activeInteractable()) releaseCar();
-    else onInteract();
+    if (canPlay()) touchAct();
   });
+
+  // Разговор: касание окна без вариантов ответа — дальше (как E); ответы — касанием самих вариантов
+  document.getElementById('dialogue').addEventListener('click', (e) => {
+    if (e.target.closest('.option')) return;
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE' }));
+  });
+
+  // Действие касанием. Рядом одно действие — сразу его (как E). Несколько (лестница вверх и вниз, этажи,
+  // дверь и машина) — меню на весь экран: какое выбрать. У толкаемой машины без других действий — отпустить
+  const choiceMenu = document.createElement('div');
+  choiceMenu.id = 'choiceMenu';
+  document.body.appendChild(choiceMenu);
+  const closeChoice = () => choiceMenu.classList.remove('on');
+  choiceMenu.addEventListener('click', (e) => {
+    if (e.target === choiceMenu) closeChoice();
+  });
+
+  function nearActions() {
+    const driving = !!drivingCar;
+    return interactables.filter((it) => !!it.driving === driving && it.act && it.near());
+  }
+
+  function touchAct() {
+    const list = nearActions();
+    if (list.length <= 1) {
+      if (pushingCar && !list.length) releaseCar();
+      else onInteract();
+      return;
+    }
+    list.sort((a, b) => b.priority - a.priority);
+    choiceMenu.innerHTML = '<div class="title">Что сделать?</div>';
+    for (const it of list) {
+      const b = document.createElement('button');
+      b.textContent = touchPromptText(it.prompt() || 'Действие');
+      b.addEventListener('click', () => {
+        closeChoice();
+        if (it.near()) it.act();
+      });
+      choiceMenu.appendChild(b);
+    }
+    const cancel = document.createElement('button');
+    cancel.className = 'cancel';
+    cancel.textContent = 'Отмена';
+    cancel.addEventListener('click', closeChoice);
+    choiceMenu.appendChild(cancel);
+    choiceMenu.classList.add('on');
+    clearJoyKeys();
+  }
 
   const gunsEl = document.createElement('div');
   gunsEl.id = 'mGuns';
