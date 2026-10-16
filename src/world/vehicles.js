@@ -4,7 +4,7 @@
 // столкновений (half — полуразмеры), езда (разгон, торможение, максимальная скорость, руль) и особенности:
 //   drift         — насколько заносит на ручнике (Space на компьютере, src/player/driving.js): 1 — как гоночную
 //   sound, pitch  — чей звук мотора (engineSounds, src/engine/sound.js; иначе — по id) и тон (1 — как записан)
-//   powerDrift    — дрифт: газ и тормоз вместе на ходу — машина едет боком (src/player/driving.js)
+//   powerDrift    — дрифт: газ и ручник вместе на ходу — машина едет боком (задним ходом — задом) (src/player/driving.js)
 //   launch, launchUntil — плавный старт: с места разгон — доля launch от полного, полный — к доле launchUntil
 //                   максимальной скорости (launchFactor, src/player/driving.js)
 //   gyro: true    — на телефоне на трассах автодрома руль — наклон телефона (src/engine/gyro-steer.js)
@@ -25,49 +25,49 @@ const VEHICLE_KINDS = {
   // Все подчиняются настройкам вкладки «Вождение» (src/player/driving.js)
   race: {
     id: 'race', name: 'Болид', make: createRaceCar, color: 0xd8282a,
-    desc: 'Болид для трека: очень быстрый и резкий в поворотах. Газ и тормоз вместе — дрифт. На телефоне на трассах автодрома рулят наклоном телефона.',
+    desc: 'Болид для трека: очень быстрый и резкий в поворотах. Газ с ручником — дрифт. На телефоне на трассах автодрома рулят наклоном телефона.',
     half: { w: 1.25, l: 2.6 },
     accel: 0.03, brake: 0.05, drag: 0.005, maxSpeed: 1.35, maxReverse: -0.3, turnRate: 0.05, drift: 1,
     launch: 0.12, launchUntil: 0.6, powerDrift: true, gyro: true, sound: 'race',
   },
   gt: {
     id: 'gt', name: 'Купе GT', make: createGtCar, color: 0x1f5fd0,
-    desc: 'Закрытое гоночное купе: ровный разгон, хорошие тормоза, послушно в заносе. Газ и тормоз вместе — дрифт.',
+    desc: 'Закрытое гоночное купе: ровный разгон, хорошие тормоза, послушно в заносе. Газ с ручником — дрифт.',
     half: { w: 1.15, l: 2.35 },
     accel: 0.026, brake: 0.055, drag: 0.005, maxSpeed: 1.28, maxReverse: -0.3, turnRate: 0.048, drift: 0.85,
     launch: 0.18, launchUntil: 0.55, powerDrift: true, gyro: true, sound: 'race', pitch: 0.95,
   },
   rally: {
     id: 'rally', name: 'Раллийный хэтчбек', make: createRallyCar, color: 0xf0f0ea,
-    desc: 'Короткий и юркий: резво трогается, быстро поворачивает, охотно идет боком, но максималка ниже. Газ и тормоз вместе — дрифт.',
+    desc: 'Короткий и юркий: резво трогается, быстро поворачивает, охотно идет боком, но максималка ниже. Газ с ручником — дрифт.',
     half: { w: 1.05, l: 2.0 },
     accel: 0.032, brake: 0.05, drag: 0.006, maxSpeed: 1.1, maxReverse: -0.32, turnRate: 0.056, drift: 1.15,
     launch: 0.32, launchUntil: 0.4, powerDrift: true, gyro: true, sound: 'race', pitch: 1.1,
   },
   muscle: {
     id: 'muscle', name: 'Маслкар', make: createMuscleCar, color: 0xe07a12,
-    desc: 'Тяжелый и мощный: долго раскачивается, а потом летит. Тормоза слабые, задок срывается легко. Газ и тормоз вместе — дрифт.',
+    desc: 'Тяжелый и мощный: долго раскачивается, а потом летит. Тормоза слабые, задок срывается легко. Газ с ручником — дрифт.',
     half: { w: 1.1, l: 2.5 },
     accel: 0.033, brake: 0.038, drag: 0.005, maxSpeed: 1.4, maxReverse: -0.3, turnRate: 0.042, drift: 1.3,
     launch: 0.08, launchUntil: 0.7, powerDrift: true, gyro: true, sound: 'race', pitch: 0.82,
   },
   drift: {
     id: 'drift', name: 'Дрифт-купе', make: createDriftCar, color: 0x8a2be0,
-    desc: 'Построено для дрифта: заносит сильнее всех и держит угол, руль острый. Газ и тормоз вместе — дрифт.',
+    desc: 'Построено для дрифта: заносит сильнее всех и держит угол, руль острый. Газ с ручником — дрифт.',
     half: { w: 1.15, l: 2.25 },
     accel: 0.027, brake: 0.048, drag: 0.005, maxSpeed: 1.2, maxReverse: -0.3, turnRate: 0.058, drift: 1.6,
     launch: 0.2, launchUntil: 0.5, powerDrift: true, gyro: true, sound: 'race', pitch: 1.04,
   },
   proto: {
     id: 'proto', name: 'Прототип', make: createProtoCar, color: 0x14a35a,
-    desc: 'Самый быстрый и с лучшими тормозами: прижимается к трассе и неохотно идет боком. Газ и тормоз вместе — дрифт.',
+    desc: 'Самый быстрый и с лучшими тормозами: прижимается к трассе и неохотно идет боком. Газ с ручником — дрифт.',
     half: { w: 1.1, l: 2.6 },
     accel: 0.028, brake: 0.065, drag: 0.004, maxSpeed: 1.5, maxReverse: -0.28, turnRate: 0.047, drift: 0.55,
     launch: 0.12, launchUntil: 0.65, powerDrift: true, gyro: true, sound: 'race', pitch: 1.15,
   },
   kart: {
     id: 'kart', name: 'Карт', make: createKart, color: 0xffd21e,
-    desc: 'Крошечный карт: мгновенный старт, поворачивает на пятачке, но едет медленнее всех. Газ и тормоз вместе — дрифт.',
+    desc: 'Крошечный карт: мгновенный старт, поворачивает на пятачке, но едет медленнее всех. Газ с ручником — дрифт.',
     half: { w: 0.85, l: 1.2 },
     accel: 0.035, brake: 0.06, drag: 0.007, maxSpeed: 0.95, maxReverse: -0.25, turnRate: 0.066, drift: 0.9,
     launch: 0.4, launchUntil: 0.35, powerDrift: true, gyro: true, sound: 'race', pitch: 1.3,
