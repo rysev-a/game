@@ -9,7 +9,7 @@
 // Побежденное существо падает и растворяется: его больше нет.
 //
 //   spawnPenCreature(id, onGone) — выпустить существо из лаборатории; onGone() — когда оно исчезло
-//   PEN_CREATURES — записи существ по id;  penLab — модель лаборатории (ворота, лампа)
+//   PEN_CREATURES — записи существ по id (у боссов boss: true);  penLab — модель лаборатории (ворота, лампа)
 //
 // Спокойно: wander — бродит по случайным точкам вольера; patrol — ходит по своим точкам с остановками;
 // hover — парит (дрон; на точке маршрута крутится и выжигает пол). Попали — оборачивается к герою
@@ -245,6 +245,111 @@ let penLab = null;
       ],
     },
   ];
+
+  // Боссы — помощники Барона (docs/story/characters/bosses.md) с оружием в руках. Пока без своих
+  // способностей: у каждого свое оружие и манера, кто-то летает (fly — высота над землей), у кого-то
+  // лазер. Вид не задан — их берет любое оружие. Выходят только в режиме DANGER (src/demo/tutorial.js)
+  const bossModel = (type, weapon, fly) => () => {
+    const g = new THREE.Group();
+    const man = createPerson(type, { gender: 'male' });
+    g.add(man);
+    const w = WEAPONS[weapon];
+    const gun = w.model();
+    man.attach(w.hold === 'rifle' ? 'rifle' : 'handR', gun);
+    const mz = gun.userData.muzzle || new THREE.Vector3(0, 0, -1);
+    g.userData.muzzles = { gun: creatureMarker(gun, mz.x, mz.y, mz.z) };
+    let aiming = false;
+    // Идет, как человек; в бою держит оружие на герое, на выстреле его чуть отбрасывает. Летун
+    // парит и покачивается, ноги свисают
+    g.userData.animate = ({ phase, move, time, fight = 0, alert, strike = 0 }) => {
+      const aim = !!(fight || alert > 0);
+      if (aim !== aiming) {
+        aiming = aim;
+        man.setAim(aim ? (w.hold === 'rifle' ? 'rifle' : true) : false);
+      }
+      man.updateWalk(phase, fly ? 0.15 : move);
+      man.rotation.x = -strike * 0.06 + (fly ? 0.12 * move : 0);
+      if (fly) man.rotation.z = Math.sin(time * 1.3) * 0.06;
+      if (gun.userData.spin) gun.userData.spin.rotation.z += strike * 0.6;
+    };
+    return g;
+  };
+  const gunShot = (o) => (m) => shoot(m, 'gun', o);
+  const BOSSES = [
+    {
+      id: 'boss_flash', type: 'flash', weapon: 'pulse_laser', name: 'Вспышка',
+      desc: 'Босс, помощник Барона: сверхскорость. Носится вокруг героя и бьет короткими очередями из импульсного лазера.',
+      hp: 220, speed: 0.09, fightSpeed: 0.17, stride: 5, keep: [5, 10], strafe: true,
+      attacks: [{ name: 'bolt', max: 18, charge: 12, shots: 3, every: 5, cd: 70, fire: gunShot({ kind: 'bullet', color: 0xff4a5a, speed: 0.9, life: 40, damage: 3, type: 'energy' }) }],
+    },
+    {
+      id: 'boss_echo', type: 'echo', weapon: 'plasma_gun', name: 'Эхо',
+      desc: 'Босс, помощник Барона: копии-иллюзии (пока без них). Держится на расстоянии и стреляет сгустками зеленой плазмы.',
+      hp: 260, speed: 0.04, fightSpeed: 0.06, stride: 3, keep: [8, 15],
+      attacks: [{ name: 'plasma', max: 22, charge: 26, shots: 2, every: 10, cd: 110, fire: gunShot({ kind: 'plasma', speed: 0.34, life: 110, damage: 8, area: 1, type: 'plasma' }) }],
+    },
+    {
+      id: 'boss_falcon', type: 'falcon', weapon: 'minigun', name: 'Сокол', fly: 3.2,
+      desc: 'Босс, помощник Барона: летает. Кружит над вольером на механических крыльях и поливает героя сверху из пулемета.',
+      hp: 240, speed: 0.06, fightSpeed: 0.1, stride: 2, keep: [6, 12], strafe: true,
+      attacks: [{ name: 'burst', max: 22, charge: 20, shots: 12, every: 3, cd: 120, fire: gunShot({ kind: 'bullet', speed: 0.8, life: 50, damage: 2, type: 'kinetic' }) }],
+    },
+    {
+      id: 'boss_magnet', type: 'magnet', weapon: 'gauss_cannon', name: 'Магнит',
+      desc: 'Босс, помощник Барона: притягивает железо. Долго наводит гаусс-пушку, потом бьет синим лазерным лучом — успейте уйти с линии.',
+      hp: 320, speed: 0.035, fightSpeed: 0.05, stride: 2.8, keep: [9, 18],
+      attacks: [{ name: 'beam', max: 26, charge: 50, shots: 1, cd: 140, fire: (m) => beamHero(fromMuzzle(m, 'gun'), 16, 0x6ad8ff) }],
+    },
+    {
+      id: 'boss_shadow', type: 'shadow', weapon: 'tachyon_pistol', name: 'Тень',
+      desc: 'Босс, помощник Барона: невидимость (пока видна). Подкрадывается и стреляет фиолетовым лазером из тахионного пистолета.',
+      hp: 200, speed: 0.06, fightSpeed: 0.11, stride: 3.5, keep: [4, 9], strafe: true,
+      attacks: [{ name: 'beam', max: 16, charge: 24, shots: 2, every: 10, cd: 90, fire: (m) => beamHero(fromMuzzle(m, 'gun'), 6, 0xc070ff) }],
+    },
+    {
+      id: 'boss_cloud', type: 'cloud', weapon: 'arc_discharger', name: 'Туча', fly: 2.4,
+      desc: 'Босс, помощник Барона: погода. Парит над землей и бьет молниями из дугового разрядника.',
+      hp: 240, speed: 0.04, fightSpeed: 0.07, stride: 2, keep: [7, 14],
+      attacks: [{ name: 'zap', max: 18, charge: 30, shots: 2, every: 14, cd: 120, fire: (m) => zapHero(fromMuzzle(m, 'gun'), 7) }],
+    },
+    {
+      id: 'boss_spark', type: 'spark', weapon: 'pulse_laser', name: 'Искра',
+      desc: 'Босс, помощник Барона: управляет электроникой. Режет героя частыми желтыми лазерными лучами.',
+      hp: 230, speed: 0.05, fightSpeed: 0.08, stride: 3.2, keep: [6, 13], strafe: true,
+      attacks: [{ name: 'beam', max: 20, charge: 20, shots: 5, every: 6, cd: 110, fire: (m) => beamHero(fromMuzzle(m, 'gun'), 3, 0xffd84a) }],
+    },
+    {
+      id: 'boss_whisper', type: 'whisper', weapon: 'cryo_rifle', name: 'Шепот',
+      desc: 'Босс, помощник Барона: гипноз голосом (пока молчит). Стреляет ледяными капсулами из крио-винтовки.',
+      hp: 220, speed: 0.04, fightSpeed: 0.06, stride: 3, keep: [8, 16],
+      attacks: [{ name: 'ice', max: 22, charge: 28, shots: 3, every: 8, cd: 110, fire: gunShot({ kind: 'bullet', color: 0x9fe6ff, speed: 0.6, life: 60, damage: 5, type: 'kinetic' }) }],
+    },
+    {
+      id: 'boss_block', type: 'block', weapon: 'bazooka', name: 'Глыба',
+      desc: 'Босс, помощник Барона: сверхсила и броня. Медленный и очень крепкий: стреляет ракетами из базуки, вблизи бьет кулаком.',
+      hp: 600, r: 0.9, speed: 0.025, fightSpeed: 0.035, stride: 2.4, keep: [0, 12],
+      attacks: [
+        {
+          name: 'punch', max: 2.4, charge: 20, shots: 1, cd: 70,
+          fire: (m, t) => {
+            if (Math.hypot(playerWorldX - t.x, playerWorldZ - t.z) < t.r + 1.6) hitHero({ damage: 18, type: 'melee', x: t.x, z: t.z });
+          },
+        },
+        { name: 'rocket', min: 5, max: 24, charge: 40, shots: 1, cd: 160, fire: gunShot({ kind: 'rocket', speed: 0.26, life: 160, damage: 14, area: 2.2, type: 'area' }) },
+      ],
+    },
+    {
+      id: 'boss_hydra', type: 'hydra', weapon: 'plasma_flamer', name: 'Гидра',
+      desc: 'Босс, помощник Барона: регенерация. Идет напролом и жжет струей пламени; раны затягиваются быстрее, чем у других.',
+      hp: 380, speed: 0.04, fightSpeed: 0.06, stride: 3, keep: [3, 7], heal: 3000,
+      attacks: [{ name: 'fire', max: 9, charge: 20, shots: 24, every: 2, cd: 140, fire: gunShot({ kind: 'fire', speed: 0.34, life: 30, damage: 1, type: 'fire' }) }],
+    },
+  ];
+  for (const b of BOSSES) {
+    CREATURES.push(
+      Object.assign({ r: 0.6, height: (b.fly || 0) + 2.3, behavior: 'wander', boss: true, make: bossModel(b.type, b.weapon, b.fly) }, b),
+    );
+  }
 
   const leash = { x1: penX - penHX - 20, x2: penX + penHX, z1: penZ - penHZ, z2: penZ + penHZ };
   const inPen = (x, z, r) => ({
@@ -534,11 +639,12 @@ let penLab = null;
           }
         } else {
           s.fall = Math.max(0, s.fall - 0.03);
-          if (t.hp < t.maxHp && performance.now() - t.lastHit > 5000) reviveTarget(t);
+          if (t.hp < t.maxHp && performance.now() - t.lastHit > (c.heal || 5000)) reviveTarget(t);
         }
         if (t.hpBar) t.hpBar.visible = !t.dead && s.fall === 0;
         const wobble = t.status.stagger > 0 ? Math.sin(t.status.stagger * 0.9) * 0.08 : 0;
         body.rotation.y = s.heading;
+        if (c.fly) body.position.y = (c.fly + Math.sin(time * 2) * 0.2) * (1 - s.fall); // летун падает на землю
         if (c.behavior === 'hover') {
           // Дрон падает на землю и заваливается набок
           body.position.y = -s.fall * 0.55;
