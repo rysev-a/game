@@ -72,20 +72,14 @@ function createHomeInterior() {
       part(w, h, d, color, x, h / 2, z);
       addSolid(x, z, w / 2, d / 2, mapColor);
     };
-    // Вещь, которую можно взять: x, z — позиция, y — высота поверхности, на которой лежит
-    function pickup(id, x, z, y, build) {
-      const mesh = new THREE.Group();
-      build(mesh);
+    // Вещь, которую можно взять: x, z — позиция, y — высота поверхности, на которой лежит.
+    // Модель — объемный пиксельный значок вещи (src/models/items.js)
+    function pickup(id, x, z, y) {
+      const mesh = createItemModel(id);
       mesh.position.set(x, y, z);
       group.add(mesh);
       pickups.push({ id, floor: level, x, z, y, mesh });
     }
-    const box = (parent, w, h, d, color, x = 0, y = 0, z = 0) => {
-      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color }));
-      m.position.set(x, y, z);
-      parent.add(m);
-      return m;
-    };
 
     // Пол
     const floorMesh = new THREE.Mesh(
@@ -139,31 +133,21 @@ function createHomeInterior() {
       // Прихожая: консоль у двери (на ней лежат ключи) и вешалка
       furniture(2.2, 0.9, 0.6, 0x6b4a2e, -3.5, 5.3, '#6b4a2e');
       furniture(0.4, 1.8, 0.4, 0x4a3826, 3.4, 5.4, '#4a3826');
-      pickup('keys', -3.5, 5.3, 0.95, (m) => {
-        box(m, 0.34, 0.06, 0.2, 0xe0c341);
-        box(m, 0.14, 0.06, 0.14, 0xe0c341, -0.24, 0, 0);
-        box(m, 0.08, 0.06, 0.3, 0xc9a82a, 0.12, 0.02, 0.1);
-      });
+      pickup('keys', -3.5, 5.3, 0.95);
 
       // Гостиная (запад): телевизор, диван, журнальный столик с телефоном
       furniture(0.6, 0.8, 3.0, 0x2a2a30, -8.5, -1.0, '#2a2a30'); // тумба с телевизором
       part(0.12, 0.9, 2.2, 0x15151a, -8.55, 1.25, -1.0);
       furniture(1.3, 0.95, 3.8, 0x3a5a8a, -4.8, -1.0, '#3a5a8a'); // диван
       furniture(1.1, 0.5, 1.7, 0x8a6a3c, -6.7, -1.0, '#8a6a3c'); // столик
-      pickup('phone', -6.7, -1.0, 0.55, (m) => {
-        box(m, 0.22, 0.04, 0.4, 0x15151a);
-        box(m, 0.18, 0.045, 0.34, 0x3a7bd5);
-      });
+      pickup('phone', -6.7, -1.0, 0.55);
 
       // Кухня (север и восток): стол с кошельком, шкафы, холодильник
       furniture(7.4, 0.95, 0.8, 0xc9c1b0, 4.0, -5.5, '#c9c1b0');
       furniture(1.0, 2.0, 0.9, 0xdfeaf0, 8.3, -5.4, '#dfeaf0');
       furniture(2.2, 0.8, 1.4, 0xa07850, 3.4, -1.4, '#a07850'); // обеденный стол
       for (const cx of [-1.6, 1.6]) part(0.6, 0.5, 0.6, 0x8a6a3c, 3.4 + cx, 0.25, -1.4); // стулья
-      pickup('wallet', 3.4, -1.4, 0.85, (m) => {
-        box(m, 0.4, 0.08, 0.28, 0x6b3a22);
-        box(m, 0.2, 0.09, 0.12, 0xe0c341, 0.08, 0, 0);
-      });
+      pickup('wallet', 3.4, -1.4, 0.85);
 
       // Дверь в гараж на восточной стене
       part(0.2, 2.3, 1.2, 0x4a3826, hw - 0.1, 1.15, homeGaragePoint.z);
@@ -172,24 +156,15 @@ function createHomeInterior() {
       furniture(2.1, 0.6, 2.3, 0x8a3b3b, 6.6, -3.6, '#8a3b3b');
       part(2.1, 1.1, 0.2, 0x5a3a2a, 6.6, 0.55, -4.85); // изголовье
       furniture(0.7, 0.65, 0.7, 0x6b4a2e, 8.4, -4.5, '#6b4a2e');
-      pickup('badge', 8.4, -4.5, 0.72, (m) => {
-        box(m, 0.34, 0.05, 0.4, 0xc9c9d0);
-        box(m, 0.2, 0.06, 0.24, 0x3a7bd5);
-      });
+      pickup('badge', 8.4, -4.5, 0.72);
       furniture(2.4, 2.2, 0.8, 0x6b4a2e, 4.0, -5.5, '#6b4a2e'); // шкаф
-      pickup('flashlight', 2.4, -5.5, 1.1, (m) => {
-        box(m, 0.14, 0.14, 0.5, 0x555560);
-        box(m, 0.18, 0.18, 0.12, 0xe0c341, 0, 0, -0.28);
-      });
+      pickup('flashlight', 2.4, -5.5, 1.1);
       furniture(0.5, 1.2, 1.0, 0x6b4a2e, 2.4, -5.5, '#6b4a2e'); // тумба под фонарик (под предметом)
 
       // Кабинет (северо-запад): письменный стол с блокнотом, книжный шкаф
       furniture(1.4, 0.8, 3.0, 0xa07850, -8.0, -3.0, '#a07850');
       part(0.6, 0.5, 0.6, 0x3a5a8a, -6.7, 0.25, -3.0); // кресло
-      pickup('notebook', -8.0, -3.0, 0.85, (m) => {
-        box(m, 0.4, 0.1, 0.55, 0xc43a3a);
-        box(m, 0.36, 0.11, 0.5, 0xf1ede2, 0.02, 0, 0);
-      });
+      pickup('notebook', -8.0, -3.0, 0.85);
       furniture(3.0, 2.0, 0.5, 0x5a3a2a, -3.6, -5.7, '#5a3a2a'); // книжный шкаф у северной стены
     }
 
