@@ -24,6 +24,7 @@ function updatePrompt() {
         ? 'E или F — выйти из машины'
         : 'W/S — газ, A/D — руль, Space — тормоз. Остановитесь, чтобы выйти';
   }
+  if (touchUI && promptText) promptText = touchPromptText(promptText); // на телефоне — без клавиш (src/engine/touch.js)
   promptEl.textContent = promptText;
   promptEl.style.display = promptText ? 'block' : 'none';
 }

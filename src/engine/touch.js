@@ -9,15 +9,25 @@
 //   правая часть экрана — провести пальцем: вращать камеру и наклонять горизонт (как зажатое колесо мыши);
 //                         два пальца — масштаб; короткое касание — что это (сканер справа сверху, гаснет сам; с оружием в руках его нет), взять вещь,
 //                         а с оружием в руках — выстрел в эту точку
-//   кнопки справа внизу — действие (E), огонь (зажать — очередь / накопление заряда), выйти из машины (F)
-//                         и значок оружия: касание — лента оружия, листается свайпом
-//   внизу по центру     — оружие в ячейках маленькими значками: касание — взять в руки или убрать
+//   мирный режим        — справа внизу одна кнопка «в бой». Коснулись человека, двери, машины рядом — сразу
+//                         действие (разговор, войти, сесть / выйти из машины); подсказка внизу — тоже кнопка
+//   боевой режим        — та же кнопка — прицел: зажать — огонь, не отпуская палец влево/вправо — камера,
+//                         вверх/вниз — смена оружия. Слева внизу кнопка 🕊 — в мирный режим
+//   внизу по центру     — оружие в ячейках маленькими значками: касание — в бой с ним, свайп — смена оружия
 //   слева внизу         — значок инвентаря (раскрывает его на весь экран) и тонкие полоски жизни и эликсира
 //   справа внизу        — мелко дата и время: 01.01.2030 - 15:20
 //   наклон телефона     — гироскоп: точная доводка прицела, пока оружие в руках (выключается в настройках)
 //
-// Кнопки не дублируют логику игры: они шлют те же keydown/keyup, что и клавиатура, поэтому всё,
-// что висит на клавишах (src/engine/input.js, weapons.js, driving.js, inventory.js, dialogue.js), работает само.
+// Кнопки не дублируют логику игры: зовут то же, что клавиши (onInteract, drawWeapon, holsterWeapon, fireWeapon).
+
+// Подсказка действия без клавиш: «E — войти» → «Войти» (зовется из updatePrompt, src/engine/game.js)
+function touchPromptText(t) {
+  t = t
+    .replace('W/S — газ, A/D — руль, Space — тормоз. ', '')
+    .replace(/\. F — [^.]*/, '')
+    .replace(/^[EF](?: или F)? — /, '');
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
 
 if (touchUI) {
   document.body.classList.add('touch');
@@ -129,7 +139,7 @@ if (touchUI) {
     }
     /* Оружие в ячейках — маленькими значками внизу по центру; касание — взять в руки (или убрать) */
     #mGuns {
-      position: fixed; z-index: 20; left: 50%; transform: translateX(-50%); bottom: max(8px, env(safe-area-inset-bottom));
+      touch-action: none; position: fixed; z-index: 20; left: 50%; transform: translateX(-50%); bottom: max(8px, env(safe-area-inset-bottom));
       display: flex; gap: 6px;
     }
     #mGuns .g {
@@ -142,7 +152,7 @@ if (touchUI) {
     body.touch.invOpen #mGuns { display: none; }
     #touchPad {
       position: fixed; z-index: 20; right: max(12px, env(safe-area-inset-right)); bottom: max(22px, calc(env(safe-area-inset-bottom) + 14px));
-      display: grid; grid-template-columns: repeat(3, 52px); grid-auto-rows: 52px; gap: 8px; direction: rtl;
+      display: grid; display: flex; gap: 8px;
     }
     .touchBtn {
       width: 52px; height: 52px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.45);
@@ -152,32 +162,24 @@ if (touchUI) {
     }
     .touchBtn .px { width: 32px; height: 32px; image-rendering: pixelated; pointer-events: none; }
     .touchBtn.down { background: rgba(255, 216, 74, 0.45); border-color: #ffd84a; }
-    #tbFire { background: rgba(160, 30, 30, 0.6); }
-    #tbAct { background: rgba(30, 90, 50, 0.6); }
-    /* Выбор оружия: лента на весь экран, листается свайпом; что посередине — то и в руках */
-    #weaponPicker {
-      position: fixed; inset: 0; z-index: 40; display: none; flex-direction: column; justify-content: center;
-      background: rgba(5, 8, 12, 0.82); color: white; font-family: sans-serif;
+    /* Одна кнопка справа внизу: в мирном режиме — «в бой», в боевом — прицел (зажать — огонь) */
+    #tbMain { width: 72px; height: 72px; background: rgba(10, 14, 20, 0.6); }
+    #tbMain svg { width: 46px; height: 46px; pointer-events: none; }
+    #tbMain.fire { border-color: rgba(255, 70, 70, 0.9); background: radial-gradient(circle, rgba(255, 60, 60, 0.35), rgba(60, 0, 0, 0.6));
+      box-shadow: 0 0 14px rgba(255, 50, 50, 0.6); }
+    #tbMain.fire.down { box-shadow: 0 0 22px rgba(255, 120, 60, 0.95); background: radial-gradient(circle, rgba(255, 160, 60, 0.55), rgba(90, 10, 0, 0.7)); }
+    #tbMain.fire svg { filter: drop-shadow(0 0 4px rgba(255, 80, 80, 0.9)); }
+    /* Мирный режим — кнопка между полосками и оружием, видна только в бою */
+    #mPeace {
+      width: 34px; height: 34px; padding: 0; border-radius: 8px; border: 1px solid rgba(140, 220, 255, 0.6);
+      background: rgba(10, 14, 20, 0.6); color: white; font-size: 18px; display: none;
     }
-    #weaponPicker.on { display: flex; }
-    #wpStrip {
-      display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 10px calc(50vw - 55px);
-      scrollbar-width: none; touch-action: pan-x;
-    }
-    #wpStrip::-webkit-scrollbar { display: none; }
-    .wpItem {
-      flex: 0 0 110px; height: 110px; scroll-snap-align: center; border-radius: 12px; box-sizing: border-box;
-      border: 2px solid rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.06);
-      display: flex; align-items: center; justify-content: center; opacity: 0.55; transition: opacity 0.15s, transform 0.15s;
-    }
-    .wpItem .px { width: 64px; height: 64px; image-rendering: pixelated; pointer-events: none; }
-    .wpItem.center { opacity: 1; transform: scale(1.12); border-color: #ffd84a; background: rgba(255, 216, 74, 0.18); }
-    #wpName { text-align: center; margin-top: 14px; font-size: 16px; font-weight: bold; min-height: 20px; }
+    body.touch.armed #mPeace { display: block; }
+    /* Подсказка действия на телефоне — тоже кнопка: касание делает то, что в ней написано */
+    body.touch #prompt { pointer-events: auto; cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.35); }
   `;
   document.head.appendChild(touchStyle);
 
-  const pressKey = (code) => window.dispatchEvent(new KeyboardEvent('keydown', { code }));
-  const releaseKey = (code) => window.dispatchEvent(new KeyboardEvent('keyup', { code }));
   const canPlay = () => !settingsOpen && !dialogueOpen;
   const canvas = renderer.domElement;
 
@@ -232,6 +234,17 @@ if (touchUI) {
   const toNdc = (x, y) => new THREE.Vector2((x / window.innerWidth) * 2 - 1, -(y / window.innerHeight) * 2 + 1);
 
   // Короткое касание сцены: показать, что это, взять вещь, а с оружием — выстрелить туда
+  // Касание пришлось на землю у героя (он всегда в центре сцены)? Дальше tapReach — только сканер
+  const tapReach = 9;
+  const tapRay = new THREE.Raycaster();
+  const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const tapGround = new THREE.Vector3();
+  function tapNearHero(ndc) {
+    tapRay.setFromCamera(ndc, camera);
+    if (!tapRay.ray.intersectPlane(groundPlane, tapGround)) return false;
+    return Math.hypot(tapGround.x, tapGround.z) < tapReach;
+  }
+
   // Сканер (панель «что это») на телефоне не висит: появляется по касанию объекта и через scanShowMs гаснет
   const scanShowMs = 4000;
   let scanTimer = 0;
@@ -245,6 +258,13 @@ if (touchUI) {
     }, scanShowMs);
     updatePickHover(pickMouse);
     if (pickHovered()) return;
+    // Мирный режим: коснулись человека, двери, машины рядом с героем — сразу действие (как E):
+    // разговор, войти, сесть в машину; за рулем касание своей машины — выйти, у толкаемой — отпустить
+    if (!heroWeapon.id && findHovered(pickMouse) && tapNearHero(pickMouse)) {
+      if (pushingCar && !activeInteractable()) releaseCar();
+      else onInteract();
+      return;
+    }
     if (heroWeapon.id) {
       const w = WEAPONS[heroWeapon.id];
       heroWeapon.holdAt = performance.now();
@@ -349,148 +369,79 @@ if (touchUI) {
   pad.id = 'touchPad';
   document.body.appendChild(pad);
 
-  // hold — кнопку держат (keydown при касании, keyup при отпускании), иначе — одно нажатие
-  function addButton(id, label, code, hold) {
-    const b = document.createElement('button');
-    b.id = id;
-    b.className = 'touchBtn';
-    b.textContent = label;
-    b.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      b.setPointerCapture(e.pointerId);
-      b.classList.add('down');
-      pressKey(code);
-      if (!hold) releaseKey(code);
-    });
-    const up = () => {
-      if (!b.classList.contains('down')) return;
-      b.classList.remove('down');
-      if (hold) releaseKey(code);
-    };
-    b.addEventListener('pointerup', up);
-    b.addEventListener('pointercancel', up);
-    b.addEventListener('contextmenu', (e) => e.preventDefault()); // долгое нажатие — без меню
-    pad.appendChild(b);
-    return b;
+  // Мирный и боевой режим. Мирный — оружие убрано: справа внизу одна кнопка «в бой» (достает оружие из
+  // активной ячейки), с людьми, дверями и машинами — касанием (onTap). Боевой — оружие в руках: та же кнопка
+  // становится прицелом. Зажали — огонь (как зажатая левая кнопка мыши; целится в прицел гироскопа, без
+  // гироскопа — по взгляду с доводом); не отпуская, повели палец влево/вправо — камера и герой
+  // поворачиваются, вверх/вниз — следующее/предыдущее оружие. В мирный режим — кнопка слева снизу (#mPeace)
+  const swordSvg =
+    '<svg viewBox="0 0 48 48"><g fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round">' +
+    '<path d="M10 38 L34 14 M34 14 l4-6 -6 4 M14 30 l4 4 M38 38 L14 14 M14 14 l-4-6 6 4 M34 30 l-4 4"/></g></svg>';
+  const crosshairSvg =
+    '<svg viewBox="0 0 48 48"><g fill="none" stroke="#ff4646" stroke-width="2.5" stroke-linecap="round">' +
+    '<circle cx="24" cy="24" r="15"/><circle cx="24" cy="24" r="7" stroke-width="1.5"/>' +
+    '<path d="M24 3 v9 M24 36 v9 M3 24 h9 M36 24 h9"/></g><circle cx="24" cy="24" r="2.5" fill="#ffd0a0"/></svg>';
+  const btnMain = document.createElement('button');
+  btnMain.id = 'tbMain';
+  btnMain.className = 'touchBtn';
+  pad.appendChild(btnMain);
+
+  const weaponSwipe = 45; // px пальцем вверх/вниз на кнопке огня — смена оружия
+  let fireTouch = null; // { x, y } — где палец на кнопке огня
+
+  // Следующее (dir = 1) или предыдущее (−1) оружие из ячеек; огонь, если зажат, продолжается новым
+  function cycleWeapon(dir) {
+    const ids = weaponSlotIds();
+    if (!ids.length) return;
+    const i = ids.indexOf(heroWeapon.id);
+    const id = ids[(i + dir + ids.length) % ids.length];
+    if (id === heroWeapon.id) return;
+    const held = heroWeapon.mouseHeld;
+    if (drawWeapon(id)) {
+      heroWeapon.mouseHeld = held;
+      showToast(WEAPONS[id].name, 1200);
+    }
   }
 
-  // Огонь: зажатая кнопка — как зажатая левая кнопка мыши, а целится она в прицел гироскопа (ниже).
-  // Без гироскопа прицела нет — стреляет по взгляду с доводом, как клавиша K
-  const btnFire = document.createElement('button');
-  btnFire.id = 'tbFire';
-  btnFire.className = 'touchBtn';
-  btnFire.textContent = '🎯';
-  btnFire.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
-    btnFire.setPointerCapture(e.pointerId);
-    if (!heroWeapon.id || !canPlay()) return;
-    btnFire.classList.add('down');
+  function startFire() {
     heroWeapon.mouseHeld = true;
     heroWeapon.holdAt = performance.now();
     const w = WEAPONS[heroWeapon.id];
     if (!w.charge && !w.spinUp) fireWeapon(mouseAimPoint()); // с накоплением — когда отпустят, пулемет — когда раскрутится
+  }
+
+  btnMain.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (!canPlay()) return;
+    if (!heroWeapon.id) {
+      toggleWeapon(); // в бой: достаем оружие (нет оружия — подсказка, где его взять)
+      return;
+    }
+    btnMain.setPointerCapture(e.pointerId);
+    btnMain.classList.add('down');
+    fireTouch = { x: e.clientX, y: e.clientY };
+    startFire();
+  });
+  btnMain.addEventListener('pointermove', (e) => {
+    if (!fireTouch || !heroWeapon.id) return;
+    const dx = e.clientX - fireTouch.x;
+    fireTouch.x = e.clientX;
+    worldRotation += dx * lookSensitivity; // как правый палец на экране: в бою герой поворачивается вслед
+    cameraHoldFrames = cameraHoldDelay;
+    const dy = e.clientY - fireTouch.y;
+    if (Math.abs(dy) > weaponSwipe) {
+      cycleWeapon(dy < 0 ? 1 : -1); // вверх — следующее, вниз — предыдущее
+      fireTouch.y = e.clientY;
+    }
   });
   const fireUp = () => {
-    btnFire.classList.remove('down');
+    fireTouch = null;
+    btnMain.classList.remove('down');
     heroWeapon.mouseHeld = false;
   };
-  btnFire.addEventListener('pointerup', fireUp);
-  btnFire.addEventListener('pointercancel', fireUp);
-  btnFire.addEventListener('contextmenu', (e) => e.preventDefault());
-  pad.appendChild(btnFire);
-  addButton('tbAct', '✋', 'KeyE', false); // E — действие
-  const btnExit = addButton('tbExit', '🚪', 'KeyF', false); // F — выйти из машины / отпустить толкаемую
-
-  // Кнопка оружия: значок того, что в руках (или в активной ячейке). Касание — выбор оружия
-  const btnWeapon = document.createElement('button');
-  btnWeapon.id = 'tbWeapon';
-  btnWeapon.className = 'touchBtn';
-  // По click, а не pointerdown: иначе тот же click попадет в только что открытую ленту и закроет ее
-  btnWeapon.addEventListener('click', () => {
-    if (canPlay()) openWeaponPicker();
-  });
-  pad.appendChild(btnWeapon);
-
-  // ---------- Выбор оружия свайпом ----------
-  // Лента из «убрать оружие» и оружия в пяти ячейках снаряжения. Что остановилось посередине — то в руках;
-  // касание по значку — сразу его. Касание мимо ленты закрывает выбор
-  const picker = document.createElement('div');
-  picker.id = 'weaponPicker';
-  picker.innerHTML = '<div id="wpStrip"></div><div id="wpName"></div>';
-  document.body.appendChild(picker);
-  const strip = picker.querySelector('#wpStrip');
-  const wpName = picker.querySelector('#wpName');
-  let pickerIds = []; // null — убрать оружие
-  let pickerCenter = -1;
-  let pickerTimer = 0;
-
-  function applyPick(id) {
-    if (id === (heroWeapon.id || null)) return;
-    if (id) drawWeapon(id);
-    else holsterWeapon();
-  }
-
-  function centeredIndex() {
-    const mid = strip.scrollLeft + strip.clientWidth / 2;
-    let best = 0;
-    let bestD = Infinity;
-    [...strip.children].forEach((el, i) => {
-      const d = Math.abs(el.offsetLeft + el.offsetWidth / 2 - mid);
-      if (d < bestD) (bestD = d), (best = i);
-    });
-    return best;
-  }
-
-  function markCenter(i) {
-    if (i === pickerCenter) return;
-    pickerCenter = i;
-    [...strip.children].forEach((el, k) => el.classList.toggle('center', k === i));
-    const id = pickerIds[i];
-    wpName.textContent = id ? WEAPONS[id].name : 'Без оружия';
-  }
-
-  function openWeaponPicker() {
-    const ids = weaponSlotIds();
-    if (!ids.length) return toggleWeapon(); // подскажет, где взять оружие
-    pickerIds = [null, ...ids];
-    strip.innerHTML = '';
-    pickerIds.forEach((id, i) => {
-      const el = document.createElement('div');
-      el.className = 'wpItem';
-      if (id) el.appendChild(pixelIcon((ITEMS[id] || {}).icon || id));
-      else el.textContent = '✋';
-      el.style.fontSize = '44px';
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        applyPick(id);
-        closeWeaponPicker();
-      });
-      strip.appendChild(el);
-    });
-    picker.classList.add('on');
-    clearJoyKeys();
-    const cur = Math.max(0, pickerIds.indexOf(heroWeapon.id || null));
-    pickerCenter = -1;
-    const el = strip.children[cur];
-    strip.scrollLeft = el.offsetLeft + el.offsetWidth / 2 - strip.clientWidth / 2;
-    markCenter(cur);
-  }
-
-  function closeWeaponPicker() {
-    clearTimeout(pickerTimer);
-    picker.classList.remove('on');
-  }
-
-  strip.addEventListener('scroll', () => {
-    if (!picker.classList.contains('on')) return;
-    markCenter(centeredIndex());
-    // Лента остановилась — берем то, что посередине
-    clearTimeout(pickerTimer);
-    pickerTimer = setTimeout(() => applyPick(pickerIds[centeredIndex()]), 180);
-  });
-  picker.addEventListener('click', (e) => {
-    if (e.target === picker || e.target === wpName) closeWeaponPicker();
-  });
+  btnMain.addEventListener('pointerup', fireUp);
+  btnMain.addEventListener('pointercancel', fireUp);
+  btnMain.addEventListener('contextmenu', (e) => e.preventDefault());
 
   // ---------- Полоски жизни и эликсира, значок инвентаря, дата и время ----------
   PIXEL_ART.bag = PIXEL_ART.bag || {
@@ -515,11 +466,15 @@ if (touchUI) {
   stats.innerHTML =
     '<button id="mInvBtn"></button><div class="bars">' +
     '<div class="bar"><div id="mHp" style="background:#e0483a"></div></div>' +
-    '<div class="bar"><div id="mElixir" style="background:#a05cf0"></div></div></div>';
+    '<div class="bar"><div id="mElixir" style="background:#a05cf0"></div></div></div>' +
+    '<button id="mPeace">🕊</button>';
   document.body.appendChild(stats);
   const invBtn = stats.querySelector('#mInvBtn');
   invBtn.appendChild(pixelIcon('bag'));
   invBtn.addEventListener('click', () => setInventoryOpen(!inventoryOpen));
+  stats.querySelector('#mPeace').addEventListener('click', () => {
+    if (heroWeapon.id) holsterWeapon(); // в мирный режим
+  });
   const hpEl = stats.querySelector('#mHp');
   const elixirEl = stats.querySelector('#mElixir');
 
@@ -666,9 +621,38 @@ if (touchUI) {
   });
   settingsMenu.insertBefore(gyroRow, settingsMenu.querySelector('.hint'));
 
+  // Подсказка действия — кнопка: касание делает то же, что E (или F — отпустить толкаемую машину)
+  document.getElementById('prompt').addEventListener('click', () => {
+    if (!canPlay()) return;
+    if (pushingCar && !activeInteractable()) releaseCar();
+    else onInteract();
+  });
+
   const gunsEl = document.createElement('div');
   gunsEl.id = 'mGuns';
   document.body.appendChild(gunsEl);
+  // Свайп по ряду влево/вправо — предыдущее/следующее оружие (в мирном режиме — сразу в бой)
+  let gunsSwipeX = null;
+  let gunsSwiped = false;
+  gunsEl.addEventListener('pointerdown', (e) => {
+    gunsSwipeX = e.clientX;
+    gunsSwiped = false;
+  });
+  gunsEl.addEventListener('pointermove', (e) => {
+    if (gunsSwipeX === null || !canPlay()) return;
+    const dx = e.clientX - gunsSwipeX;
+    if (Math.abs(dx) < 30) return;
+    gunsSwiped = true;
+    gunsSwipeX = e.clientX;
+    if (!heroWeapon.id) toggleWeapon();
+    else cycleWeapon(dx > 0 ? 1 : -1);
+  });
+  const gunsUp = () => {
+    gunsSwipeX = null;
+    setTimeout(() => (gunsSwiped = false), 0); // click после свайпа не выбирает оружие
+  };
+  gunsEl.addEventListener('pointerup', gunsUp);
+  gunsEl.addEventListener('pointercancel', gunsUp);
   let gunsShown = '';
   function updateGuns() {
     const ids = weaponSlotIds();
@@ -681,9 +665,8 @@ if (touchUI) {
       b.className = 'g' + (heroWeapon.id === id ? ' drawn' : '');
       b.appendChild(pixelIcon((ITEMS[id] || {}).icon || id));
       b.addEventListener('click', () => {
-        if (!canPlay()) return;
-        if (heroWeapon.id === id) holsterWeapon();
-        else drawWeapon(id);
+        if (gunsSwiped || !canPlay() || heroWeapon.id === id) return;
+        drawWeapon(id); // касание оружия — в бой с ним
       });
       gunsEl.appendChild(b);
     }
@@ -720,16 +703,10 @@ if (touchUI) {
   let clockShownTouch = '';
   function updateTouchPad() {
     const armed = !!heroWeapon.id;
-    const inCar = !!(drivingCar || pushingCar);
-    const shown = heroWeapon.id || heroEquip.weapons[heroEquip.active] || weaponSlotIds()[0] || null;
-    const state = armed + '|' + inCar + '|' + shown;
-    if (state !== padState) {
-      padState = state;
-      btnFire.style.display = armed ? '' : 'none';
-      btnExit.style.display = inCar ? '' : 'none';
-      btnWeapon.innerHTML = '';
-      btnWeapon.appendChild(pixelIcon(shown ? (ITEMS[shown] || {}).icon || shown : 'weaponSlot'));
-      btnWeapon.style.opacity = armed ? '1' : '0.7';
+    if (armed + '' !== padState) {
+      padState = armed + '';
+      btnMain.classList.toggle('fire', armed);
+      btnMain.innerHTML = armed ? crosshairSvg : swordSvg;
     }
     const st = Math.ceil(heroStats.hp) + '|' + Math.ceil(heroStats.elixir);
     if (st !== statsState) {
