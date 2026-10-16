@@ -1,7 +1,8 @@
 // src/demo/demo.js
 // ДЕМО-РЕЖИМ (самая простая версия, см. docs/mechanics/demo.md). Вместо большого мира — одна площадка:
 // дом и гараж героя с машиной, дорога, ряд всех персонажей сюжета (с каждым можно поговорить, E)
-// и стол со всеми предметами (E или клик мышью — взять, запас бесконечный). Платформа та же, что в игре:
+// стол со всеми предметами (E или клик мышью — взять, запас бесконечный) и подставка с приборами
+// (E — надеть или снять). Платформа та же, что в игре:
 // demo/index.html подключает те же файлы, кроме src/locations/* и src/world/world.js, forest.js, fence.js.
 // Подключается вместо них, перед src/engine/settings.js.
 
@@ -258,6 +259,46 @@ addInteractable({
     });
     // Мышью: навести на вещь (подсветится) и кликнуть
     addPickable({ mesh: model, canPick: () => !drivingCar && !insideBuilding(), pick: take });
+  });
+}
+
+// ---------- Приборы ----------
+// Подставка за столом предметов: все приборы из DEVICES (src/player/devices.js). E — надеть,
+// еще раз E — снять, чтобы заново проверить, как прибор меняет игру (браслет — панель сохранений)
+{
+  const standZ = 42;
+  const ids = Object.keys(DEVICES);
+  const step = 4;
+  const x0 = -((ids.length - 1) * step) / 2;
+  const standW = ids.length * step + 2;
+  const stand = boxWithEdges(standW, 0.9, 1.6, 0x4a5a6a);
+  stand.position.set(0, 0.45, standZ);
+  cityGroup.add(stand);
+  addObstacle({ x: 0, z: standZ, hx: standW / 2, hz: 0.8 });
+  mapObjects.push({ x: 0, z: standZ, hx: standW / 2, hz: 0.8, color: '#4a5a6a' });
+  demoLabel('ПРИБОРЫ — E, чтобы надеть или снять', 0, 3.4, standZ, { size: 1.2, color: '#8fe8ff' });
+
+  ids.forEach((id, i) => {
+    const d = DEVICES[id];
+    const x = x0 + i * step;
+    const mesh = new THREE.Group();
+    mesh.add(createItemModel(id, 0.9)); // объемный значок прибора (src/models/items.js)
+    mesh.position.set(x, 1.1, standZ);
+    cityGroup.add(mesh);
+    demoLabel(d.name, x, 2.1, standZ, { size: 0.85 });
+    const toggle = () => {
+      if (isWorn(id)) {
+        takeOffDevice(id);
+        showToast('Снято: ' + d.name);
+      } else wearDevice(id);
+    };
+    addInteractable({
+      priority: 2,
+      near: () => !drivingCar && !insideBuilding() && Math.hypot(playerWorldX - x, playerWorldZ - standZ) < 2.4,
+      prompt: () => (isWorn(id) ? 'E — снять: ' : 'E — надеть: ') + d.name,
+      act: toggle,
+    });
+    addPickable({ mesh, canPick: () => !drivingCar && !insideBuilding(), pick: toggle });
   });
 }
 

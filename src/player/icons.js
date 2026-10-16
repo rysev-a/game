@@ -23,6 +23,24 @@ const PIXEL_ART = {
       '.....dd.....',
     ],
   },
+  bracelet: {
+    // браслет возврата: темный обод, на нем светящийся голубой экран
+    palette: { d: '#2a2e38', g: '#5a6272', c: '#4ee6ff', C: '#c8f8ff' },
+    rows: [
+      '............',
+      '....gggg....',
+      '..gg....gg..',
+      '.g........g.',
+      '.g........g.',
+      'dg.cccccc.gd',
+      'dg.cCCCCc.gd',
+      'dg.cccccc.gd',
+      '.d........d.',
+      '..dd....dd..',
+      '....dddd....',
+      '............',
+    ],
+  },
   screwdriver: {
     palette: { s: '#c8ced6', h: '#3fa35b', H: '#6fd08a' },
     rows: [

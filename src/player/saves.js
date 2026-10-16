@@ -3,9 +3,10 @@
 // В слот записывается:
 //   • положение игрока (и поворот вида), за рулем ли он был;
 //   • машина игрока: где стоит, сколько в ней бензина, открыта ли дверь гаража;
-//   • инвентарь;
+//   • инвентарь и надетые приборы (браслет возврата);
 //   • погода: идет ли дождь, его силу;
 //   • игровое время и дата (time.gameMinutes — минут с начала истории, 18.09.2043; по ним идет и расписание дождей).
+// Сохраняться можно только с браслетом возврата на руке (hasDeviceTag('saves'), src/player/devices.js).
 // Остальное (прохожие, чужие машины, сцена у реки) при загрузке не восстанавливается — мир живет дальше.
 //
 //   saveToSlot(i), loadFromSlot(i), clearSave(i), getSave(i)
@@ -58,6 +59,7 @@ function captureGame() {
     player: { x: playerWorldX, z: playerWorldZ, rotation: worldRotation, heading: playerHeading, driving: drivingCar === car },
     car: { x: car.x, z: car.z, heading: car.heading, fuel: car.fuel, garageOpen: garage.open },
     inventory: [...inventory.items],
+    devices: [...heroDevices.worn],
     weather: { gameTime, rainOn, weather, rainManual, rainEndedAt },
     // Игровое время обязательно сохраняется: минуты от старта истории и то же в виде даты
     time: {
@@ -91,6 +93,8 @@ function applyGame(data) {
 
   // Инвентарь и вещи, лежащие в доме (взятые — исчезают, остальные на месте)
   inventory.items = data.inventory.filter((id) => ITEMS[id]);
+  // Приборы: возврат идет с памятью, поэтому надетое сейчас не снимается, а надетое тогда — надевается
+  for (const id of data.devices || []) if (DEVICES[id]) wearDevice(id, true);
   renderInventory();
   syncHomePickups();
 
@@ -117,6 +121,7 @@ function applyGame(data) {
 }
 
 function saveToSlot(i) {
+  if (!hasDeviceTag('saves')) return;
   saves[i] = captureGame();
   persistSaves();
   showToast('Сохранено: слот ' + (i + 1));
@@ -129,6 +134,7 @@ function clearSave(i) {
 
 function loadFromSlot(i) {
   const data = getSave(i);
+  if (!hasDeviceTag('saves')) return;
   if (!data || data.version !== SAVE_VERSION) {
     showToast('Это сохранение не подходит к текущей версии игры');
     return;
