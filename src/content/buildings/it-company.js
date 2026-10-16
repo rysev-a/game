@@ -11,6 +11,7 @@ const generatorAt = { x: 4, z: -(officeD / 2 + 2.2) }; // за зданием, �
 
 defineBuilding('it_company', {
   name: 'IT-компания',
+  desc: 'Небольшая компания, делает проекты на заказ. Здесь вы работаете. Вход по пропуску, на втором этаже — серверная.',
   size: { w: officeW, d: officeD + 5 },
   enterLabel: 'E — войти в IT-компанию',
   exitLabel: 'E — выйти на улицу',
@@ -21,6 +22,7 @@ defineBuilding('it_company', {
     const gen = createGenerator();
     gen.position.set(generatorAt.x, 0, generatorAt.z);
     gen.rotation.y = Math.PI; // панелью от здания, к проходу
+    gen.userData.hoverInfo = { kind: 'Устройство', name: 'Дизельный генератор', desc: 'Резервное питание для серверной. Работает на дизеле с заправки.' };
     group.add(gen);
     return {
       group,

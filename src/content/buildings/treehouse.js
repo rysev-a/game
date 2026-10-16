@@ -19,6 +19,7 @@ function sleepUntilMorning() {
 
 defineBuilding('treehouse', {
   name: 'Домик на дереве',
+  desc: 'Огромное старое дерево, в кроне — домик Веры, спрятанный в листве. Наверх — по веревочной лестнице из дупла.',
   size: { w: 20, d: 20 },
   enterLabel: 'E — подняться по веревочной лестнице',
   exitLabel: 'E — спуститься по веревочной лестнице',
@@ -113,6 +114,7 @@ const grandmaD = 8;
 
 defineBuilding('grandma_house', {
   name: 'Дом Анны Петровны',
+  desc: 'Дом бабушки Веры. Здесь всегда пахнет пирогами.',
   size: { w: grandmaW + 2, d: grandmaD + 4 },
   enterLabel: 'E — войти в дом Анны Петровны',
   exitLabel: 'E — выйти во двор',

@@ -58,6 +58,9 @@ function addEmergencyCar(kind, x, z, heading) {
   mesh.rotation.y = heading;
   cityGroup.add(mesh);
   const car = { mesh, x, z, heading, speed: 0, color: police ? 0x1b2a4a : 0xf1ede2, locked: true };
+  car.info = police
+    ? { kind: 'Машина', name: 'Полицейская машина', desc: 'Мигалки включены. Закрыта.' }
+    : { kind: 'Машина', name: 'Скорая помощь', desc: 'Приехала слишком поздно.' };
   cars.push(car);
   incident.cars.push(car);
 }
@@ -78,6 +81,7 @@ function addBody(x, z) {
   piece(0.55, 0.22, 0.9, 0, 0.11, 0.85); // ноги
   g.position.set(x, 0, z);
   cityGroup.add(g);
+  addHoverInfo(g, { kind: 'Улика', name: 'Тело под простыней', desc: 'Девушку нашли у моста. Полиция говорит — самоубийство.' });
   incident.props.push(g);
   const shape = { x, z, ux: 1, uz: 0, vx: 0, vz: 1, hu: 0.5, hv: 1.3 };
   obstacleShapes.push(shape); // игрок и машины тело не переедут

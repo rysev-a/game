@@ -100,6 +100,7 @@
     const shed = createHouse({ width: 5, depth: 4, wallHeight: 2.6, roofRise: 1.2, wallColor: 0x7a6a58, roofColor: 0x4a4a52 });
     shed.position.set(gx - 15, 0, houseZ + 26);
     cityGroup.add(shed);
+    addHoverInfo(shed, { kind: 'Здание', name: 'Сарай', desc: 'Старый сарай Анны Петровны: инструменты, банки и дрова.' });
     addObstacle({ x: gx - 15, z: houseZ + 26, hx: 2.5, hz: 2 });
     mapObjects.push({ x: gx - 15, z: houseZ + 26, hx: 2.5, hz: 2, color: '#7a6a58' });
   }

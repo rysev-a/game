@@ -1,9 +1,9 @@
 // src/models/library.js
 // Процедурное здание библиотеки в стиле игры: старое двухэтажное здание из светлого камня,
-// портик с колоннами и ступенями, треугольный фронтон, вывеска над входом.
+// портик с колоннами и ступенями, треугольный фронтон.
 //
 // Подключение:
-//   <script src="src/models/library.js"></script>   (после src/engine/buildings.js — нужен createSign)
+//   <script src="src/models/library.js"></script>
 // Использование:
 //   const lib = createLibrary({ width: 22, depth: 16 });
 //   scene.add(lib);   // фасад смотрит в +Z, центр основания (без портика) в (0, 0, 0)
@@ -22,8 +22,6 @@ function createLibrary(options = {}) {
       roofColor: 0x5c5c60,
       windowColor: 0x1d2b3a,
       doorColor: 0x5a3a22,
-      sign: 'БИБЛИОТЕКА',
-      signSub: 'информационный центр',
     },
     options,
   );
@@ -103,12 +101,6 @@ function createLibrary(options = {}) {
   part(2.4, 3.4, 0.14, o.doorColor, 0, 0.6 + 1.7, d / 2 + 0.05);
   part(0.06, 3.3, 0.16, 0x2a1a10, 0, 0.6 + 1.7, d / 2 + 0.07);
 
-  // Вывеска на антаблементе портика
-  if (o.sign) {
-    const sign = createSign(o.sign, { width: 8.8, height: 1.4, bg: '#2a3a5a', fg: '#f4e7c0', sub: o.signSub, font: 'serif' });
-    sign.position.set(0, h + 0.1, pz + pd / 2 + 0.3);
-    root.add(sign);
-  }
   root.userData.porch = { x: 0, z: pz + 0.6, columns: [-3.6, -1.2, 1.2, 3.6] };
   return root;
 }

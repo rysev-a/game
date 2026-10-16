@@ -1,13 +1,13 @@
 // src/models/shop.js
 // Процедурный low-poly магазин: плоская крыша, витрины, полосатый навес
-// и вывеска на крыше (текст рисуется на canvas).
+// (без вывесок: что это за здание, показывает панель справа при наведении мыши).
 //
 // Подключение:
 //   <script src="src/models/shop.js"></script>
 // Использование:
-//   const shop = createShop({ title: 'МАГАЗИН' });
+//   const shop = createShop();
 //   // торговый центр: createShop({ width: 56, depth: 26, height: 9.5, doorWidth: 8,
-//   //   signWidth: 22, signHeight: 5.5, title: 'ТОРГОВЫЙ ЦЕНТР' })  — с 7 м высоты видны 2 этажа
+//   //   })  — с 7 м высоты видны 2 этажа
 //   scene.add(shop);   // фасад с входом смотрит в +Z, центр основания в (0, 0, 0)
 //
 // Зависимость: глобальный THREE (three.js r128+).
@@ -22,16 +22,12 @@ function createShop(options = {}) {
       width: 28,
       depth: 12,
       height: 5.5,
-      title: 'МАГАЗИН',
       doorWidth: 4.2,
-      signWidth: 12,
-      signHeight: 3,
       wallColor: 0xe6dfcc,
       roofColor: 0x8c8c8c,
       glassColor: 0x2c5a78,
       doorColor: 0x1d3446,
       awningColors: [0xc43a3a, 0xf1ede2],
-      signColor: 0xb02a2a,
       edgeColor: 0x111111,
     },
     options,
@@ -94,47 +90,6 @@ function createShop(options = {}) {
     stripe.position.set(-awningW / 2 + stripeW * (i + 0.5), 3.5, front + 1.1);
     root.add(stripe);
   }
-
-  // Вывеска на крыше, лицом к улице (+Z)
-  const cv = document.createElement('canvas');
-  cv.width = 512;
-  cv.height = Math.round(512 * (o.signHeight / o.signWidth));
-  const ctx = cv.getContext('2d');
-  ctx.fillStyle = '#' + o.signColor.toString(16).padStart(6, '0');
-  ctx.fillRect(0, 0, cv.width, cv.height);
-  ctx.strokeStyle = '#f1ede2';
-  ctx.lineWidth = 6;
-  ctx.strokeRect(6, 6, cv.width - 12, cv.height - 12);
-  ctx.fillStyle = '#f1ede2';
-  let fontSize = 76;
-  ctx.font = 'bold ' + fontSize + 'px sans-serif';
-  while (ctx.measureText(o.title).width > cv.width - 50 && fontSize > 20) {
-    fontSize -= 4;
-    ctx.font = 'bold ' + fontSize + 'px sans-serif';
-  }
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(o.title, cv.width / 2, cv.height / 2 + 4);
-  const tex = new THREE.CanvasTexture(cv);
-
-  const signW = o.signWidth;
-  const signH = o.signHeight;
-  const sign = part(signW, signH, 0.4, 0x222222);
-  sign.position.set(0, h + 0.35 + signH / 2 + 0.4, front - 1);
-  root.add(sign);
-  const face = new THREE.Mesh(
-    new THREE.PlaneGeometry(signW - 0.2, signH - 0.2),
-    new LitMaterial({ map: tex }),
-  );
-  face.position.set(0, sign.position.y, front - 1 + 0.22);
-  root.add(face);
-
-  // Две стойки под вывеской
-  [-1, 1].forEach((side) => {
-    const post = part(0.3, 0.8, 0.3, 0x333333);
-    post.position.set(side * (signW / 2 - 1), h + 0.35 + 0.4, front - 1);
-    root.add(post);
-  });
 
   return root;
 }

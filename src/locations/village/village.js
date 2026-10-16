@@ -194,6 +194,12 @@ for (const side of [-1, 1]) {
     house.position.set(houseX, 0, houseZ);
     if (side > 0) house.rotation.y = Math.PI;
     cityGroup.add(house);
+    addHoverInfo(
+      house,
+      mine
+        ? { kind: 'Здание', name: 'Ваш дом', desc: 'Двухэтажный дом с гаражом. Здесь вы выросли.' }
+        : { kind: 'Здание', name: 'Дом в поселке', desc: 'Двухэтажный дом с участком. Соседи знают друг о друге всё.' },
+    );
     addObstacle({ x: houseX, z: houseZ, hx: w / 2, hz: d / 2 });
     mapObjects.push({ x: houseX, z: houseZ, hx: w / 2, hz: d / 2, color: mine ? '#d9a066' : '#8a8a8a' });
     villageHouses.push({ x: houseX, z: houseZ, side, mine, w, d });

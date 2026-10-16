@@ -9,6 +9,7 @@ const libraryD = 16;
 
 defineBuilding('library', {
   name: 'Библиотека',
+  desc: 'Старое здание из светлого камня. Абонемент, читальный зал, информационный центр с быстрой сетью, в подвале — архив газет.',
   size: { w: libraryW, d: libraryD + 4 },
   enterLabel: 'E — войти в библиотеку',
   exitLabel: 'E — выйти из библиотеки',
