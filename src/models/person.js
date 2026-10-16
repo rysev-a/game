@@ -14,6 +14,7 @@
 //   man.setPush('rear');            // толкает сзади: корпус вперед, руки упираются в багажник
 //   man.setPush('side');            // водитель толкает сбоку у открытой двери, одной рукой рулит
 //   man.setPush(false);             // выпрямиться. В позах толкания updateWalk шагает только ногами
+//   man.attach('wristL', mesh);     // надеть вещь на левое запястье (браслет), качается с рукой
 //
 // Прохожие: gender 'female' добавляет платье и длинные волосы,
 // hairColor включает прическу (без него человечек лысый, как игрок):
@@ -413,6 +414,16 @@ function createWalkingMan(options = {}) {
     armL.rotation.x = armR.rotation.x = on ? 0.9 : 0;
     body.rotation.z = 0;
     body.rotation.y = 0;
+  };
+
+  // Надетые вещи (браслет на запястье и т.п.): attach('wristL' | 'wristR', obj) — вещь качается вместе с рукой.
+  // Запястье — чуть выше кисти (кисть на y = −0,68 в группе руки). Снять: obj.parent.remove(obj)
+  const WEAR_SLOTS = { wristL: [armL, -0.55], wristR: [armR, -0.55] };
+  root.attach = function (slot, obj) {
+    const [arm, y] = WEAR_SLOTS[slot];
+    obj.position.set(0, y, 0);
+    arm.add(obj);
+    return obj;
   };
 
   root.setPush(false); // применить сутулость (stoop)

@@ -4,6 +4,8 @@
 // по заполненному — загрузить. По клику на инвентарь (или клавише I) панель раскрывается: сетка 8 × 5
 // и под ней все сохранения — две строки по 8 слотов (быстрые слоты — это первые четыре из них).
 // Все значки пиксельные (src/player/icons.js). В начале игры в инвентаре гаечный ключ и отвертка.
+// Сохранения появляются только с браслетом возврата на руке (тег 'saves', src/player/devices.js):
+// до него ни быстрых слотов, ни панели сохранений нет.
 //
 // Сохранения (лежат в src/player/saves.js):
 //   значок «дискета»  — слоты начинают пульсировать; клик по любому записывает в него игру
@@ -77,6 +79,9 @@ function renderInventory() {
     setInventoryOpen(!inventoryOpen);
   });
 
+  const savesOn = hasDeviceTag('saves'); // без браслета сохранений нет
+  if (!savesOn) savesMode = null;
+
   if (!inventoryOpen) {
     // Свернутый: сверху ряд из трех ячеек и стрелка (клик по любой части раскрывает панель),
     // под ним — четыре быстрых слота сохранения
@@ -85,6 +90,7 @@ function renderInventory() {
     top.appendChild(grid);
     top.appendChild(chevron);
     inventoryEl.appendChild(top);
+    if (!savesOn) return;
 
     const quick = document.createElement('div');
     quick.className = 'invGrid quick';
@@ -106,6 +112,7 @@ function renderInventory() {
 
   inventoryEl.appendChild(chevron);
   inventoryEl.appendChild(grid);
+  if (!savesOn) return;
 
   // Сохранения: значки «сохранить» и «очистить», под ними 2 строки по 8 слотов
   const tools = document.createElement('div');

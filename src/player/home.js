@@ -166,6 +166,8 @@ function createHomeInterior() {
       part(0.6, 0.5, 0.6, 0x3a5a8a, -6.7, 0.25, -3.0); // кресло
       pickup('notebook', -8.0, -3.0, 0.85);
       furniture(3.0, 2.0, 0.5, 0x5a3a2a, -3.6, -5.7, '#5a3a2a'); // книжный шкаф у северной стены
+      // Браслет возврата на том же столе. Пока голубятни (3.04) нет, он лежит дома; взять — надеть на руку
+      pickup('bracelet', -8.0, -4.1, 0.85);
     }
 
     return { group, solids, fadeBoxes: fade, mapShapes, pickups };
@@ -203,8 +205,12 @@ addInteriorStairs(homeInterior, homeStairs);
 
 // Вещи: подсвечены вращением и покачиванием, E рядом — взять в инвентарь. Можно и мышью:
 // навести (вещь подсветится) и кликнуть — на том же этаже дома (src/engine/interact.js)
+// Прибор (DEVICES) не кладется в инвентарь, а надевается (src/player/devices.js)
+const pickupName = (id) => (DEVICES[id] || ITEMS[id]).name;
+const pickupTaken = (id) => (DEVICES[id] ? isWorn(id) : hasItem(id));
+
 function takeHomePickup(p) {
-  if (!addItem(p.id)) return;
+  if (DEVICES[p.id] ? !wearDevice(p.id) : !addItem(p.id)) return;
   p.mesh.visible = false;
   removeInteractable(p.interactable);
   p.interactable = null;
@@ -220,7 +226,7 @@ function makePickupInteractable(p) {
         Math.hypot(playerWorldX - p.x, playerWorldZ - homeFloorZ[p.floor] - p.z) < 2.4
       );
     },
-    prompt: () => 'E — взять: ' + ITEMS[p.id].name,
+    prompt: () => (DEVICES[p.id] ? 'E — надеть: ' : 'E — взять: ') + pickupName(p.id),
     act: () => takeHomePickup(p),
   });
 }
@@ -233,16 +239,16 @@ for (const p of home.floors.flatMap((f) => f.pickups)) {
     mesh: p.mesh,
     canPick: () => {
       const ci = currentInterior();
-      return !!ci && ci.def === homeInterior && ci.floor === p.floor && !hasItem(p.id);
+      return !!ci && ci.def === homeInterior && ci.floor === p.floor && !pickupTaken(p.id);
     },
     pick: () => takeHomePickup(p),
   });
 }
 
-// После загрузки сохранения: взятые вещи (они есть в инвентаре) исчезают, остальные лежат на месте
+// После загрузки сохранения: взятые вещи (они есть в инвентаре или надеты) исчезают, остальные лежат на месте
 function syncHomePickups() {
   for (const p of homePickups) {
-    const taken = hasItem(p.id);
+    const taken = pickupTaken(p.id);
     p.mesh.visible = !taken;
     if (taken && p.interactable) {
       removeInteractable(p.interactable);
