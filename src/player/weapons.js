@@ -19,7 +19,6 @@ defineWeapon('pulse_laser', {
   fireRate: 4, // щелчок — обычный выстрел; между выстрелами — 0,25 с
   range: 50,
   speed: 2.4, // юнитов за кадр
-  heat: null, // не перегревается
   charge: { time: 1.2, min: 0, damage: [12, 90], push: [0.1, 0.7], stagger: [15, 70], scale: [0.8, 2.4], length: [1, 4], elixir: [0.002, 0.02] },
   aimAssist: 0.22,
   // Сверхкороткая вспышка испаряет поверхность: микровзрыв и ударная волна — цель пошатывается и отлетает
@@ -64,7 +63,6 @@ defineWeapon('gauss_cannon', {
   fireRate: 0.8,
   range: 70,
   speed: 7,
-  heat: { perShot: 0.55, coolPerSec: 0.3, delay: 0.6, resumeBelow: 0.3 },
   aimAssist: 0.15,
   color: 0xb8c8ff,
   push: 0.1,
@@ -104,7 +102,6 @@ defineWeapon('plasma_flamer', {
   type: 'plasma',
   fireRate: 15,
   range: 12,
-  heat: { perShot: 0.022, coolPerSec: 0.35, delay: 0.4, resumeBelow: 0.35 },
   aimAssist: 0.25,
   color: 0xff6a2a,
   effects: { melt: 0.04, burn: { frames: 150, dps: 6 } },
@@ -148,7 +145,6 @@ defineWeapon('cryo_rifle', {
   fireRate: 1.6,
   range: 40,
   speed: 1.3,
-  heat: { perShot: 0.3, coolPerSec: 0.4, delay: 0.5, resumeBelow: 0.35 },
   aimAssist: 0.2,
   color: 0x9ff3ff,
   canister: { freezeR: 2.2, freeze: 240 },
@@ -175,18 +171,18 @@ defineWeapon('cryo_rifle', {
 });
 
 // Дуговой разрядник — против толпы: молния бьет в цель у курсора и перескакивает на соседей (до четырех,
-// каждый следующий получает меньше). Парализует на секунду; по электронике (роботы) — двойной урон.
+// каждый следующий получает меньше). Пока кнопка зажата — дуга горит непрерывно (10 разрядов в секунду).
+// Парализует; по электронике (роботы) — двойной урон.
 defineWeapon('arc_discharger', {
   name: 'Дуговой разрядник',
-  desc: 'Молния перескакивает между целями (до четырех), парализует их. По роботам и электронике бьет вдвое сильнее.',
+  desc: 'Пока держите кнопку — непрерывная дуга: перескакивает между целями (до четырех), парализует. По роботам — вдвое сильнее.',
   kind: 'arc',
   hold: 'rifle',
-  elixir: 0.0015, // доля шкалы эликсира за выстрел
-  damage: 10,
+  elixir: 0.0005, // доля шкалы эликсира за разряд — 0,5 в секунду
+  damage: 5,
   type: 'electric',
-  fireRate: 5,
+  fireRate: 10, // разряды идут чаще, чем гаснет молния, — дуга горит непрерывно
   range: 22,
-  heat: { perShot: 0.11, coolPerSec: 0.4, delay: 0.4, resumeBelow: 0.4 },
   aimAssist: 0.5,
   color: 0xc8a8ff,
   effects: { shock: 60 },
@@ -226,7 +222,6 @@ defineWeapon('tachyon_pistol', {
   type: 'tachyon',
   fireRate: 2.5,
   range: 40,
-  heat: { perShot: 0.2, coolPerSec: 0.45, delay: 0.35, resumeBelow: 0.4 },
   aimAssist: 0.1,
   color: 0xff4dd2,
   tachyon: { pastFrames: 30, echo: 180 },
@@ -253,10 +248,11 @@ defineWeapon('tachyon_pistol', {
 });
 
 // Плазмомет — как в Unreal: очередь светящихся зеленых шаров плазмы. Шары летят медленнее лазерных
-// импульсов (их видно), на попадании — зеленый микровзрыв. Греется, но не сильно
+// импульсов (их видно), на попадании — зеленый микровзрыв. Зажать — бесконечный зеленый луч, как у
+// Link Gun в Unreal: бьет первую цель на пути, пока держите (и пока есть эликсир)
 defineWeapon('plasma_gun', {
   name: 'Плазмомет',
-  desc: 'Очередь зеленых шаров плазмы, как в Unreal. Шары видно в полете, при попадании — зеленый микровзрыв.',
+  desc: 'Как в Unreal: щелчок — зеленый шар плазмы, зажать — бесконечный зеленый луч.',
   kind: 'pulse',
   hold: 'rifle',
   elixir: 0.0012, // доля шкалы эликсира за выстрел
@@ -265,10 +261,10 @@ defineWeapon('plasma_gun', {
   fireRate: 7,
   range: 40,
   speed: 1.1,
-  heat: { perShot: 0.06, coolPerSec: 0.4, delay: 0.3, resumeBelow: 0.4 },
   aimAssist: 0.22,
   color: 0x5cff6a,
   bolt: 'orb',
+  beam: { delay: 0.25, range: 28, dps: 40, every: 6, elixir: 0.008 },
   hitFx: 'microburst',
   push: 0.05,
   sound: 'plasma',
@@ -294,8 +290,7 @@ defineWeapon('plasma_gun', {
 });
 
 // Пулемет — шестиствольный, как у Терминатора. Зажал — стволы раскручиваются полсекунды, потом сплошная
-// очередь трассеров (20 в секунду). Отдельная пуля слабая, но их много. Ствол греется: секунд пять
-// непрерывного огня — перегрев
+// очередь трассеров (20 в секунду). Отдельная пуля слабая, но их много
 defineWeapon('minigun', {
   name: 'Пулемет',
   desc: 'Шестиствольный, как у Терминатора. Зажмите — стволы раскрутятся, и пойдет сплошная очередь трассеров.',
@@ -307,7 +302,6 @@ defineWeapon('minigun', {
   range: 45,
   speed: 3,
   spinUp: 0.5,
-  heat: { perShot: 0.01, coolPerSec: 0.3, delay: 0.5, resumeBelow: 0.3 },
   aimAssist: 0.25,
   color: 0xffc040,
   bolt: 'tracer',
