@@ -1,7 +1,7 @@
 // src/models/weapons.js
 // Модели для боя: оружие в руке героя и манекены для тира.
 //
-//   const gun = createPulseLaserModel();   // импульсный лазер-винтовка: ствол смотрит в -Z, приклад в начале координат.
+//   const gun = createPulseLaserModel();   // импульсный лазер — большая винтовка: ствол в -Z, приклад в начале координат.
 //                                          // gun.userData.glow — светящиеся детали: их цвет меняется от нагрева
 //   player.attach('rifle', gun);           // к груди, приклад у правого плеча; руки — player.setAim('rifle')
 //   createGaussCannonModel(), createPlasmaFlamerModel(), createCryoRifleModel(), createArcDischargerModel() —
@@ -23,34 +23,50 @@ function weaponPart(g, w, h, d, color, x, y, z, { edges = true, glow = false } =
   return m;
 }
 
-// Импульсный лазер — винтовка, держат двумя руками. Начало координат — торец приклада (у плеча),
-// ствол смотрит в -Z, длина ~1,55. Пистолетная рукоять под правую кисть (z ≈ −0,44), цевье под левую
-// (z ≈ −0,7) — туда тянутся руки в позе setAim('rifle') (src/models/person.js). На стволе четыре голубые
-// катушки и излучатель, сбоку энергоячейка, сверху прицел. Светящиеся материалы — в userData.glow
-// (их цвет меняется от нагрева), дуло — userData.muzzle
+// Импульсный лазер — большая винтовка длиной ~2,3, держат как автомат. Начало координат — торец приклада
+// (у плеча), ствол смотрит в -Z. Пистолетная рукоять со спуском под правую кисть (z ≈ −0,45), снизу у
+// цевья — упор под левую (z ≈ −0,7): туда тянутся руки в позе setAim('rifle') (src/models/person.js).
+// Сверху — накопитель (светится при заряде), прицел; на длинном стволе в кожухе шесть голубых катушек и
+// широкий излучатель. Светящиеся материалы — в userData.glow, дуло — userData.muzzle, шар заряда у дула —
+// userData.chargeOrb (растет, пока зажата кнопка)
 function createPulseLaserModel() {
   const g = new THREE.Group();
   const body = 0x2d3340;
   const dark = 0x1f232c;
   const metal = 0x8a96a8;
   const blue = 0x4ec8ff;
-  weaponPart(g, 0.09, 0.15, 0.32, dark, 0, -0.03, -0.14); // приклад
-  weaponPart(g, 0.13, 0.17, 0.5, body, 0, 0, -0.5); // ствольная коробка
-  const grip = weaponPart(g, 0.08, 0.18, 0.1, dark, 0, -0.15, -0.44); // рукоять под правую руку
+  weaponPart(g, 0.11, 0.22, 0.38, dark, 0, -0.04, -0.17); // приклад
+  weaponPart(g, 0.12, 0.08, 0.06, 0x3a3f4a, 0, -0.04, -0.01); // затыльник (упирается в плечо)
+  weaponPart(g, 0.17, 0.24, 0.66, body, 0, 0, -0.62); // ствольная коробка
+  const grip = weaponPart(g, 0.09, 0.22, 0.11, dark, 0, -0.2, -0.45); // рукоять под правую руку
   grip.rotation.x = 0.25;
-  weaponPart(g, 0.11, 0.12, 0.4, metal, 0, -0.01, -0.92); // цевье
-  weaponPart(g, 0.07, 0.11, 0.08, dark, 0, -0.11, -0.72); // передняя рукоять под левую руку
-  weaponPart(g, 0.07, 0.07, 0.26, dark, 0, 0.13, -0.5); // прицел
-  weaponPart(g, 0.07, 0.07, 0.44, metal, 0, 0.01, -1.3); // ствол
+  weaponPart(g, 0.02, 0.07, 0.04, metal, 0, -0.14, -0.53); // спуск
+  weaponPart(g, 0.08, 0.14, 0.09, dark, 0, -0.18, -0.7); // упор под левую руку
+  weaponPart(g, 0.15, 0.16, 0.42, metal, 0, -0.01, -1.1); // цевье
+  weaponPart(g, 0.08, 0.08, 0.3, dark, 0, 0.17, -0.5); // прицел
+  weaponPart(g, 0.14, 0.1, 0.4, dark, 0, 0.17, -0.85); // накопитель
+  weaponPart(g, 0.12, 0.12, 0.85, 0x3a3f4a, 0, 0.01, -1.72); // кожух ствола
+  weaponPart(g, 0.07, 0.07, 0.25, metal, 0, 0.01, -2.2); // ствол
+  weaponPart(g, 0.18, 0.18, 0.08, metal, 0, 0.01, -2.33); // раструб излучателя
   const glow = [];
-  glow.push(weaponPart(g, 0.06, 0.06, 0.02, blue, 0, 0.13, -0.635, { glow: true }).material); // линза прицела
-  glow.push(weaponPart(g, 0.03, 0.07, 0.32, blue, 0.075, 0, -0.5, { glow: true }).material); // энергоячейка
-  for (let i = 0; i < 4; i++) {
-    glow.push(weaponPart(g, 0.11, 0.11, 0.03, blue, 0, 0.01, -1.14 - i * 0.08, { glow: true }).material);
+  glow.push(weaponPart(g, 0.07, 0.07, 0.02, blue, 0, 0.17, -0.655, { glow: true }).material); // линза прицела
+  glow.push(weaponPart(g, 0.1, 0.05, 0.34, blue, 0, 0.23, -0.85, { glow: true }).material); // окно накопителя
+  glow.push(weaponPart(g, 0.03, 0.1, 0.44, blue, 0.09, 0, -0.66, { glow: true }).material); // энергоячейка
+  for (let i = 0; i < 6; i++) {
+    glow.push(weaponPart(g, 0.15, 0.15, 0.035, blue, 0, 0.01, -1.38 - i * 0.12, { glow: true }).material);
   }
-  glow.push(weaponPart(g, 0.1, 0.1, 0.04, 0xd8f6ff, 0, 0.01, -1.53, { glow: true }).material); // излучатель
+  glow.push(weaponPart(g, 0.14, 0.14, 0.03, 0xd8f6ff, 0, 0.01, -2.38, { glow: true }).material); // излучатель
   g.userData.glow = glow;
-  g.userData.muzzle = new THREE.Vector3(0, 0.01, -1.56);
+  g.userData.muzzle = new THREE.Vector3(0, 0.01, -2.4);
+  // Шар заряда у дула: невидим, пока не начали копить
+  const orb = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 12, 8),
+    new THREE.MeshBasicMaterial({ color: 0xd8f6ff, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }),
+  );
+  orb.position.copy(g.userData.muzzle);
+  orb.visible = false;
+  g.add(orb);
+  g.userData.chargeOrb = orb;
   return g;
 }
 

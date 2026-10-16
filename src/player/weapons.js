@@ -3,21 +3,23 @@
 // Новое оружие — новая запись defineWeapon: значок, модель и цифры. В ДЕМО оно появится само
 // (на столе предметов и в тире).
 
-// Импульсный лазер — первое оружие, винтовка: держат двумя руками. Стреляет голубыми импульсами —
-// каждый летит как электромагнитная волна (две синусоиды вокруг светящейся оси, длина ~5). Патронов нет:
-// ограничение — нагрев. Шесть-семь выстрелов подряд, дальше перегрев и пауза, пока ствол не остынет.
-// Урон энергией: обычным целям — полный, бронированным — четверть (броню надо сначала снять прибором).
+// Импульсный лазер — первое оружие. Большая винтовка (~2,3), держат как автомат: приклад в плече, правая
+// рука на спуске, левая держит ствол. Стреляет с накоплением: зажал кнопку — лазер набирает мощность
+// (катушки разгораются, у дула растет шар, гул поднимается), отпустил — выстрел. Чем дольше держал, тем
+// сильнее: от легкого импульса до удара, который сбивает манекен с ног. Полный заряд — за 1,2 секунды.
+// Не перегревается никогда. Урон энергией: бронированным — четверть (броню надо сначала снять прибором).
 defineWeapon('pulse_laser', {
   name: 'Импульсный лазер',
-  desc: 'Винтовка. Сверхкороткие голубые импульсы-волны: микровзрыв на поверхности и ударная волна — цель шатается. Перегревается.',
+  desc: 'Большая винтовка. Зажмите — набирает мощность, отпустите — голубая волна с микровзрывом и ударной волной. Не перегревается.',
   kind: 'pulse',
   hold: 'rifle',
   damage: 12,
   type: 'energy',
-  fireRate: 5, // выстрелов в секунду при зажатой кнопке
-  range: 45,
-  speed: 2.2, // юнитов за кадр — заряд долетает до манекена в тире за десяток кадров
-  heat: { perShot: 0.15, coolPerSec: 0.45, delay: 0.35, resumeBelow: 0.4 },
+  fireRate: 2.5, // после выстрела — пауза 0,4 с, и можно копить снова
+  range: 50,
+  speed: 2.4, // юнитов за кадр
+  heat: null, // не перегревается
+  charge: { time: 1.2, min: 0.2, damage: [12, 90], push: [0.1, 0.7], stagger: [15, 70], scale: [0.8, 2.4] },
   aimAssist: 0.22,
   // Сверхкороткая вспышка испаряет поверхность: микровзрыв и ударная волна — цель пошатывается и отлетает
   effects: { stagger: 20 },
@@ -26,7 +28,7 @@ defineWeapon('pulse_laser', {
   color: 0x4ec8ff,
   bolt: 'wave',
   wave: { length: 5, amplitude: 0.34, wavelength: 1 },
-  muzzle: { forward: 1.6, right: 0.14, up: 1.37 }, // дуло винтовки у груди (src/models/person.js, RIFLE_AT)
+  muzzle: { forward: 2.42, right: 0.24, up: 1.45 }, // дуло винтовки (приклад — src/models/person.js, RIFLE_AT)
   model: () => createPulseLaserModel(),
   iconArt: {
     // вид сбоку: приклад слева, графитовый корпус с голубой ячейкой, длинный ствол с излучателем вправо
@@ -66,7 +68,7 @@ defineWeapon('gauss_cannon', {
   color: 0xb8c8ff,
   push: 0.1,
   rail: { pull: 4, pullForce: 0.45, collapseAfter: 16 },
-  muzzle: { forward: 1.92, right: 0.14, up: 1.37 },
+  muzzle: { forward: 1.92, right: 0.24, up: 1.45 },
   sound: null, // свой звук — в виде 'rail'
   model: () => createGaussCannonModel(),
   iconArt: {
@@ -110,7 +112,7 @@ defineWeapon('plasma_flamer', {
   },
   noFlash: true,
   sound: null,
-  muzzle: { forward: 1.32, right: 0.14, up: 1.39 },
+  muzzle: { forward: 1.32, right: 0.24, up: 1.47 },
   model: () => createPlasmaFlamerModel(),
   iconArt: {
     palette: { d: '#4a3a32', b: '#2a2420', m: '#8a8278', o: '#ff6a2a', y: '#ffe08a' },
@@ -149,7 +151,7 @@ defineWeapon('cryo_rifle', {
   color: 0x9ff3ff,
   canister: { freezeR: 2.2, freeze: 240 },
   sound: null,
-  muzzle: { forward: 1.27, right: 0.14, up: 1.37 },
+  muzzle: { forward: 1.27, right: 0.24, up: 1.45 },
   model: () => createCryoRifleModel(),
   iconArt: {
     palette: { w: '#dfe6ea', t: '#2a8a9a', b: '#3a4a52', c: '#9ff3ff', g: '#b8c4ca' },
@@ -188,7 +190,7 @@ defineWeapon('arc_discharger', {
   arc: { chains: 4, jump: 8, falloff: 0.8, seek: 3.5 },
   noFlash: true,
   sound: null,
-  muzzle: { forward: 1.34, right: 0.14, up: 1.38 },
+  muzzle: { forward: 1.34, right: 0.24, up: 1.46 },
   model: () => createArcDischargerModel(),
   iconArt: {
     palette: { d: '#2a2a34', b: '#1f232c', v: '#c8a8ff', m: '#9a9aa8', w: '#e8dcff' },
