@@ -269,8 +269,9 @@ addInteractable({
 }
 
 // ---------- Приборы ----------
-// Подставка за столом предметов: все приборы из DEVICES (src/player/devices.js). E — надеть,
-// еще раз E — снять, чтобы заново проверить, как прибор меняет игру (браслет — панель сохранений)
+// Подставка за столом предметов: все приборы из DEVICES (src/player/devices.js). E — надеть: прибор
+// исчезает с подставки и оказывается на герое. Еще раз E у пустого места — снять и положить обратно,
+// чтобы заново проверить, как прибор меняет игру (браслет — панель сохранений)
 {
   const standZ = 42;
   const ids = Object.keys(DEVICES);
@@ -282,8 +283,9 @@ addInteractable({
   cityGroup.add(stand);
   addObstacle({ x: 0, z: standZ, hx: standW / 2, hz: 0.8 });
   mapObjects.push({ x: 0, z: standZ, hx: standW / 2, hz: 0.8, color: '#4a5a6a' });
-  demoLabel('ПРИБОРЫ — E, чтобы надеть или снять', 0, 3.4, standZ, { size: 1.2, color: '#8fe8ff' });
+  demoLabel('ПРИБОРЫ — E, чтобы надеть', 0, 3.4, standZ, { size: 1.2, color: '#8fe8ff' });
 
+  const onStand = []; // { id, mesh, label }
   ids.forEach((id, i) => {
     const d = DEVICES[id];
     const x = x0 + i * step;
@@ -291,7 +293,8 @@ addInteractable({
     mesh.add(createItemModel(id, 0.9)); // объемный значок прибора (src/models/items.js)
     mesh.position.set(x, 1.1, standZ);
     cityGroup.add(mesh);
-    demoLabel(d.name, x, 2.1, standZ, { size: 0.85 });
+    const label = demoLabel(d.name, x, 2.1, standZ, { size: 0.85 });
+    onStand.push({ id, mesh, label });
     const toggle = () => {
       if (isWorn(id)) {
         takeOffDevice(id);
@@ -301,11 +304,15 @@ addInteractable({
     addInteractable({
       priority: 2,
       near: () => !drivingCar && !insideBuilding() && Math.hypot(playerWorldX - x, playerWorldZ - standZ) < 2.4,
-      prompt: () => (isWorn(id) ? 'E — снять: ' : 'E — надеть: ') + d.name,
+      prompt: () => (isWorn(id) ? 'E — снять и положить обратно: ' : 'E — надеть: ') + d.name,
       act: toggle,
     });
-    addPickable({ mesh, canPick: () => !drivingCar && !insideBuilding(), pick: toggle });
+    addPickable({ mesh, canPick: () => !drivingCar && !insideBuilding() && !isWorn(id), pick: toggle });
   });
+  // Каждый кадр, пока подставка на экране: надетого прибора на ней нет
+  stand.onBeforeRender = () => {
+    for (const t of onStand) t.mesh.visible = t.label.visible = !isWorn(t.id);
+  };
 }
 
 // ---------- Здания ----------
