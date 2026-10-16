@@ -9,6 +9,7 @@
 //             'plasma' — зеленый сгусток плазмы (светится, по площади area);
 //       color — свой цвет пули, плевка (и его лужи) или плазмы
 //   zapHero(from, damage)  — разряд молнией: мгновенно, от точки from { x, y, z } до героя
+//   beamHero(from, damage, color) — лазерный луч: мгновенно, прямой светящийся луч от from до героя
 //   heroIsTarget()         — можно ли сейчас бить героя (не за рулем, не в здании, не лежит). Бронемашина
 //                            (БТР, car.kind.armored) — тоже цель: попадания роботов бьют по ней (damageVehicle,
 //                            src/world/vehicles.js), биосущества броню не берут
@@ -162,7 +163,7 @@ function spawnBlast(x, z, r, color) {
   const m = new THREE.Mesh(shotGeo.puff, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85 }));
   m.position.set(x, 0.5, z);
   cityGroup.add(m);
-  enemyFx.push({ m, life: 18, max: 18, grow: r * 4.5 });
+  enemyFx.push({ m, life: 18, max: 18, grow: r * 4.5, shared: true });
 }
 
 // Горящая лужа: светится, жжет героя, пока он в ней стоит
@@ -199,6 +200,24 @@ function zapHero(from, damage) {
   }
   if (typeof playWeaponSound === 'function') playWeaponSound('arc');
   return hitHero({ damage, type: 'electric', x: from.x, z: from.z, robot: true });
+}
+
+// Лазер: прямой светящийся луч от точки до героя (тонкий брусок), гаснет за несколько кадров
+const beamGeo = new THREE.BoxGeometry(1, 1, 1);
+function beamHero(from, damage, color = 0xff4a5a) {
+  const tx = playerWorldX + rand(-0.15, 0.15);
+  const tz = playerWorldZ + rand(-0.15, 0.15);
+  const len = Math.hypot(tx - from.x, 1.15 - from.y, tz - from.z) || 0.01;
+  for (const [c, w] of [[color, 0.09], [0xffffff, 0.035]]) {
+    const m = new THREE.Mesh(beamGeo, new THREE.MeshBasicMaterial({ color: c, transparent: true }));
+    m.scale.set(w, w, len);
+    m.position.set((from.x + tx) / 2, (from.y + 1.15) / 2, (from.z + tz) / 2);
+    m.lookAt(tx, 1.15, tz);
+    cityGroup.add(m);
+    enemyFx.push({ m, life: 9, max: 9, shared: true });
+  }
+  if (typeof playWeaponSound === 'function') playWeaponSound('pulse');
+  return hitHero({ damage, type: 'energy', x: from.x, z: from.z });
 }
 
 function updateEnemyAttacks() {
@@ -250,6 +269,7 @@ function updateEnemyAttacks() {
     if (f.life <= 0) {
       cityGroup.remove(f.m);
       f.m.material.dispose();
+      if (!f.shared) f.m.geometry.dispose();
       enemyFx.splice(i, 1);
     }
   }
