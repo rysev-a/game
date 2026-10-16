@@ -30,12 +30,18 @@ const WEAPONS = {};
 //   heat: { perShot, coolPerSec, delay, resumeBelow } — нагрев: перегрелось (1) — не стреляет,
 //         пока не остынет ниже resumeBelow; остывает через delay секунд после выстрела
 //   aimAssist — довод при стрельбе по взгляду (радианы), color — цвет заряда
+//   hold — как держат: 'hand' (пистолет, одна вытянутая рука) | 'rifle' (винтовка двумя руками)
+//   muzzle: { forward, right, up } — где дуло относительно героя (откуда вылетает заряд)
+//   bolt — как выглядит заряд: 'pulse' (короткий светящийся брусок) | 'wave' (электромагнитная волна:
+//          две синусоиды — вертикальная и горизонтальная — вокруг светящейся оси; wave: { length,
+//          amplitude, wavelength })
 //   model() — модель в руке (src/models/weapons.js), sound — набор звуков (см. playWeaponSound)
 function defineWeapon(id, def) {
   const w = Object.assign(
     {
       id, kind: 'pulse', icon: id, damage: 10, type: 'energy', fireRate: 4, range: 40, speed: 2,
-      heat: null, aimAssist: 0.2, color: 0xff4a5a, sound: 'pulse',
+      heat: null, aimAssist: 0.2, color: 0xff4a5a, sound: 'pulse', hold: 'hand', bolt: 'pulse',
+      muzzle: { forward: 1.1, right: 0.39, up: 1.35 },
     },
     def,
   );
@@ -73,8 +79,9 @@ function drawWeapon(id) {
   if (heroWeapon.id) holsterWeapon(true);
   heroWeapon.id = id;
   heroWeapon.last = id;
-  if (w.model) heroWeapon.mesh = player.attach('handR', w.model());
-  player.setAim(true);
+  const rifle = w.hold === 'rifle';
+  if (w.model) heroWeapon.mesh = player.attach(rifle ? 'rifle' : 'handR', w.model());
+  player.setAim(rifle ? 'rifle' : true);
   playWeaponSound('draw');
   updateWeaponHud();
   return true;
@@ -165,14 +172,15 @@ function fireWeapon(aim) {
   }
   const dirX = -Math.sin(heading);
   const dirZ = -Math.cos(heading);
-  // Корпус разворачивается к цели, ствол в правой руке: заряд выходит справа от груди
+  // Корпус разворачивается к цели, заряд выходит из дула (справа от груди)
   heroWeapon.aimHeading = heading;
   heroWeapon.aimFrames = 45;
   const rightX = Math.cos(heading);
   const rightZ = -Math.sin(heading);
-  const x = playerWorldX + dirX * 1.1 + rightX * 0.39;
-  const z = playerWorldZ + dirZ * 1.1 + rightZ * 0.39;
-  const y = player.position.y + 1.35;
+  const m = w.muzzle;
+  const x = playerWorldX + dirX * m.forward + rightX * m.right;
+  const z = playerWorldZ + dirZ * m.forward + rightZ * m.right;
+  const y = player.position.y + m.up;
   spawnBolt(w, x, y, z, dirX, dirZ);
   spawnWeaponFx(x, y, z, w.color, 0.14, 5, 1.12); // вспышка у ствола
 
@@ -195,6 +203,7 @@ const boltGeoCore = new THREE.BoxGeometry(0.06, 0.06, 1.1);
 const boltGeoGlow = new THREE.BoxGeometry(0.18, 0.18, 1.5);
 
 function spawnBolt(w, x, y, z, dx, dz) {
+  if (w.bolt === 'wave') return spawnWaveBolt(w, x, y, z, dx, dz);
   const mesh = new THREE.Group();
   mesh.add(new THREE.Mesh(boltGeoCore, new THREE.MeshBasicMaterial({ color: 0xffffff })));
   mesh.add(
@@ -207,6 +216,60 @@ function spawnBolt(w, x, y, z, dx, dz) {
   mesh.rotation.y = Math.atan2(dx, dz);
   cityGroup.add(mesh);
   weaponBolts.push({ w, x, y, z, dx, dz, traveled: 0, mesh });
+}
+
+// Волна: голова заряда — в начале координат, хвост тянется назад по -Z на length. Геометрия и материалы
+// общие для всех зарядов одного оружия (создаются при первом выстреле)
+const waveCache = {};
+function waveParts(w) {
+  if (waveCache[w.id]) return waveCache[w.id];
+  const { length: L, amplitude: A, wavelength: lambda } = w.wave;
+  // Синусоида с огибающей: у головы и хвоста амплитуда сходит на нет — получается «пакет»
+  const curve = (plane) => {
+    const pts = [];
+    const n = Math.round((L / lambda) * 16);
+    for (let i = 0; i <= n; i++) {
+      const t = i / n;
+      const zz = -L * t;
+      const a = A * Math.pow(Math.sin(Math.PI * Math.min(1, t * 1.15)), 0.7) * Math.sin((2 * Math.PI * zz) / lambda);
+      pts.push(plane === 'v' ? new THREE.Vector3(0, a, zz) : new THREE.Vector3(a, 0, zz));
+    }
+    return new THREE.CatmullRomCurve3(pts);
+  };
+  const add = { transparent: true, blending: THREE.AdditiveBlending, depthWrite: false };
+  const segs = Math.round((L / lambda) * 24);
+  const parts = {
+    geos: [
+      new THREE.TubeGeometry(curve('v'), segs, 0.05, 5),
+      new THREE.TubeGeometry(curve('h'), segs, 0.04, 5),
+      new THREE.TubeGeometry(curve('v'), segs, 0.11, 5),
+      new THREE.BoxGeometry(0.05, 0.05, L).translate(0, 0, -L / 2),
+      new THREE.SphereGeometry(0.17, 10, 8),
+    ],
+    mats: [
+      new THREE.MeshBasicMaterial({ color: w.color, ...add, opacity: 0.95 }), // электрическое поле
+      new THREE.MeshBasicMaterial({ color: 0xbfefff, ...add, opacity: 0.7 }), // магнитное поле
+      new THREE.MeshBasicMaterial({ color: w.color, ...add, opacity: 0.25 }), // ореол
+      new THREE.MeshBasicMaterial({ color: 0xffffff, ...add, opacity: 0.8 }), // ось
+      new THREE.MeshBasicMaterial({ color: 0xe8fbff, ...add, opacity: 0.95 }), // голова
+    ],
+  };
+  waveCache[w.id] = parts;
+  return parts;
+}
+
+function spawnWaveBolt(w, x, y, z, dx, dz) {
+  const { geos, mats } = waveParts(w);
+  const mesh = new THREE.Group();
+  const body = new THREE.Group(); // всё, что тянется хвостом; растет из дула и втягивается в цель
+  geos.slice(0, 4).forEach((g, i) => body.add(new THREE.Mesh(g, mats[i])));
+  body.scale.z = 0.01;
+  mesh.add(body);
+  mesh.add(new THREE.Mesh(geos[4], mats[4]));
+  mesh.position.set(x, y, z);
+  mesh.rotation.y = Math.atan2(dx, dz);
+  cityGroup.add(mesh);
+  weaponBolts.push({ w, x, y, z, dx, dz, traveled: 0, mesh, body, shared: true, fade: 0 });
 }
 
 const boltBlocked = (x, z) => (insideBuilding() ? blockedInside(x, z) : blockedOutsideStatic(x, z));
@@ -229,6 +292,14 @@ function blockedOutsideStatic(x, z) {
 function updateBolts() {
   for (let i = weaponBolts.length - 1; i >= 0; i--) {
     const b = weaponBolts[i];
+    // Волна попала: голова стоит в цели, хвост втягивается за несколько кадров
+    if (b.fade > 0) {
+      b.fade--;
+      b.body.scale.z = Math.min(b.body.scale.z, (b.fade / 6) * Math.min(1, b.traveled / b.w.wave.length));
+      b.mesh.children[1].visible = false;
+      if (b.fade === 0) removeBolt(i);
+      continue;
+    }
     let done = false;
     // Шагами по 0,4: быстрый заряд не проскакивает тонкие цели
     const steps = Math.ceil(b.w.speed / 0.4);
@@ -251,12 +322,22 @@ function updateBolts() {
       }
     }
     b.mesh.position.set(b.x, b.y, b.z);
+    if (b.body) {
+      b.body.scale.z = Math.max(0.01, Math.min(1, b.traveled / b.w.wave.length)); // хвост не торчит из-за спины
+      b.mesh.rotation.z = Math.sin(b.traveled * 0.7) * 0.25; // поле чуть «дышит» вокруг оси
+    }
     if (done) {
-      cityGroup.remove(b.mesh);
-      b.mesh.children.forEach((m) => m.material.dispose());
-      weaponBolts.splice(i, 1);
+      if (b.body) b.fade = 6;
+      else removeBolt(i);
     }
   }
+}
+
+function removeBolt(i) {
+  const b = weaponBolts[i];
+  cityGroup.remove(b.mesh);
+  if (!b.shared) b.mesh.children.forEach((m) => m.material.dispose());
+  weaponBolts.splice(i, 1);
 }
 
 // Вспышка: светящийся шарик растет и гаснет (у ствола — коротко, при попадании — дольше)
