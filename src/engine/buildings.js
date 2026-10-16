@@ -12,7 +12,7 @@
 //                            stations: [станции на улице] }
 //     interior({ full }) → { name(floor), floors: [createRoomFloor(...)], bounds, playerRadius,
 //                            door: { x, z } — у выхода на 1 этаже, stairs: [{ x, z, floor, to, label }],
-//                            stations: [{ floor, x, z, label, act }], people: [жильцы], sounds, footsteps }
+//                            stations: [{ floor, x, z, label, act, use }], people: [жильцы], sounds, footsteps }
 //     enterLabel, exitLabel                         // подписи у двери
 //     lock: { item, text }                          // войти можно только с этой вещью в инвентаре
 //   });
@@ -86,6 +86,7 @@ function placeBuilding(id, { x, z, heading = 0, full = true } = {}) {
           !insideBuilding() && !drivingCar && Math.hypot(playerWorldX - w.x, playerWorldZ - w.z) < (st.radius || 2.6),
         prompt: () => (typeof st.label === 'function' ? st.label() : st.label),
         act: st.act,
+        use: st.use, // вещь с нижней панели, примененная рядом (src/player/equipment.js)
       });
     }
     // Жильцы на улице (во дворе, у входа): стоят на месте, с ними можно поговорить
@@ -186,6 +187,7 @@ function placeBuilding(id, { x, z, heading = 0, full = true } = {}) {
           near: () => !dialogueOpen && here(st.floor, st, st.radius || 2.4),
           prompt: () => (typeof st.label === 'function' ? st.label() : st.label),
           act: st.act,
+          use: st.use,
         });
       }
       for (const w of plan.people || []) {
