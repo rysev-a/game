@@ -64,6 +64,7 @@ addInteriorDoor(mallInterior, {
   door: mall.door,
   enterLabel: 'E — войти в торговый центр',
   exitLabel: 'E — выйти из торгового центра',
+  object: shop,
 });
 addInteriorStairs(mallInterior, mall.stairs);
 zoneSounds.mall = { shop: 0.9 };

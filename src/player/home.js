@@ -285,7 +285,7 @@ const garage = {
 };
 
 function buildHomeExterior(info) {
-  const { houseX, houseZ, side } = info;
+  const { houseX, houseZ, side, house } = info;
   const gw = 8; // ширина гаража
   const gh = 4.2; // высота
   const x0 = houseX + homeW / 2; // общая стена с домом
@@ -404,6 +404,7 @@ function buildHomeExterior(info) {
     door: home.door,
     enterLabel: 'E — войти в дом',
     exitLabel: 'E — выйти из дома',
+    object: house,
   });
   return { doorOutside, garageCenterX: cx, frontZ };
 }

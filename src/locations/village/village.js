@@ -212,7 +212,7 @@ for (const side of [-1, 1]) {
     // Дом игрока: гараж, машина в нем, кнопка, внутренние двери; проем в заборе под въезд
     const gaps = [{ x: houseX, w: 4 }];
     if (mine) {
-      const exterior = buildHomeExterior({ houseX, houseZ, side });
+      const exterior = buildHomeExterior({ houseX, houseZ, side, house });
       gaps.push({ x: exterior.garageCenterX, w: 7 });
       const driveLen = Math.abs(exterior.frontZ - frontEdge);
       flatRect(6.6, driveLen, 0x555555, 0.018, exterior.garageCenterX, (exterior.frontZ + frontEdge) / 2);

@@ -130,6 +130,8 @@ function placeBuilding(id, { x, z, heading = 0, full = true } = {}) {
     const outside = toWorld(ext.door);
     addInteractable({
       priority: 1,
+      clickObject: ext.group, // клик по зданию — идти к двери (src/player/click-move.js)
+      walkTo: outside,
       near: () => !insideBuilding() && !drivingCar && Math.hypot(playerWorldX - outside.x, playerWorldZ - outside.z) < doorRadius,
       prompt: () => def.enterLabel || 'E — войти: ' + def.name,
       act: () => {

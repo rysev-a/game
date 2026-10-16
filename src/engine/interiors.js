@@ -51,10 +51,13 @@ function blockedInside(x, z) {
 }
 
 // Входная дверь здания: снаружи — вход, на 1 этаже внутри — выход.
-//   outside — точка у двери на улице (мир), door — точка у двери внутри (локально, 1 этаж)
-function addInteriorDoor(def, { outside, door, enterLabel, exitLabel }) {
+//   outside — точка у двери на улице (мир), door — точка у двери внутри (локально, 1 этаж),
+//   object — здание снаружи: клик по нему ведет к двери (src/player/click-move.js)
+function addInteriorDoor(def, { outside, door, enterLabel, exitLabel, object }) {
   addInteractable({
     priority: 1,
+    clickObject: object,
+    walkTo: outside,
     near: () => !insideBuilding() && Math.hypot(playerWorldX - outside.x, playerWorldZ - outside.z) < doorRadius,
     prompt: () => enterLabel,
     act: () => {
