@@ -429,7 +429,7 @@ function createWalkingMan(options = {}) {
 const PERSON_PRESETS = {
   geek: {
     tshirt: true, shirtColor: 0x1c1c1e, pantsColor: 0x34558a, hat: 'cap', hatColor: 0xb03030,
-    sneakers: true, sneakerStripeColor: 0xd23c3c, hairColor: 0x2a1c12,
+    hairColor: 0x2a1c12,
   },
 
   coat: { coat: true, coatColor: 0x9a8058, hat: 'fedora', hatColor: 0x4a3c2a, tie: true, pantsColor: 0x3a3428, shoeColor: 0x2a1a10 },
