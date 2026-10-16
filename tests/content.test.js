@@ -17,7 +17,7 @@ require('./scenarios/1-03-bridge.js');
 const reg = Core.registry;
 
 test('все файлы из manifest.js существуют', () => {
-  for (const file of [...manifest.core, ...manifest.content, ...manifest.adapter, ...manifest.extras]) {
+  for (const file of [...manifest.core, ...manifest.content, ...manifest.adapter]) {
     assert.ok(fs.existsSync(path.join(root, file)), 'нет файла ' + file);
   }
 });

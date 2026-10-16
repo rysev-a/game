@@ -5,7 +5,6 @@
 //   core     ядро (src/core): чистая логика, работает и в Node
 //   content  содержание: факты, персонажи, квесты — только данные
 //   adapter  подключение к игре: только в браузере, после движка
-//   extras   отдельные дополнения игры, не связанные с квестами (клик по человеку и машине)
 
 (function (root) {
   const manifest = {
@@ -29,8 +28,6 @@
       'src/quests/journal-ui.js',
       'src/quests/start.js',
     ],
-    // Небольшие дополнения игры, подключенные тем же загрузчиком, пока их нельзя вписать в index.html
-    extras: ['src/player/click-interact.js'],
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = manifest;
   else root.QUEST_MANIFEST = manifest;

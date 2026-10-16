@@ -119,7 +119,7 @@ v1 не нужно: порядок задает `next`.
 
 - **Запуск.** В конце `index.html` стоит загрузчик `src/quests/load.js`. Он по очереди грузит файлы из `src/quests/manifest.js`: ядро (`src/core`),
   содержание (`src/content`), подключение (`src/quests/host.js`, `places.js`, `hooks.js`, `journal-ui.js`, `start.js`)
-  и дополнения (`src/player/click-interact.js`). Тесты в Node читают тот же список.
+  Тесты в Node читают тот же список.
 - **Тесты.** `npm test` — ядро на выдуманных данных (`tests/core.test.js`), настоящее содержание и сценарии
   прохождения (`tests/content.test.js`, сценарии в `tests/scenarios/`). Каждому квесту нужен сценарий с его id.
 - **Обертки вместо правок.** `src/quests/hooks.js` оборачивает функции игры (они глобальные, вызовы идут по имени):
@@ -130,15 +130,15 @@ v1 не нужно: порядок задает `next`.
 | `rootDialogue`, `personTitle`: разговор с Денисом берется из данных | `src/player/talk.js` |
 | `spawnIncident`, `despawnIncident`, `updateIncident`, `updateOfficers`: Денис у ленты, осмотр тела, сцена живет, пока идет квест | `src/locations/bridge/incident.js` |
 | `drawMapView`: метка текущего шага на миникарте и карте | `src/engine/minimap.js` |
-| `updateClickMove`, `clickDoorEntry` и настройка `clickInteract` (`src/player/click-interact.js`) | `src/player/click-move.js`, `src/engine/settings.js` |
 | журнал помечает себя как `dialogueOpen` (пауза ввода, Esc закрывает окно, а не открывает настройки) | свой `journalOpen` в `escOverlayOpen`, `src/engine/mouse-look.js` |
 
-- **Когда файлы можно будет править:** перенести каждую обертку по таблице на ее место. В `demo/index.html` подключен
-  только `src/player/click-interact.js` (квесты в ДЕМО не нужны).
+- **Когда файлы можно будет править:** перенести каждую обертку по таблице на ее место. В `demo/index.html` квесты
+  не подключены: ДЕМО проверяет механики, квесты в нем не нужны.
 
 ### Клик по человеку, двери и машине
 
-Настройка «Клик по человеку, двери и машине» (вкладка «Управление», включена по умолчанию, `settings.clickInteract`):
+Это механика платформы, она живет в общих файлах (`src/player/click-move.js`, настройка в `src/engine/settings.js`) и
+работает и в игре, и в ДЕМО. Настройка «Клик по человеку, двери и машине» (вкладка «Управление», включена по умолчанию, `settings.clickInteract`):
 клик по человеку — герой подходит и заговаривает; по двери здания — идет ко входу и входит (это уже делал
 `click-move.js`); по машине — подходит и садится (закрытая или без ключей — сообщает причину, как по E). Правило одно
 для всех трех: идем `clickDoorFrames` (2 секунды), не дошли — сразу оказываемся рядом, а игровое время уходит как на

@@ -8,6 +8,10 @@
 //   Клик по противнику (живая запись в combatTargets) — сразу боевой режим: герой достает оружие (последнее,
 //   что доставал, иначе из активной ячейки или первое) и разворачивается к нему вместе с камерой; мышь
 //   захватывается для прицела тем же кликом (src/engine/mouse-look.js).
+//   Клик по человеку или машине (настройка «Клик по человеку, двери и машине», settings.clickInteract, по умолчанию
+//   включена; выключили — клик по людям и машинам ведет по земле, а дверь — к точке перед зданием): герой подходит и
+//   заговаривает или садится (закрытую или без ключей — говорит почему, как по E). Правило то же, что у двери:
+//   идем clickDoorFrames (2 секунды), а если не дошли — сразу рядом, и время уходит как на дорогу пешком.
 // Клик по вещи берет вещь (src/engine/input.js); в боевом режиме клик — огонь (src/engine/weapons.js).
 // clickMoveSteer() зовет updateWalking (src/player/player.js), updateClickMove() — главный цикл.
 
@@ -18,6 +22,8 @@ let clickTarget = null; // { x, z } — куда идем (мир)
 let clickDoor = null; // { entry, frames } — идем к двери этого входа
 let clickHeld = false; // левая кнопка зажата — точку ведем мышью
 let clickStuck = { d: Infinity, frames: 0 };
+let clickGoal = null; // { kind: 'person' | 'car', ref, frames } — к кому или к чему идем, чтобы заговорить или сесть
+const clickTalkReach = 2.2; // с какого расстояния начинаем разговор (nearestPerson берет до 2.8)
 
 // Метка на земле: светящееся кольцо там, куда идем
 const clickMarker = new THREE.Mesh(
@@ -35,6 +41,7 @@ const clickMoveAllowed = () =>
 function clickMoveStop() {
   clickTarget = null;
   clickDoor = null;
+  clickGoal = null;
   clickMarker.visible = false;
 }
 
@@ -97,9 +104,33 @@ function clickStartCombat(t) {
   worldRotation = -playerHeading; // камера за спиной, противник впереди
 }
 
+// Кого или что показывает уже направленный луч: человека или машину (ближайшее попадание) или null
+function clickPeopleAndCars() {
+  const ci = currentInterior();
+  const people = ci ? ci.def.people.filter((p) => p.floor === ci.floor) : npcs;
+  const cand = people.filter((p) => p.mesh && !p.helping && hoverShown(p.mesh)).map((p) => ({ kind: 'person', ref: p, mesh: p.mesh }));
+  if (!insideBuilding() && !drivingCar) {
+    for (const c of cars) if (c.mesh && hoverShown(c.mesh)) cand.push({ kind: 'car', ref: c, mesh: c.mesh });
+  }
+  if (!cand.length) return null;
+  const hit = clickRaycaster.intersectObjects(cand.map((c) => c.mesh), true)[0];
+  if (!hit) return null;
+  for (let o = hit.object; o; o = o.parent) {
+    const t = cand.find((c) => c.mesh === o);
+    if (t) return t;
+  }
+  return null;
+}
+
+// Где сейчас цель клика: человек ходит, у людей в здании координаты этажа
+const clickGoalPos = (g) => (g.kind === 'person' ? personWorld(g.ref) : { x: g.ref.x, z: g.ref.z });
+const clickCarDist = (c) => Math.hypot(c.x - playerWorldX, c.z - playerWorldZ) - (c.half.l - carHalf.l); // длинный БТР — с любого конца
+
 // Слушатель стоит раньше, чем в input.js: клик по подсвеченной вещи — взять вещь, а не идти
 renderer.domElement.addEventListener('mousedown', (e) => {
-  if (e.button !== 0 || !clickMoveAllowed() || hoveredPickable) return;
+  if (e.button !== 0) return;
+  clickGoal = null; // любой новый клик отменяет прежнюю цель
+  if (!clickMoveAllowed() || hoveredPickable) return;
   const p = clickGroundPoint(e);
   if (!p) return;
   const enemy = clickEnemy();
@@ -107,7 +138,17 @@ renderer.domElement.addEventListener('mousedown', (e) => {
     clickStartCombat(enemy);
     return;
   }
-  const entry = clickDoorEntry();
+  const who = settings.clickInteract ? clickPeopleAndCars() : null;
+  if (who) {
+    const pos = clickGoalPos(who);
+    clickGoal = { kind: who.kind, ref: who.ref, frames: 0 };
+    clickDoor = null;
+    clickHeld = false;
+    clickMoveTo(pos.x, pos.z);
+    e.stopImmediatePropagation(); // дальше input.js этот клик не видит
+    return;
+  }
+  const entry = settings.clickInteract ? clickDoorEntry() : null;
   if (entry) {
     clickMoveTo(entry.walkTo.x, entry.walkTo.z);
     clickDoor = { entry, frames: 0 };
@@ -152,8 +193,78 @@ function clickMoveSteer(c) {
   return { turn, go: Math.abs(d - turn) < 1.2, step: Math.min(playerSpeed, dist) };
 }
 
+// Дошли до человека или машины: разговор или посадка
+function clickInteractNow(g) {
+  clickMoveStop();
+  if (g.kind === 'person') {
+    const pos = clickGoalPos(g);
+    playerHeading = Math.atan2(-(pos.x - playerWorldX), -(pos.z - playerWorldZ)); // лицом к собеседнику
+    startDialogue(g.ref, rootDialogue(g.ref));
+  } else {
+    const why = carBlockedReason(g.ref);
+    if (why) showToast(why, 3000);
+    else enterCar(g.ref);
+  }
+}
+
+// Не дошли за 2 секунды — сразу рядом; время — как на оставшийся путь пешком (как у двери, clickEnterFar)
+function clickInteractFar(g) {
+  const pos = clickGoalPos(g);
+  const dist = Math.hypot(pos.x - playerWorldX, pos.z - playerWorldZ);
+  const back = (g.kind === 'person' ? 1.8 : g.ref.half.l + 1.5) / (dist || 1); // встаем со стороны игрока
+  const spot = findFreeSpot(pos.x + (playerWorldX - pos.x) * back, pos.z + (playerWorldZ - pos.z) * back, (x, z) => !blockedOutside(x, z));
+  const minutes = travelMinutes(dist, false);
+  clickMoveStop();
+  travelFadeEl.style.transition = 'none';
+  travelFadeEl.style.opacity = '0.85';
+  void travelFadeEl.offsetWidth;
+  travelFadeEl.style.transition = 'opacity 0.6s';
+  travelFadeEl.style.opacity = '0';
+  playerWorldX = spot.x;
+  playerWorldZ = spot.z;
+  walkAmp = 0;
+  advanceGameTime(minutes);
+  clockShown = '';
+  clickInteractNow(g);
+  if (minutes >= 1) showToast('Пешком: ' + Math.round(dist) + ' м, ушло ' + formatDuration(minutes) + '. Сейчас ' + formatGameTime() + '.', 4000);
+}
+
+// Раз в кадр: цель-человек ходит, поэтому точку обновляем; дошли — говорим или садимся
+function updateClickGoal() {
+  const g = clickGoal;
+  if (!g) return;
+  if (!clickTarget || !clickMoveAllowed()) {
+    clickGoal = null; // остановили сами (клавиши, оружие, разговор) или уперлись
+    return;
+  }
+  const pos = clickGoalPos(g);
+  if (!pos || (g.kind === 'car' && !cars.includes(g.ref))) {
+    clickMoveStop();
+    return;
+  }
+  const arrived = g.kind === 'car'
+    ? clickCarDist(g.ref) <= enterRadius - 0.6
+    : Math.hypot(pos.x - playerWorldX, pos.z - playerWorldZ) <= clickTalkReach;
+  if (arrived) {
+    clickInteractNow(g);
+    return;
+  }
+  clickTarget.x = pos.x;
+  clickTarget.z = pos.z;
+  clickMarker.position.set(pos.x, 0.06, pos.z);
+  // Ходьба кликом идет по прямой и упирается в первое препятствие; как у двери, это не обрывает путь:
+  // через 2 секунды герой все равно окажется рядом (иначе проверка «уперлись» остановила бы его за 40 кадров)
+  clickStuck = { d: Infinity, frames: 0 };
+  // Внутри здания пол маленький — доходим сами; снаружи после 2 секунд переносимся
+  if (++g.frames >= clickDoorFrames && !insideBuilding()) {
+    clickGoal = null;
+    clickInteractFar(g);
+  }
+}
+
 // Раз в кадр из главного цикла: дошли ли, не уперлись ли, пора ли входить в дверь
 function updateClickMove() {
+  updateClickGoal();
   if (!clickTarget) return;
   if (clickDoor) {
     clickDoor.frames++;

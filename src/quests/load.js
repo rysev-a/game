@@ -16,6 +16,6 @@
   (async () => {
     await load('src/quests/manifest.js');
     const m = window.QUEST_MANIFEST;
-    for (const file of [...m.core, ...m.content, ...m.adapter, ...m.extras]) await load(file);
+    for (const file of [...m.core, ...m.content, ...m.adapter]) await load(file);
   })().catch((err) => console.error('Квесты не запустились:', err));
 })();

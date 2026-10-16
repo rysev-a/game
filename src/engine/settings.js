@@ -25,6 +25,7 @@ const SETTINGS_DEFAULTS = {
   snow: true,
   rainFreq: 'normal', // 'rare' | 'normal' | 'often'
   mouseSens: 1, // множитель чувствительности мыши
+  clickInteract: true, // клик по человеку, двери и машине: герой подойдет сам (src/player/click-move.js)
   autoAim: true,
   firstPerson: false, // вид от первого лица в бою (компьютер)
   driftLevel: 0.5, // 0..1 — насколько глубоко заносит на ручнике и в дрифте (1 — прежние 20%, src/player/driving.js)
@@ -115,6 +116,8 @@ const settingsTabs = [
     items: [
       { type: 'range', key: 'mouseSens', label: 'Чувствительность мыши', min: 0.25, max: 3, step: 0.05, show: pct, desk: true,
         note: 'Вид зажатым колесом и прицел в бою' },
+      { type: 'check', key: 'clickInteract', label: 'Клик по человеку, двери и машине', desk: true,
+        note: 'Герой сам подойдет: заговорит, войдет в здание или сядет в машину. Далеко — через пару секунд он уже там, а время уйдет как на дорогу пешком' },
       { type: 'html', desk: true, html: '<div class="keycols"><div><div class="sub">Обычный режим</div>' + keyRows([
         ['W / S', 'вперед / назад'],
         ['W W / W W W', 'бег / спринт (отпустили W — шагом)'],
