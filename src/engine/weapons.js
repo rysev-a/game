@@ -12,6 +12,7 @@
 //
 // Управление:
 //   Q — достать / убрать оружие (берется последнее доставленное или первое из инвентаря)
+//   R — следующее оружие из инвентаря (по кругу); без оружия в руках — достает первое
 //   ЛКМ — выстрел туда, где курсор (герой разворачивается корпусом к точке, камера не дергается);
 //         зажать — очередь. Клик по вещи, которую можно взять, по-прежнему берет вещь
 //   K — выстрел по направлению взгляда, с небольшим доводом на ближайшую цель
@@ -153,6 +154,16 @@ function toggleWeapon() {
   const id = heroWeapon.last && hasItem(heroWeapon.last) ? heroWeapon.last : inventory.items.find(isWeapon);
   if (!id) showToast('Оружия нет. В ДЕМО оно лежит в тире и на столе предметов');
   else drawWeapon(id);
+}
+
+// Следующее оружие из инвентаря по кругу (R). Одно оружие — подсказка, что сменить не на что
+function nextWeapon() {
+  const ids = inventory.items.filter(isWeapon);
+  if (!ids.length) return toggleWeapon();
+  const i = ids.indexOf(heroWeapon.id);
+  const id = ids[(i + 1) % ids.length];
+  if (id === heroWeapon.id) return showToast('Другого оружия нет — возьмите еще в тире');
+  if (drawWeapon(id)) showToast(WEAPONS[id].name, 1500);
 }
 
 // Куда целиться мышью: точка на высоте груди под курсором (в мировых координатах). Если курсор на цели —
@@ -482,7 +493,7 @@ function updateWeaponHud() {
   weaponHudParts.heat.style.background = heroWeapon.overheated ? '#e0483a' : heroWeapon.heat > 0.7 ? '#e8b83a' : '#4ee6ff';
   weaponHudParts.hint.textContent = heroWeapon.overheated
     ? 'Перегрев — остывает'
-    : 'ЛКМ — огонь по курсору · K — по взгляду · Q — убрать';
+    : 'ЛКМ — огонь по курсору · K — по взгляду · R — сменить · Q — убрать';
 }
 
 // ---------- Звук (синтез, как шаги в src/player/footsteps.js) ----------
@@ -582,6 +593,7 @@ function playWeaponSound(kind) {
 window.addEventListener('keydown', (e) => {
   if (e.repeat || settingsOpen || dialogueOpen || inventoryOpen) return;
   if (e.code === 'KeyQ') toggleWeapon();
+  if (e.code === 'KeyR') nextWeapon();
   if (e.code === 'KeyK' && heroWeapon.id) fireWeapon(null);
 });
 // ЛКМ по сцене с оружием в руках — огонь. Клик по подсвеченной вещи берет вещь (src/engine/input.js), не стреляет
