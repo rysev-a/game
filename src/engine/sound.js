@@ -69,7 +69,7 @@ const engineEdge = (t, [a, b]) => {
 // Обороты для звука догоняют скорость не сразу: тон и смесь слоев плывут, а не скачут вслед за газом
 const engineFollow = 0.05;
 let engineLevel = 0;
-// Визг шин на заносе гоночной (audio/cars/stop.wav): пока остаются следы шин (car.sliding, src/player/driving.js)
+// Визг шин на заносе гоночных (audio/cars/stop.wav): пока остаются следы шин (car.sliding, src/player/driving.js)
 const skidVolume = 0.9;
 
 const rainVolume = 0.6;
@@ -90,16 +90,17 @@ function updateSound() {
   const speedNow = drivingCar ? Math.min(1, Math.abs(drivingCar.speed) / ((kind && kind.maxSpeed) || carMaxSpeed)) : 0;
   engineLevel += (speedNow - engineLevel) * engineFollow;
   const carSpeed = drivingCar ? engineLevel : 0;
-  const engine = engineSounds[(kind && kind.id) || 'car'] || engineSounds.car;
+  const engine = engineSounds[(kind && (kind.sound || kind.id)) || 'car'] || engineSounds.car;
+  const pitch = (kind && kind.pitch) || 1; // у машин гоночного парка свой тон
   const carVolume = carSpeed > 0.02 ? carVolumeMin + (carVolumeMax - carVolumeMin) * carSpeed : 0;
   for (const l of engine) {
     let v = l.vol || 1;
     if (l.from) v *= engineEdge(carSpeed, l.from);
     if (l.out) v *= 1 - 0.75 * engineEdge(carSpeed, l.out);
     mix[l.track] = Math.max(mix[l.track] || 0, carVolume * v);
-    if (carSpeed > 0.02) soundTracks[l.track].el.playbackRate = l.rate[0] + (l.rate[1] - l.rate[0]) * carSpeed;
+    if (carSpeed > 0.02) soundTracks[l.track].el.playbackRate = (l.rate[0] + (l.rate[1] - l.rate[0]) * carSpeed) * pitch;
   }
-  mix.stop = kind && kind.id === 'race' && drivingCar.sliding ? skidVolume * (0.5 + 0.5 * carSpeed) : 0;
+  mix.stop = kind && kind.sound === 'race' && drivingCar.sliding ? skidVolume * (0.5 + 0.5 * carSpeed) : 0;
   duck += ((phraseActive() ? duckLevel : 1) - duck) * 0.1;
   for (const [name, t] of Object.entries(soundTracks)) {
     // Двигатель — из группы «Звуки», остальное — фоновые звуки: у каждой группы своя громкость в настройках
