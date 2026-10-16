@@ -12,6 +12,8 @@ const carDrag = 0.006;
 const carMaxSpeed = 0.8;
 const carMaxReverse = -0.3;
 const carTurnRate = 0.045;
+// Езда обычной легковушки; у гоночной, джипа, трактора и БТР — свои числа (VEHICLE_KINDS, src/world/vehicles.js)
+const carDrive = { accel: carAccel, brake: carBrake, drag: carDrag, maxSpeed: carMaxSpeed, maxReverse: carMaxReverse, turnRate: carTurnRate };
 const cameraFollowEase = 0.04; // как быстро камера возвращается за машину (0..1 за кадр)
 let carTime = 0;
 
@@ -28,7 +30,7 @@ function nearestCar() {
   let best = null;
   let bestDist = enterRadius;
   for (const c of cars) {
-    const d = Math.hypot(c.x - playerWorldX, c.z - playerWorldZ);
+    const d = Math.hypot(c.x - playerWorldX, c.z - playerWorldZ) - (c.half.l - carHalf.l); // длинный БТР — с любого конца
     if (d < bestDist) {
       best = c;
       bestDist = d;
@@ -42,7 +44,8 @@ function nearestCar() {
 // служебные (полиция, скорая) закрыты всегда. Возвращает причину отказа или null
 function carBlockedReason(car) {
   if (car.locked) return car.lockedMsg || 'Эта машина закрыта';
-  if (hasItem(car.keyId)) return null;
+  if (car.broken) return car.kind.name + ' подбит и не заводится';
+  if (car.open || hasItem(car.keyId)) return null;
   return car.isPlayerCar ? 'Ваша машина закрыта — нужны ключи от машины' : 'Эта машина закрыта: у вас нет от нее ключей';
 }
 
@@ -51,7 +54,9 @@ addInteractable({
   near: () => !drivingCar && !insideBuilding() && nearestCar() !== null,
   prompt: () => {
     const car = nearestCar();
-    return carBlockedReason(car) || (car.isPlayerCar ? 'E — сесть в свою машину' : 'E — сесть в машину (есть ключи)');
+    if (carBlockedReason(car)) return carBlockedReason(car);
+    if (car.kind) return 'E — сесть: ' + car.kind.name.toLowerCase();
+    return car.isPlayerCar ? 'E — сесть в свою машину' : 'E — сесть в машину (есть ключи)';
   },
   act: () => {
     const car = nearestCar();
@@ -88,16 +93,18 @@ function enterCar(car) {
   walkAmp = 0;
 }
 
-// Выйти: только когда машина почти стоит
-function exitCar() {
-  if (Math.abs(drivingCar.speed) > exitMaxSpeed) return;
+// Выйти: только когда машина почти стоит (force — выбраться сразу: подбитый БТР)
+function exitCar(force = false) {
+  if (Math.abs(drivingCar.speed) > exitMaxSpeed && !force) return;
   const h = drivingCar.heading;
+  const side = drivingCar.half.w + 1.4;
+  const end = drivingCar.half.l + 1.1;
   // Выходим с левой стороны; если там стена или другая машина — справа, сзади, спереди
   const sides = [
-    [-Math.cos(h) * 2.4, Math.sin(h) * 2.4],
-    [Math.cos(h) * 2.4, -Math.sin(h) * 2.4],
-    [Math.sin(h) * 3.2, Math.cos(h) * 3.2],
-    [-Math.sin(h) * 3.2, -Math.cos(h) * 3.2],
+    [-Math.cos(h) * side, Math.sin(h) * side],
+    [Math.cos(h) * side, -Math.sin(h) * side],
+    [Math.sin(h) * end, Math.cos(h) * end],
+    [-Math.sin(h) * end, -Math.cos(h) * end],
   ];
   const spot = sides.find(([ox, oz]) => !blockedOutside(drivingCar.x + ox, drivingCar.z + oz)) || sides[0];
   playerWorldX = drivingCar.x + spot[0];
@@ -115,16 +122,19 @@ function updateDriving(c) {
   carTime += 1 / 60;
   if (!drivingCar) return;
   const car = drivingCar;
+  const k = car.kind || carDrive;
   const hasFuel = car.fuel > 0;
-  if (c.up && hasFuel) car.speed += car.speed < 0 ? carBrake : carAccel;
-  else if (c.down && hasFuel) car.speed -= car.speed > 0 ? carBrake : carAccel * 0.7;
-  else car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), carDrag);
-  if (keys['Space']) car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), carBrake);
-  car.speed = Math.min(Math.max(car.speed, carMaxReverse), carMaxSpeed);
+  if (c.up && hasFuel) car.speed += car.speed < 0 ? k.brake : k.accel;
+  else if (c.down && hasFuel) car.speed -= car.speed > 0 ? k.brake : k.accel * 0.7;
+  else car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.drag);
+  if (keys['Space']) car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.brake);
+  car.speed = Math.min(Math.max(car.speed, k.maxReverse), k.maxSpeed);
 
-  // Поворачивать можно только в движении; задним ходом руль работает наоборот
-  const steer = (c.left ? 1 : 0) - (c.right ? 1 : 0);
-  const turn = steer * carTurnRate * Math.min(1, Math.abs(car.speed) / 0.15) * Math.sign(car.speed);
+  // Поворачивать можно только в движении; задним ходом руль работает наоборот.
+  // Руль на телефоне — джойстик; у гоночной машины на треке — наклон телефона (src/engine/gyro-steer.js), −1..1
+  let steer = (c.left ? 1 : 0) - (c.right ? 1 : 0);
+  if (!steer && typeof gyroSteer === 'function') steer = gyroSteer(car) || 0;
+  const turn = steer * k.turnRate * Math.min(1, Math.abs(car.speed) / 0.15) * Math.sign(car.speed);
 
   const { appliedTurn, blockedX, blockedZ, vx, vz } = moveCarWithCollisions(car, turn);
   // Бензин расходуется на пройденный путь
@@ -142,9 +152,25 @@ function updateDriving(c) {
   }
   if (blockedX && blockedZ) car.speed *= -0.25;
   else if (blockedX || blockedZ) car.speed *= 0.85;
+  if (car.crush) crushUnder(car);
   playerWorldX = car.x;
   playerWorldZ = car.z;
   followCamera(car, appliedTurn);
+}
+
+// БТР ДАВИТ БИОСУЩЕСТВ: на ходу живое существо, которого коснулся корпус, погибает сразу (броня и
+// иммунитеты не важны). Роботы — железо: в них БТР упирается (src/engine/collisions.js)
+const crushMinSpeed = 0.08;
+function crushUnder(car) {
+  if (Math.abs(car.speed) < crushMinSpeed) return;
+  const shape = carShape(car.x, car.z, car.heading, car.half);
+  for (const t of combatTargets) {
+    if (t.dead || t.kind !== 'bio') continue;
+    if (!circleHitsShape(t.x + t.off.x, t.z + t.off.z, t.r * 0.8, shape)) continue;
+    hitTarget(t, { damage: t.hp + 1, type: 'crush', hitsAll: true, x: car.x, z: car.z });
+    if (typeof spawnWeaponFx === 'function') spawnWeaponFx(t.x, 0.4, t.z, 0x8a2a1a, t.r, 24, 1.05);
+    car.speed *= 0.9; // тряхнуло
+  }
 }
 
 // Поворот и движение машины на car.speed с учетом столкновений: упираясь в стену, машина
@@ -286,8 +312,10 @@ function updateCarMeshes() {
     c.mesh.position.set(c.x, 0, c.z);
     c.mesh.rotation.y = c.heading;
     c.mesh.spinWheels(c.speed);
-    c.mesh.updateCar(carTime, Math.abs(c.speed) / carMaxSpeed);
+    c.mesh.updateCar(carTime, Math.abs(c.speed) / (c.kind || carDrive).maxSpeed);
+    if (c.update) c.update(c); // дым подбитого БТР и т. п. (src/world/vehicles.js)
   }
+  if (typeof updateVehicleFx === 'function') updateVehicleFx();
 }
 
 // F — выйти из машины или отпустить толкаемую (E у колонки заправляет, поэтому выходим по F)

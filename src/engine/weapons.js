@@ -623,7 +623,7 @@ function blockedOutsideStatic(x, z) {
   for (const t of nearbyTrees(x, z)) if (Math.hypot(x - t.x, z - t.z) < 0.4 * t.s) return true;
   for (const s of obstacleShapes) if (Math.abs(x - s.x) < s.hu && Math.abs(z - s.z) < s.hv) return true;
   for (const c of cars) {
-    const s = carShape(c.x, c.z, c.heading);
+    const s = carShape(c.x, c.z, c.heading, c.half);
     const lu = (x - s.x) * s.ux + (z - s.z) * s.uz;
     const lv = (x - s.x) * s.vx + (z - s.z) * s.vz;
     if (Math.abs(lu) < s.hu && Math.abs(lv) < s.hv) return true;

@@ -178,7 +178,8 @@ function drawMinimap() {
     mmCtx.rotate(-c.heading);
     mmCtx.scale(carGrow, carGrow);
     mmCtx.fillStyle = '#' + c.color.toString(16).padStart(6, '0');
-    mmCtx.fillRect(-carSize.w, -carSize.l, carSize.w * 2, carSize.l * 2);
+    const k = c.half.l / carHalf.l; // трактор, БТР и гоночная — своего размера
+    mmCtx.fillRect(-carSize.w * (c.half.w / carHalf.w), -carSize.l * k, carSize.w * 2 * (c.half.w / carHalf.w), carSize.l * 2 * k);
     if (c.isPlayerCar) {
       // машина игрока — с белой рамкой, чтобы находилась на карте сразу
       mmCtx.strokeStyle = '#ffffff';
