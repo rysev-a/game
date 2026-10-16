@@ -1,0 +1,236 @@
+// src/core/game.js
+// ЯДРО ИСТОРИИ. createGame({ registry, host }) собирает одну игру: состояние (story), проверку условий,
+// выполнение действий, события и квесты. Мир (инвентарь, положение игрока, часы, сообщения на экране) ядро знает
+// только через объект host — его дает игра (src/quests/host.js) или тест (src/core/testhost.js). Все методы host
+// необязательны:
+//
+//   now()                  игровых минут с начала истории
+//   hour()                 час суток 0..24
+//   itemCount(id)          сколько вещей в инвентаре;  giveItem(id, n), takeItem(id, n)
+//   playerPos()            { x, z } игрока;  zone() — id зоны;  inside(), driving(), raining()
+//   toast(text)            короткое сообщение;  openDialog(node) — показать узел диалога
+//
+// Состояние story — один объект из литералов, он целиком сохраняется (snapshot / restore).
+//   flags, counters, facts { id: минута }, quests { id: { state, steps, startedAt, doneAt } },
+//   talked, nodes, inspected, once, messages, tracked
+//
+// Квест идет по шагам строго по порядку: шаг выполнен, когда его условие done стало правдой, а после последнего
+// шага квест завершается (onDone). Условия перепроверяет settle(): после каждого действия и события и раз в
+// несколько кадров из tick() (условия вроде near: зависят от положения игрока).
+
+(function (root) {
+  const Core = (root.Core = root.Core || {});
+
+  Core.STORY_VERSION = 1;
+  Core.gameExtensions = []; // дополнения к игре: диалоги, журнал (они подключают себя сами)
+
+  Core.freshState = () => ({
+    flags: {},
+    counters: {},
+    facts: {},
+    quests: {},
+    talked: {},
+    nodes: {},
+    inspected: {},
+    once: {},
+    messages: [],
+    tracked: null,
+  });
+
+  Core.createGame = function createGame(opts = {}) {
+    const game = {
+      registry: opts.registry || Core.registry,
+      host: opts.host || {},
+      state: Core.freshState(),
+      version: 0, // растет при любом изменении состояния: интерфейс по нему узнает, что пора обновиться
+    };
+    const { registry, host } = game;
+    const warn = (msg) => console.warn(msg);
+
+    game.now = () => (host.now ? host.now() : 0);
+    game.bump = () => game.version++;
+    Core.attachConditions(game);
+    Core.attachEffects(game);
+
+    // Расстояние от игрока до места (null, если положения или места нет)
+    game.placeDistance = (id) => {
+      const place = registry.places[id];
+      const pos = host.playerPos && host.playerPos();
+      if (!place || !pos) return null;
+      return Math.hypot(pos.x - place.x, pos.z - place.z);
+    };
+    game.nearPlace = (id) => {
+      const d = game.placeDistance(id);
+      return d !== null && d <= (registry.places[id].r || 10);
+    };
+
+    // ---------- Квесты ----------
+    const questOf = (id) => registry.quests[id];
+    const record = (id) => game.state.quests[id];
+    game.isActive = (id) => !!record(id) && record(id).state === 'active';
+    game.isDone = (id) => !!record(id) && record(id).state === 'done';
+    game.stepDone = (qid, sid) => !!record(qid) && !!record(qid).steps[sid];
+
+    // Первый невыполненный шаг активного квеста
+    game.currentStep = (id) => {
+      const q = questOf(id);
+      if (!q || !game.isActive(id)) return null;
+      return (q.steps || []).find((s) => !record(id).steps[s.id]) || null;
+    };
+
+    game.start = (id) => {
+      const q = questOf(id);
+      if (!q) {
+        warn('Нет квеста: ' + id);
+        return false;
+      }
+      if (record(id)) return false;
+      game.state.quests[id] = { state: 'active', steps: {}, startedAt: game.now() };
+      if (!game.state.tracked) game.state.tracked = id;
+      game.bump();
+      if (host.toast) host.toast('Новое задание: ' + q.title);
+      game.run(q.onStart);
+      return true;
+    };
+
+    game.markStep = (qid, sid) => {
+      const q = questOf(qid);
+      const rec = record(qid);
+      if (!q || !rec || rec.state !== 'active' || rec.steps[sid]) return false;
+      if (!(q.steps || []).some((s) => s.id === sid)) {
+        warn('Нет шага ' + sid + ' в квесте ' + qid);
+        return false;
+      }
+      rec.steps[sid] = true;
+      game.bump();
+      if (host.toast) host.toast('Задание обновлено: ' + q.title);
+      game.run(q.onStep && q.onStep[sid]);
+      return true;
+    };
+
+    game.complete = (id) => {
+      const q = questOf(id);
+      const rec = record(id);
+      if (!q || !rec || rec.state === 'done') return false;
+      rec.state = 'done';
+      rec.doneAt = game.now();
+      if (game.state.tracked === id) game.state.tracked = null;
+      game.bump();
+      if (host.toast) host.toast('Задание выполнено: ' + q.title);
+      game.run(q.onDone);
+      // Если выполненный квест был текущим, а следующий не выдан, текущим становится любой активный
+      if (!game.state.tracked) game.state.tracked = Object.keys(game.state.quests).find(game.isActive) || null;
+      return true;
+    };
+
+    game.track = (id) => {
+      if (!game.isActive(id)) return;
+      game.state.tracked = id;
+      game.bump();
+    };
+
+    // Метка текущего шага отслеживаемого квеста: место на карте или null
+    game.currentMarker = () => {
+      const step = game.state.tracked && game.currentStep(game.state.tracked);
+      const place = step && step.marker && registry.places[step.marker];
+      return place ? { id: place.id, x: place.x, z: place.z, r: place.r || 10, name: place.name || '' } : null;
+    };
+
+    // ---------- Факты и сообщения ----------
+    game.reveal = (id) => {
+      if (game.state.facts[id] !== undefined) return;
+      if (!registry.facts[id]) warn('Нет факта: ' + id);
+      game.state.facts[id] = game.now();
+      game.bump();
+      if (host.toast) host.toast('Новая запись в журнале: выводы');
+    };
+
+    game.addMessage = (from, text) => {
+      game.state.messages.push({ from, text, at: game.now() });
+      game.bump();
+      const ch = registry.characters[from];
+      if (host.toast) host.toast('Сообщение от ' + (ch ? ch.name : from) + ': ' + text);
+    };
+
+    // ---------- События ----------
+    // Механики сообщают, что произошло: talk { who, node }, inspect { id }, а также любые свои.
+    game.emit = (name, data = {}) => {
+      const s = game.state;
+      if (name === 'talk') {
+        s.talked[data.who] = true;
+        s.nodes[data.who + '.' + data.node] = true;
+      } else if (name === 'inspect') {
+        s.inspected[data.id] = true;
+      }
+      game.bump();
+      game.settle();
+    };
+
+    // ---------- Проверка квестов ----------
+    let settling = false;
+    let again = false;
+
+    function progress() {
+      for (const q of Object.values(registry.quests)) {
+        if (record(q.id) || !q.autoStart) continue;
+        if (game.check(q.autoStart) && game.check(q.requires)) {
+          game.start(q.id);
+          again = true;
+        }
+      }
+      for (const q of Object.values(registry.quests)) {
+        if (!game.isActive(q.id) || !(q.steps || []).length) continue;
+        const step = game.currentStep(q.id);
+        if (!step) {
+          game.complete(q.id);
+          again = true;
+        } else if (step.done !== undefined && game.check(step.done)) {
+          game.markStep(q.id, step.id);
+          again = true;
+        }
+      }
+    }
+
+    game.settle = () => {
+      if (settling) {
+        again = true;
+        return;
+      }
+      settling = true;
+      try {
+        let guard = 0;
+        do {
+          again = false;
+          progress();
+        } while (again && ++guard < 100);
+        if (guard >= 100) warn('settle: квесты зациклились');
+      } finally {
+        settling = false;
+      }
+    };
+
+    // Вызывается каждый кадр; условия шагов проверяются раз в несколько кадров
+    let frame = 0;
+    game.tick = () => {
+      if (++frame % 10 === 0) game.settle();
+    };
+
+    // ---------- Сохранение ----------
+    game.snapshot = () => ({ version: Core.STORY_VERSION, ...JSON.parse(JSON.stringify(game.state)) });
+
+    // Состояние из снимка; без снимка (старое сохранение) история начинается заново
+    game.restore = (data) => {
+      const fresh = Core.freshState();
+      const saved = data && typeof data === 'object' ? data : {};
+      for (const key of Object.keys(fresh)) {
+        if (saved[key] !== undefined) fresh[key] = JSON.parse(JSON.stringify(saved[key]));
+      }
+      game.state = fresh;
+      game.bump();
+      game.settle();
+    };
+
+    for (const extend of Core.gameExtensions) extend(game);
+    return game;
+  };
+})(globalThis);
