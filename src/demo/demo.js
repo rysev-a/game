@@ -10,8 +10,13 @@
 // Сцены у реки, торгового центра и заправки в ДЕМО нет; главный цикл и разговоры их всё равно спрашивают
 const incident = { arrived: false, state: 'waiting' };
 function updateIncident() {}
-function updateMallPeople() {}
 function updateGasStation() {}
+// На месте сцен торгового центра главный цикл крутит обновления самого ДЕМО: лаборатория, обучение
+// (src/demo/tutorial.js). Каждое — функция без аргументов, раз в кадр
+const demoUpdates = [];
+function updateMallPeople() {
+  for (const f of demoUpdates) f();
+}
 
 // ---------- Площадка ----------
 const demoHalf = 125; // площадка 250 × 250 с центром в (0, 0)

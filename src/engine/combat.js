@@ -12,6 +12,7 @@
 //     mesh,                           // модель в cityGroup: мигает при попадании, над ней полоска здоровья
 //     onHit(t, hit), onDeath(t),      // что делать при попадании и когда здоровье кончилось
 //   });
+//   kind: 'robot' | 'bio'           // вид врага (ENEMY_KINDS): его иммунитеты и слабости поверх weak
 //   hitTarget(t, { damage: 12, type: 'energy', x, z, effects }) → сколько урона прошло
 //   removeCombatTarget(t)
 //   updateCombat() — раз в кадр из главного цикла: полоски здоровья, вспышки, состояния
@@ -35,9 +36,20 @@
 
 const combatTargets = [];
 
+// ВИДЫ ВРАГОВ (docs/mechanics/weapons.md#роботы-и-биосущества). Множитель 0 — иммунитет: такой урон не
+// проходит совсем, и плазма огнемета его не прожигает. Вид важнее записи существа: его множители
+// перекрывают weak. Плазмомет (hitsAll в записи оружия) бьет всех, иммунитет его не держит.
+const ENEMY_KINDS = {
+  // Броня и электроника: огонь, плазма огнемета, пули и дробь не берут; ток и импульс — вдвое
+  robot: { name: 'Робот', weak: { fire: 0, plasma: 0, kinetic: 0, shrapnel: 0, electric: 2, energy: 2 } },
+  // Живая ткань: огонь берет вдвое; ток и импульс по ней не проходят
+  bio: { name: 'Биосущество', weak: { fire: 2, plasma: 2, electric: 0, energy: 0 } },
+};
+
 function addCombatTarget(def) {
   const t = Object.assign({ name: '', r: 0.6, height: 2, hp: 100, weak: {}, dead: false, flash: 0 }, def);
   t.maxHp = t.maxHp || t.hp;
+  if (t.kind && ENEMY_KINDS[t.kind]) t.weak = Object.assign({}, t.weak, ENEMY_KINDS[t.kind].weak);
   t.status = { stagger: 0, frozen: 0, shock: 0, burn: 0, burnDps: 0, melt: 0 };
   t.off = { x: 0, z: 0, vx: 0, vz: 0 };
   t.hist = [];
@@ -56,11 +68,14 @@ function removeCombatTarget(t) {
   if (i >= 0) combatTargets.splice(i, 1);
 }
 
+const immuneEffects = ['shock', 'burn', 'melt']; // состояния самого урона: при иммунитете не вешаются
+
 // Попадание: урон × множитель weak[тип]. Возвращает, сколько урона прошло (0 — цель уже лежит)
 function hitTarget(t, hit) {
   if (t.dead) return 0;
   let mult = t.weak[hit.type] !== undefined ? t.weak[hit.type] : 1;
-  if (mult < 1 && t.status.melt > 0) mult += (1 - mult) * t.status.melt; // оплавленная броня
+  if (mult > 0 && mult < 1 && t.status.melt > 0) mult += (1 - mult) * t.status.melt; // оплавленная броня (иммунитет не плавится)
+  if (hit.hitsAll) mult = Math.max(mult, 1); // плазмомет: ни броня, ни иммунитет его не держат
   // Удар по замороженной цели раскалывает лед: двойной урон и осколки во все стороны
   let shatter = false;
   if (hit.type === 'kinetic' && t.status.frozen > 0) {
@@ -73,7 +88,12 @@ function hitTarget(t, hit) {
   t.lastHit = performance.now();
   drawHpBar(t);
   if (shatter) shatterTarget(t);
-  else if (hit.effects) for (const k in hit.effects) applyStatus(t, k, hit.effects[k]);
+  else if (hit.effects) {
+    for (const k in hit.effects) {
+      if (mult === 0 && immuneEffects.includes(k)) continue; // иммунитет: ток не парализует, огонь не жжет
+      applyStatus(t, k, hit.effects[k]);
+    }
+  }
   if (hit.push) pushTarget(t, hit.push.x, hit.push.z);
   if (t.onHit) t.onHit(t, hit, dmg);
   if (t.hp <= 0) {

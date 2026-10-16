@@ -81,6 +81,7 @@ function weaponHit(w, t, x, y, z, dx, dz, over = {}) {
     damage: over.damage !== undefined ? over.damage : w.damage,
     type: over.type || w.type,
     x, z, weapon: w.id,
+    hitsAll: !!w.hitsAll,
     effects: over.effects !== undefined ? over.effects : w.effects,
     push: w.push ? { x: dx * w.push, z: dz * w.push } : null,
   });
