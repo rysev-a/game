@@ -1,13 +1,15 @@
 // src/engine/gyro-steer.js
-// РУЛЬ НАКЛОНОМ ТЕЛЕФОНА. На телефоне гоночная машина (VEHICLE_KINDS: gyro, src/world/vehicles.js) на трассе
-// (onRaceTrack, src/demo/race.js) рулит наклоном: телефон держат горизонтально, как руль, и поворачивают его
-// в плоскости экрана — против часовой стрелки налево, по часовой направо. Газ и тормоз — джойстиком, как раньше;
-// отклонили джойстик влево-вправо — он важнее наклона. Положение руля «прямо» запоминается, когда садитесь в машину.
+// РУЛЬ НАКЛОНОМ ТЕЛЕФОНА. На телефоне любая машина рулит наклоном: телефон держат горизонтально, как руль,
+// и поворачивают его в плоскости экрана — против часовой стрелки налево, по часовой направо. Газ, тормоз и
+// коробка передач — педалями слева (src/engine/touch-drive.js); если датчика нет, справа кнопки ◀ ▶, и они
+// важнее наклона. Положение руля «прямо» запоминается, когда садитесь в машину.
 // Чувствительность — ползунок в настройках (запоминается). Подключается после src/engine/touch.js.
 //
 //   gyroSteer(car) → −1..1 (плюс — налево) или null, если руль наклоном сейчас не работает
+//   gyroTiltReady() — датчик наклона присылает данные (иначе на экране кнопки руля)
 
 let gyroSteer = () => null;
+let gyroTiltReady = () => false;
 
 if (touchUI) {
   const steerFullAngle = 0.6; // рад (≈35°): при чувствительности 100% такой наклон — руль до упора
@@ -40,7 +42,7 @@ if (touchUI) {
   let center = 0;
   let steerCar = null;
   gyroSteer = (car) => {
-    if (tilt === null || !car.kind || !car.kind.gyro || typeof onRaceTrack !== 'function' || !onRaceTrack(car.x, car.z)) {
+    if (tilt === null) {
       steerCar = null;
       return null;
     }
@@ -55,6 +57,8 @@ if (touchUI) {
     return Math.max(-1, Math.min(1, v));
   };
 
+  gyroTiltReady = () => tilt !== null;
+
   function requestMotion() {
     const DM = window.DeviceMotionEvent;
     if (DM && typeof DM.requestPermission === 'function') DM.requestPermission().catch(() => {});
@@ -64,7 +68,7 @@ if (touchUI) {
   // Ползунок в настройках
   const row = document.createElement('div');
   row.innerHTML =
-    '<div class="row" style="margin-top:12px"><span>Чувствительность поворотов (наклон, гоночная машина)</span><span id="gyroSteerValue"></span></div>' +
+    '<div class="row" style="margin-top:12px"><span>Чувствительность руля (наклон телефона)</span><span id="gyroSteerValue"></span></div>' +
     '<input id="gyroSteerSlider" type="range" min="25" max="200" step="5" />';
   const slider = row.querySelector('input');
   const value = row.querySelector('#gyroSteerValue');

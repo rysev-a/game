@@ -124,15 +124,19 @@ function updateDriving(c) {
   const car = drivingCar;
   const k = car.kind || carDrive;
   const hasFuel = car.fuel > 0;
-  if (c.up && hasFuel) car.speed += car.speed < 0 ? k.brake : k.accel;
+  // На телефоне — педали и коробка передач (src/engine/touch-drive.js), на компьютере — клавиши
+  if (typeof touchDriveStep === 'function' && touchDriveStep(car, k, hasFuel)) {
+    // скорость уже посчитана
+  } else if (c.up && hasFuel) car.speed += car.speed < 0 ? k.brake : k.accel;
   else if (c.down && hasFuel) car.speed -= car.speed > 0 ? k.brake : k.accel * 0.7;
   else car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.drag);
   if (keys['Space']) car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.brake);
   car.speed = Math.min(Math.max(car.speed, k.maxReverse), k.maxSpeed);
 
   // Поворачивать можно только в движении; задним ходом руль работает наоборот.
-  // Руль на телефоне — джойстик; у гоночной машины на треке — наклон телефона (src/engine/gyro-steer.js), −1..1
+  // Руль на телефоне — кнопки ◀ ▶ (src/engine/touch-drive.js) или наклон телефона (src/engine/gyro-steer.js), −1..1
   let steer = (c.left ? 1 : 0) - (c.right ? 1 : 0);
+  if (!steer && typeof touchDriveSteer === 'function') steer = touchDriveSteer();
   if (!steer && typeof gyroSteer === 'function') steer = gyroSteer(car) || 0;
   const turn = steer * k.turnRate * Math.min(1, Math.abs(car.speed) / 0.15) * Math.sign(car.speed);
 
