@@ -4,9 +4,11 @@
 // как обычная вещь (ITEMS[id] заводится само, kind: 'weapon'), поэтому его берут со стола, сохраняют
 // и показывают в ДЕМО без отдельного кода.
 //
-// Виды (kind):
-//   'pulse' — импульсы: короткие светящиеся заряды летят по прямой, попадают в первую цель или стену
-//   (позже: 'beam' — непрерывный луч, 'melee' — удар, 'thrown' — бросок; см. weapons.md)
+// Виды (kind) — реестр WEAPON_KINDS: { fire(w, shot), update() }. Здесь — 'pulse' (заряды летят по прямой,
+// попадают в первую цель или стену); остальные виды — src/engine/weapon-kinds.js: 'rail' (гаусс),
+// 'stream' (плазмомет), 'canister' (крио), 'arc' (разрядник), 'tachyon' (тахионный пистолет).
+// Попадание любого вида — weaponHit(w, t, ...): урон, эффекты w.effects (состояния цели, толчок) и
+// вспышка w.hitFx.
 //
 // Управление:
 //   Q — достать / убрать оружие (берется последнее доставленное или первое из инвентаря)
@@ -35,13 +37,15 @@ const WEAPONS = {};
 //   bolt — как выглядит заряд: 'pulse' (короткий светящийся брусок) | 'wave' (электромагнитная волна:
 //          две синусоиды — вертикальная и горизонтальная — вокруг светящейся оси; wave: { length,
 //          amplitude, wavelength })
+//   effects — что попадание делает с целью (состояния из src/engine/combat.js): { stagger, freeze, ... },
+//   push — сила толчка от попадания, hitFx — вспышка попадания ('spark' | 'microburst')
 //   model() — модель в руке (src/models/weapons.js), sound — набор звуков (см. playWeaponSound)
 function defineWeapon(id, def) {
   const w = Object.assign(
     {
       id, kind: 'pulse', icon: id, damage: 10, type: 'energy', fireRate: 4, range: 40, speed: 2,
       heat: null, aimAssist: 0.2, color: 0xff4a5a, sound: 'pulse', hold: 'hand', bolt: 'pulse',
-      muzzle: { forward: 1.1, right: 0.39, up: 1.35 },
+      muzzle: { forward: 1.1, right: 0.39, up: 1.35 }, effects: null, push: 0, hitFx: 'spark',
     },
     def,
   );
@@ -52,6 +56,48 @@ function defineWeapon(id, def) {
 }
 
 const isWeapon = (id) => !!WEAPONS[id];
+
+// Виды оружия: pulse — здесь, остальные регистрируются в src/engine/weapon-kinds.js
+const WEAPON_KINDS = {};
+
+// Попадание оружия w в цель t в точке (x, y, z), заряд летел по (dx, dz). Урон и тип можно переопределить
+function weaponHit(w, t, x, y, z, dx, dz, over = {}) {
+  const dmg = hitTarget(t, {
+    damage: over.damage !== undefined ? over.damage : w.damage,
+    type: over.type || w.type,
+    x, z, weapon: w.id,
+    effects: over.effects !== undefined ? over.effects : w.effects,
+    push: w.push ? { x: dx * w.push, z: dz * w.push } : null,
+  });
+  spawnHitFx(w, x, y, z);
+  return dmg;
+}
+
+// Вспышка попадания: 'spark' — шарик; 'microburst' — микровзрыв: яркое ядро, искры и кольцо ударной волны
+function spawnHitFx(w, x, y, z) {
+  spawnWeaponFx(x, y, z, w.color, 0.18, 10, 1.15);
+  if (w.hitFx === 'microburst') {
+    spawnWeaponFx(x, y, z, 0xffffff, 0.12, 6, 1.25);
+    for (let i = 0; i < 5; i++) {
+      spawnWeaponFx(x + (Math.random() - 0.5) * 0.7, y + (Math.random() - 0.5) * 0.7, z + (Math.random() - 0.5) * 0.7, w.color, 0.06, 8, 1.2);
+    }
+    spawnShockRing(x, y, z, w.color);
+  }
+}
+
+// Кольцо ударной волны: плоское кольцо расширяется и гаснет
+const ringGeo = new THREE.RingGeometry(0.8, 1, 24);
+function spawnShockRing(x, y, z, color, size = 0.3, life = 12, grow = 1.22) {
+  const mesh = new THREE.Mesh(
+    ringGeo,
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }),
+  );
+  mesh.position.set(x, y, z);
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.scale.setScalar(size);
+  cityGroup.add(mesh);
+  weaponFx.push({ mesh, life, max: life, grow });
+}
 
 // Состояние оружия героя
 const heroWeapon = {
@@ -181,8 +227,10 @@ function fireWeapon(aim) {
   const x = playerWorldX + dirX * m.forward + rightX * m.right;
   const z = playerWorldZ + dirZ * m.forward + rightZ * m.right;
   const y = player.position.y + m.up;
-  spawnBolt(w, x, y, z, dirX, dirZ);
-  spawnWeaponFx(x, y, z, w.color, 0.14, 5, 1.12); // вспышка у ствола
+  const kind = WEAPON_KINDS[w.kind];
+  if (kind && kind.fire) kind.fire(w, { x, y, z, dirX, dirZ, heading, aim });
+  else spawnBolt(w, x, y, z, dirX, dirZ);
+  if (!w.noFlash) spawnWeaponFx(x, y, z, w.color, 0.14, 5, 1.12); // вспышка у ствола
 
   heroWeapon.cooldown = Math.max(1, Math.round(60 / w.fireRate));
   heroWeapon.sinceShot = 0;
@@ -194,7 +242,7 @@ function fireWeapon(aim) {
       showToast(w.name + ': перегрев! Подождите, пока остынет');
     }
   }
-  playWeaponSound(w.sound);
+  if (w.sound) playWeaponSound(w.sound);
   return true;
 }
 
@@ -310,8 +358,7 @@ function updateBolts() {
       b.traveled += step;
       const t = targetAt(b.x, b.z, b.y);
       if (t) {
-        hitTarget(t, { damage: b.w.damage, type: b.w.type, x: b.x, z: b.z, weapon: b.w.id });
-        spawnWeaponFx(b.x, b.y, b.z, b.w.color, 0.18, 10, 1.15);
+        weaponHit(b.w, t, b.x, b.y, b.z, b.dx, b.dz);
         playWeaponSound('hit');
         done = true;
       } else if (boltBlocked(b.x, b.z)) {
@@ -397,6 +444,7 @@ function updateWeapons() {
     for (const m of heroWeapon.mesh.userData.glow) m.color.copy(c);
   }
   updateBolts();
+  for (const k in WEAPON_KINDS) if (WEAPON_KINDS[k].update) WEAPON_KINDS[k].update();
   updateWeaponFx();
   updateWeaponHud();
 }
@@ -494,6 +542,39 @@ function playWeaponSound(kind) {
     noise(0.04, 0.3, 4000);
   } else if (kind === 'holster') {
     tone('sine', 1100, 260, 0.18, 0.2);
+  } else if (kind === 'rail') {
+    // Гаусс: короткий визг разгона и сухой треск сверхзвука
+    tone('sawtooth', 400, 3200, 0.06, 0.18);
+    noise(0.12, 0.6, 1500);
+    tone('square', 120, 40, 0.2, 0.3);
+  } else if (kind === 'collapse') {
+    // Схлопнулся вакуумный коридор: глухой «вумп»
+    tone('sine', 90, 30, 0.35, 0.5);
+    noise(0.25, 0.25, 400, 'lowpass');
+  } else if (kind === 'flame') {
+    noise(0.12, 0.25, 700, 'lowpass');
+    tone('sawtooth', 70, 55, 0.12, 0.08);
+  } else if (kind === 'cryo') {
+    tone('square', 300, 140, 0.06, 0.25); // хлопок вышибного заряда
+    noise(0.1, 0.25, 5000);
+  } else if (kind === 'freeze') {
+    noise(0.45, 0.3, 6000); // шипение азота
+    tone('sine', 1800, 2400, 0.25, 0.08);
+  } else if (kind === 'shatter') {
+    // Лед разлетелся: звон стекла
+    for (let i = 0; i < 5; i++) tone('triangle', 2000 + Math.random() * 3000, 1500, 0.15, 0.12, i * 0.025);
+    noise(0.2, 0.4, 3500);
+  } else if (kind === 'arc') {
+    noise(0.14, 0.4, 2000, 'bandpass');
+    tone('sawtooth', 60, 55, 0.14, 0.25);
+  } else if (kind === 'tachyon') {
+    // Обратный звук: тон растет, а не падает
+    tone('sine', 200, 2400, 0.16, 0.3);
+    tone('triangle', 100, 1200, 0.16, 0.15);
+  } else if (kind === 'echo') {
+    // Сработал упреждающий удар: звенящее эхо
+    tone('sine', 2400, 600, 0.3, 0.25);
+    tone('sine', 1800, 450, 0.3, 0.2, 0.06);
   }
 }
 
