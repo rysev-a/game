@@ -13,9 +13,13 @@ const camera = new THREE.PerspectiveCamera(
   0.5,
   1000,
 );
-// Сглаживание краев и учет плотности пикселей экрана (не больше 2, чтобы не грузить 4K/Retina)
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+// Сенсорный экран (телефон, планшет) — включаем сенсорное управление (src/engine/touch.js).
+// На компьютере его можно проверить, добавив ?touch к адресу
+const touchUI = /[?&]touch\b/.test(location.search) || window.matchMedia('(pointer: coarse)').matches;
+// Сглаживание краев и учет плотности пикселей экрана (не больше 2, чтобы не грузить 4K/Retina).
+// На телефоне — без сглаживания и не больше 1,5: экран мелкий, а видеокарта слабее
+const renderer = new THREE.WebGLRenderer({ antialias: !touchUI, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, touchUI ? 1.5 : 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 

@@ -58,10 +58,11 @@ document.addEventListener('mouseup', (e) => {
   if (e.button === 1) mmDragging = false;
 });
 
-// Точка холста под курсором (пиксели от центра)
+// Точка холста под курсором (пиксели холста от центра; на телефоне холст показан меньше своего размера)
 function minimapPoint(e) {
   const r = minimap.getBoundingClientRect();
-  return { u: e.clientX - (r.left + r.width / 2), v: e.clientY - (r.top + r.height / 2) };
+  const k = minimap.width / (r.width || minimap.width);
+  return { u: (e.clientX - (r.left + r.width / 2)) * k, v: (e.clientY - (r.top + r.height / 2)) * k };
 }
 
 // Точка мира по точке холста (u, v). Холст повернут на -worldRotation, масштаб S / range

@@ -185,7 +185,7 @@ function placeHoverPanel() {
 function showHoverInfo(info) {
   hoverPanel.classList.toggle('empty', !info);
   ipKind.textContent = info ? info.kind || 'Объект' : 'Сканер';
-  ipName.textContent = info ? info.name : 'Наведите курсор на объект';
+  ipName.textContent = info ? info.name : (touchUI ? 'Коснитесь объекта' : 'Наведите курсор на объект');
   ipDesc.textContent = info ? info.desc || '' : '';
 }
 showHoverInfo(null);
