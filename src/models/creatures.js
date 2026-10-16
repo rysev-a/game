@@ -8,8 +8,16 @@
 //   createSporeHoundModel()                   // спорогончая: бледная гончая с горящими спорами на спине
 //   createStiltVanguardModel()                // ходульный авангард: высокий желтый робот на ходулях
 //
-// Все модели смотрят в -Z и стоят на y = 0. Анимация — m.userData.animate(phase, move, time):
-// phase — фаза шага (растет, пока существо идет), move 0..1 — насколько оно сейчас идет, time — секунды.
+// Все модели смотрят в -Z и стоят на y = 0. Анимация — m.userData.animate(a), раз в кадр:
+//   a.phase — фаза шага (растет, пока существо идет или топчется на развороте)
+//   a.move  — 0..1, насколько оно сейчас идет;  a.time — секунды;  a.turn — поворот за кадр (рад)
+//   a.idle  — сколько кадров стоит на месте;     a.alert — 0..1, в него только что попали
+//   a.sweep — 0..1, дрон крутится на месте и выжигает пол (только у дрона)
+//   a.fight — 0/1, дерется с героем;  a.attack — имя атаки, a.charge — 0..1 замах перед ней,
+//   a.strike — 1..0 сразу после удара или выстрела
+// Откуда стреляет — m.userData.muzzles: { имя: Object3D } (позицию берут через getWorldPosition).
+// У каждого существа своя манера: m.userData.pace(phase) — множитель скорости по фазе шага
+// (рывки, тяжелый шаг), без него скорость ровная.
 //
 // Зависимость: глобальный THREE (three.js r128+), LitMaterial (src/engine/materials.js).
 
@@ -28,6 +36,14 @@ const cCyl = (p, rTop, rBot, h, sides, color, x, y, z, o) =>
   creaturePart(p, new THREE.CylinderGeometry(rTop, rBot, h, sides), color, x, y, z, o);
 // Граненый камень: икосаэдр, растянутый по осям
 const cGem = (p, r, color, x, y, z, o = {}) => creaturePart(p, new THREE.IcosahedronGeometry(r, o.detail || 0), color, x, y, z, o);
+
+// Пустая точка в модели: дуло, пасть, сопло — откуда летят выстрелы
+function creatureMarker(parent, x, y, z) {
+  const o = new THREE.Object3D();
+  o.position.set(x, y, z);
+  parent.add(o);
+  return o;
+}
 
 // Нога из двух звеньев: бедро (группа hip) и голень (группа knee на конце бедра). Детали звеньев
 // строят build.thigh(g) и build.shin(g) вдоль -Y. splay — развал ноги в сторону (вокруг Z)
@@ -121,16 +137,37 @@ function createChimericStriderModel() {
     leg.front = sz < 0;
     legs.push(leg);
   }
-  g.userData.animate = (phase, move, time) => {
-    // Ноги шагают по диагонали (как у паука): левая передняя с правой задней
+  // Походка паука: ноги переставляются по одной (левая передняя, правая задняя, правая передняя,
+  // левая задняя), колено высоко поднимается; тело качается, мешок отстает и колышется.
+  // Идет рывками-подкрадываниями. Стоит — переминается, время от времени встает на дыбы
+  // (и сразу, если в него попали): передние ноги вверх, клыки к стрелку
+  const order = { '-1true': 0, '1false': 1, '1true': 2, '-1false': 3 };
+  let rear = 0;
+  let sacSwing = 0;
+  let sacVel = 0;
+  g.userData.pace = (phase) => 0.3 + 0.7 * Math.max(0, Math.sin(phase * 2));
+  // Удар: встает на дыбы (замах) и обрушивает передние ноги и клыки вперед
+  g.userData.animate = ({ phase, move, time, idle, alert, charge = 0, strike = 0 }) => {
+    const wantRear = charge > 0 ? 1.3 : alert > 0.3 || (idle > 120 && time % 7 < 1.6) ? 1 : 0;
+    rear += (wantRear - rear) * (charge > 0 ? 0.15 : strike > 0 ? 0.4 : 0.06);
     for (const leg of legs) {
-      const p = phase + (leg.front === leg.side < 0 ? 0 : Math.PI);
-      swingLeg(leg, p, move, 0.32, 0.35);
+      const p = phase + (order[leg.side + String(leg.front)] * Math.PI) / 2;
+      const lift = Math.pow(Math.max(0, Math.sin(p)), 2); // нога в воздухе
+      const shift = idle > 0 ? Math.max(0, Math.sin(time * 1.3 + order[leg.side + String(leg.front)] * 1.6)) * 0.25 : 0;
+      leg.hip.rotation.x = Math.cos(p) * 0.3 * move + (leg.front ? rear * 0.75 : -rear * 0.15);
+      leg.knee.rotation.x = -(lift * 0.8 * move + shift * (1 - move) + (leg.front ? rear * 0.9 : 0));
     }
-    body.position.y = 2.55 + Math.abs(Math.sin(phase)) * 0.08 * move;
-    body.rotation.z = Math.sin(phase) * 0.05 * move;
-    // Мешок дышит
-    const k = 1 + Math.sin(time * 2.2) * 0.04;
+    body.position.y = 2.55 + Math.sin(phase * 2) * 0.06 * move + rear * 0.25;
+    body.position.x = Math.sin(phase) * 0.08 * move;
+    body.rotation.z = Math.sin(phase) * 0.07 * move + Math.sin(time * 0.8) * 0.03 * (1 - move);
+    body.rotation.x = rear * 0.45 - strike * 0.35;
+    body.position.z = -strike * 0.6;
+    // Мешок отстает от тела и колышется (пружина)
+    sacVel += (-body.rotation.z * 3 - sacSwing) * 0.08;
+    sacVel *= 0.88;
+    sacSwing += sacVel;
+    sac.rotation.z = sacSwing * 0.5;
+    const k = 1 + Math.sin(time * (2.2 + rear * 4)) * (0.04 + rear * 0.04);
     sac.scale.set(k, 1.3 * (2 - k), k);
   };
   return g;
@@ -183,15 +220,26 @@ function createCleanUpDroneModel() {
     sparks.push(line);
   }
   g.userData.shell = shell;
-  g.userData.animate = (phase, move, time) => {
-    // Парит: покачивается и наклоняется вперед на ходу
-    shell.position.y = 0.55 + Math.sin(time * 2.4) * 0.07;
-    shell.rotation.x = -0.12 * move + Math.sin(time * 1.7) * 0.02;
-    shell.rotation.z = Math.sin(time * 1.3) * 0.03;
-    const f = 0.8 + Math.random() * 0.4;
-    flame.scale.set(f, f, 0.8 + Math.random() * 0.5);
-    for (const j of jets) j.scale.y = 0.7 + Math.random() * 0.6;
-    for (const s of sparks) s.visible = Math.random() < 0.35;
+  g.userData.muzzles = { nozzle: creatureMarker(shell, 0.55, 0.32, -1.55), top: creatureMarker(shell, 0, 1.4, 0) };
+  // Парит и плавно скользит; в повороте кренится, как вертолет, разгоняясь — клюет носом.
+  // На точке маршрута крутится на месте и выжигает пол длинным пламенем. Попали — подскакивает
+  // выше, искры трещат без остановки
+  let lift = 0;
+  let bank = 0;
+  g.userData.animate = ({ move, time, turn, alert, sweep, attack, charge = 0, strike = 0 }) => {
+    const zap = attack === 'zap' ? Math.max(charge, strike) : 0;
+    const burn = attack === 'flame' ? Math.max(charge, strike) : 0;
+    sweep = Math.max(sweep, burn);
+    lift += (Math.max(alert, zap) * 0.45 - lift) * 0.05;
+    bank += (Math.max(-0.4, Math.min(0.4, -turn * 9)) - bank) * 0.1;
+    shell.position.y = 0.55 + lift + Math.sin(time * (2.4 + alert * 4)) * (0.07 + alert * 0.04);
+    shell.rotation.x = -0.14 * move + Math.sin(time * 1.7) * 0.02 + sweep * 0.12;
+    shell.rotation.z = bank + Math.sin(time * 1.3) * 0.03 - sweep * 0.1;
+    const f = (0.8 + Math.random() * 0.4) * (1 + sweep * 0.9);
+    flame.scale.set(f, f, (0.8 + Math.random() * 0.5) * (1 + sweep * 1.6));
+    for (const j of jets) j.scale.y = (0.7 + Math.random() * 0.6) * (1 + move * 0.6 + lift);
+    for (const s of sparks) s.visible = Math.random() < 0.3 + Math.max(alert, zap) * 0.6;
+    for (const s of sparks) s.scale.y = 1 + zap * 1.5;
   };
   return g;
 }
@@ -260,6 +308,12 @@ function createCainModel() {
     cCyl(torso, 0.5, 0.55, 0.5, 6, 0x6e7c80, s * 1.2, 1.75, 0);
     cCyl(torso, 0.42, 0.5, 0.12, 6, grayLight, s * 1.2, 2.05, 0);
   }
+  // Ракетная установка на левом плече: короб с двумя трубами
+  cBox(torso, 0.5, 0.38, 0.6, 0x4a565c, -1.15, 2.3, 0.1);
+  cBox(torso, 0.14, 0.14, 0.04, 0x1a2228, -1.26, 2.33, -0.21);
+  cBox(torso, 0.14, 0.14, 0.04, 0x1a2228, -1.04, 2.33, -0.21);
+  const podFlash = cBox(torso, 0.4, 0.14, 0.05, 0xff8a2a, -1.15, 2.33, -0.24, { glow: true });
+  podFlash.visible = false;
   cBox(torso, 0.16, 0.12, 0.04, rust, -1.1, 1.85, -0.5, { rot: [0, 0, 0.5] });
   // Правая рука (+X) — кулак
   const armR = new THREE.Group();
@@ -295,19 +349,48 @@ function createCainModel() {
   // Пулемет и кулак смотрят вперед: рука согнута в локте
   armL.rotation.x = 0.35;
   armR.rotation.x = 0.25;
+  const fistGlow = cBox(armR, 0.5, 0.06, 0.5, 0xff8a2a, 0.12, -1.44, -0.05, { glow: true }); // огонь из кулака
+  fistGlow.visible = false;
+  g.userData.muzzles = {
+    gun: creatureMarker(barrels, 0, -0.3, 0),
+    fist: creatureMarker(armR, 0.12, -1.55, -0.05),
+    pod: creatureMarker(torso, -1.15, 2.33, -0.4),
+  };
   g.userData.spin = 0; // скорость вращения блока стволов: растет, когда в робота попали
-  g.userData.animate = (phase, move, time) => {
+  // Тяжелый шаг: нога поднимается высоко и впечатывается, корпус проседает на каждом шаге,
+  // плечи поворачиваются навстречу ногам; между шагами почти замирает. Стоит — водит головой.
+  // Попали — вскидывает пулемет на стрелка и раскручивает стволы
+  let aim = 0;
+  g.userData.pace = (phase) => 0.2 + 0.8 * Math.abs(Math.sin(phase));
+  // В бою: пулемет поднят на героя и плюется зеленой плазмой; огонь — поднимает кулак и бьет
+  // струей пламени прямо из руки; ракеты — откидывается назад, из короба на плече вспышка
+  let fistUp = 0;
+  g.userData.animate = ({ phase, move, time, idle, alert, fight = 0, attack, charge = 0, strike = 0 }) => {
+    aim += ((alert > 0 || fight ? 1 : 0) - aim) * 0.06;
+    const fire = attack === 'fire' ? Math.max(charge, strike) : 0;
+    fistUp += (fire - fistUp) * 0.15;
+    fistGlow.visible = attack === 'fire' && (strike > 0 || charge > 0.6) && Math.random() < 0.8;
+    podFlash.visible = attack === 'rocket' && (charge > 0.5 || strike > 0) && Math.random() < 0.7;
     for (const leg of legs) {
       const p = phase + (leg.s < 0 ? 0 : Math.PI);
-      swingLeg(leg, p, move, 0.28, 0.3);
+      const swing = Math.max(0, Math.sin(p));
+      leg.hip.rotation.x = (Math.sin(p) * 0.22 + swing * 0.25) * move;
+      leg.knee.rotation.x = -swing * 0.6 * move;
     }
-    torso.position.y = 1.9 + Math.abs(Math.sin(phase)) * 0.06 * move - 0.03 * move;
-    torso.rotation.y = Math.sin(phase) * 0.06 * move;
-    armR.rotation.x = 0.25 + Math.sin(phase) * 0.12 * move;
+    const stomp = Math.pow(Math.abs(Math.cos(phase)), 8); // нога ударила в землю
+    torso.position.y = 1.9 - stomp * 0.12 * move - 0.03 * move;
+    torso.rotation.y = -Math.sin(phase) * 0.1 * move + aim * 0.15;
+    torso.rotation.z = Math.sin(phase) * 0.04 * move;
+    torso.rotation.x = -aim * 0.06 - (attack === 'rocket' ? Math.max(charge, strike) * 0.12 : 0);
+    armR.rotation.x = 0.25 + Math.sin(phase) * 0.22 * move * (1 - fistUp) + fistUp * 1.3;
+    armL.rotation.x = 0.35 - Math.sin(phase) * 0.15 * move + aim * 1.05;
+    if (attack === 'plasma' && charge > 0) g.userData.spin = Math.max(g.userData.spin, 0.5 * charge);
     barrels.rotation.y += g.userData.spin;
     g.userData.spin *= 0.97;
     for (const s of sparks) s.visible = Math.random() < 0.3;
-    head.rotation.y = Math.sin(time * 0.6) * 0.25 * (1 - move);
+    // Голова: осматривается рывками с паузами
+    const scan = Math.sin(time * 0.6);
+    head.rotation.y = (Math.abs(scan) > 0.6 ? Math.sign(scan) * 0.45 : scan * 0.75) * (1 - move) * (1 - aim);
   };
   return g;
 }
@@ -327,7 +410,10 @@ function createSporeHoundModel() {
   cBox(body, 0.5, 0.2, 1.1, paleDark, 0, -0.3, 0.1); // брюхо
   cBox(body, 0.66, 0.5, 0.5, 0xdfe6e4, 0, 0.08, -0.5); // грудь
   // Хвост — сужается назад и вверх
-  cCyl(body, 0.04, 0.16, 0.8, 4, 0xa8c0cc, 0, 0.18, 0.95, { rot: [-1.15, Math.PI / 4, 0] });
+  const tail = new THREE.Group();
+  tail.position.set(0, 0.15, 0.7);
+  body.add(tail);
+  cCyl(tail, 0.04, 0.16, 0.8, 4, 0xa8c0cc, 0, 0.2, 0.35, { rot: [1.05, 0, 0] });
   // Шея и голова
   const head = new THREE.Group();
   head.position.set(0, 0.25, -0.75);
@@ -346,6 +432,7 @@ function createSporeHoundModel() {
     cCyl(head, 0.03, 0, 0.09, 4, 0xf4ecd8, x, 0.1, -0.6); // верхние зубы
     cCyl(jaw, 0, 0.03, 0.08, 4, 0xf4ecd8, x, 0.02, -0.48); // нижние
   }
+  g.userData.muzzles = { mouth: creatureMarker(head, 0, 0.15, -0.7) };
   const drool = cBox(head, 0.04, 0.22, 0.04, 0xff9a3a, 0.12, -0.08, -0.58, { glow: true });
   // Споры: по хребту и одна на боку, пульсируют
   const spores = [];
@@ -367,14 +454,33 @@ function createSporeHoundModel() {
     leg.phaseOff = (front ? 0 : Math.PI) + (sx < 0 ? 0 : Math.PI * 0.5);
     legs.push(leg);
   }
-  g.userData.animate = (phase, move, time) => {
-    for (const leg of legs) swingLeg(leg, phase + leg.phaseOff, move, 0.55, 0.6);
-    body.position.y = 1.05 + Math.abs(Math.sin(phase)) * 0.08 * move;
-    body.rotation.x = Math.sin(phase * 2) * 0.03 * move;
-    jaw.rotation.x = -0.45 - Math.sin(time * 3) * 0.1; // пасть раскрыта вниз
-    head.rotation.y = Math.sin(time * 0.9) * 0.2 * (1 - move);
+  // Галоп: передние лапы вместе, задние вместе, спина то сгибается, то вытягивается, хвост
+  // хлещет. Бежит толчками. Стоит — нюхает землю и щелкает пастью; попали — отряхивается
+  let shake = 0;
+  g.userData.pace = (phase) => 0.65 + 0.35 * Math.sin(phase);
+  // Плевок: задирает голову и широко раскрывает пасть, потом выбрасывает голову вперед
+  g.userData.animate = ({ phase, move, time, idle, alert, charge = 0, strike = 0 }) => {
+    if (alert > 0.95) shake = 1;
+    shake = Math.max(0, shake - 0.015);
+    for (const leg of legs) {
+      const front = leg.phaseOff % (Math.PI * 2) < Math.PI; // передние: 0 и π/2
+      const p = phase + (front ? 0 : Math.PI) + (leg.phaseOff > Math.PI * 0.4 && leg.phaseOff < Math.PI * 0.6 ? 0.35 : 0);
+      swingLeg(leg, p, move, 0.75, 0.8);
+    }
+    body.position.y = 1.05 + Math.max(0, Math.sin(phase)) * 0.18 * move;
+    body.rotation.x = Math.cos(phase) * 0.14 * move;
+    body.rotation.z = Math.sin(time * 40) * 0.08 * shake;
+    tail.rotation.y = Math.sin(time * (move > 0.5 ? 14 : 3)) * (0.25 + move * 0.35);
+    tail.rotation.x = -0.3 * move;
+    // Голова: на бегу вытянута вперед, стоя — опущена к земле, нюхает
+    const sniff = idle > 30 ? 1 : 0;
+    head.rotation.x = -0.35 * move - sniff * (0.45 + Math.sin(time * 6) * 0.06) * (1 - move) * (1 - charge) + charge * 0.5 - strike * 0.4;
+    body.rotation.x += charge * -0.12 + strike * 0.1;
+    head.rotation.y = Math.sin(time * 0.9) * 0.3 * (1 - move) + Math.sin(time * 45) * 0.25 * shake;
+    const snap = Math.max(0, Math.sin(time * 1.7)) > 0.97 ? 0.3 : 0;
+    jaw.rotation.x = -0.45 - Math.sin(time * 3) * 0.1 - move * 0.15 - snap - Math.max(charge, strike) * 0.5;
     for (let i = 0; i < spores.length; i++) {
-      const k = 1 + Math.sin(time * 3 + i) * 0.08;
+      const k = 1 + Math.sin(time * (3 + move * 5) + i) * 0.08;
       spores[i].scale.set((i > 3 ? 0.6 : 1) * k, 1.2 * k, k);
     }
     drool.scale.y = 0.6 + ((time * 0.8) % 1) * 0.9;
@@ -442,9 +548,10 @@ function createStiltVanguardModel() {
   cBox(head, 0.22, 0.05, 0.06, 0x9ad0e0, 0, 0.34, -0.29, { glow: true });
   // Плечевые лампы и руки
   const arms = [];
+  const lamps = [];
   for (const s of [-1, 1]) {
     cCyl(torso, 0.2, 0.2, 0.14, 6, 0x6a7678, s * 0.7, 1.3, 0, { rot: [Math.PI / 2, 0, 0] });
-    cCyl(torso, 0.13, 0.13, 0.15, 6, 0xfff2c8, s * 0.7, 1.3, -0.02, { glow: true, rot: [Math.PI / 2, 0, 0] });
+    lamps.push(cCyl(torso, 0.13, 0.13, 0.15, 6, 0xfff2c8, s * 0.7, 1.3, -0.02, { glow: true, rot: [Math.PI / 2, 0, 0] }));
     const arm = new THREE.Group();
     arm.position.set(s * 0.72, 1.12, 0.05);
     torso.add(arm);
@@ -456,14 +563,44 @@ function createStiltVanguardModel() {
     cCyl(arm, 0.06, 0, 0.16, 4, 0x9aa6a4, -s * 0.05, -1.0, 0);
     arm.rotation.z = s * 0.15;
     arm.s = s;
+    arm.muzzle = creatureMarker(arm, 0, -1.1, 0);
     arms.push(arm);
   }
-  g.userData.animate = (phase, move, time) => {
-    for (const leg of legs) swingLeg(leg, phase + (leg.s < 0 ? 0 : Math.PI), move, 0.3, 0.4);
-    torso.position.y = 3.2 + Math.abs(Math.sin(phase)) * 0.1 * move - 0.05 * move;
-    torso.rotation.z = Math.sin(phase) * 0.04 * move;
-    for (const a of arms) a.rotation.x = -Math.sin(phase + (a.s < 0 ? Math.PI : 0)) * 0.3 * move;
-    head.rotation.y = Math.sin(time * 0.7) * 0.4 * (1 - move);
+  // Шагает, как цапля: бедро высоко вверх, голень свисает, потом нога выпрямляется и ставится
+  // далеко вперед; руки прижаты, корпус почти не качается. На остановке поворачивает корпус и
+  // осматривает вольер плечевыми лампами (они мигают). Попали — приседает на ходулях
+  let crouch = 0;
+  let aimUp = 0;
+  g.userData.muzzles = {
+    armL: arms[0].muzzle,
+    armR: arms[1].muzzle,
+    lampL: creatureMarker(torso, -0.7, 1.3, -0.15),
+    lampR: creatureMarker(torso, 0.7, 1.3, -0.15),
+  };
+  // В бою вскидывает руки-стволы на героя и стреляет очередями; ракеты летят из плечевых ламп
+  g.userData.pace = (phase) => 0.35 + 0.65 * Math.abs(Math.cos(phase));
+  g.userData.animate = ({ phase, move, time, idle, alert, fight = 0, attack, charge = 0, strike = 0 }) => {
+    crouch += ((alert > 0 || (attack === 'rocket' && charge > 0) ? 1 : 0) - crouch) * 0.08;
+    aimUp += ((fight ? 1 : 0) - aimUp) * 0.08;
+    for (const leg of legs) {
+      const p = phase + (leg.s < 0 ? 0 : Math.PI);
+      const up = Math.max(0, Math.sin(p)); // нога в воздухе
+      leg.hip.rotation.x = (Math.sin(p) * 0.15 + up * 0.55) * move + crouch * 0.35;
+      leg.knee.rotation.x = -(up * Math.max(0, Math.cos(p - 0.4)) * 1.3 * move + crouch * 0.7);
+    }
+    torso.position.y = 3.2 + Math.abs(Math.cos(phase)) * 0.08 * move - 0.08 * move - crouch * 0.35;
+    torso.rotation.x = 0.05 * move;
+    // Осмотр: корпус медленно поворачивается, голова идет чуть впереди
+    const look = idle > 40 ? Math.sin(time * 0.7) * 0.6 : 0;
+    torso.rotation.y += (look - torso.rotation.y) * 0.04;
+    head.rotation.y += (look * 0.6 - head.rotation.y) * 0.06;
+    for (const a of arms) {
+      const kick = attack === 'bullet' ? strike * 0.15 : 0;
+      a.rotation.x = (-0.35 * move - 0.15 + Math.sin(time * 1.2 + a.s) * 0.04) * (1 - aimUp) + aimUp * 1.45 + kick;
+    }
+    if (aimUp > 0.5) torso.rotation.y += (0 - torso.rotation.y) * 0.2;
+    const blink = (idle > 40 && Math.sin(time * 5) > 0.2) || (attack === 'rocket' && charge > 0 && Math.sin(time * 30) > 0);
+    for (const l of lamps) l.visible = !blink || l.position.x * Math.sin(time * 0.7) > 0;
   };
   return g;
 }
