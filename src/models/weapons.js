@@ -6,7 +6,8 @@
 //   player.attach('rifle', gun);           // к груди, приклад у правого плеча; руки — player.setAim('rifle')
 //   createGaussCannonModel(), createPlasmaFlamerModel(), createCryoRifleModel(), createArcDischargerModel() —
 //                                          // остальные винтовки (так же к груди); createTachyonPistolModel() — в руку
-//   createPlasmaGunModel(), createMinigunModel() (userData.spin — блок стволов), createShotgunModel()
+//   createPlasmaGunModel(), createMinigunModel() (userData.spin — блок стволов), createShotgunModel(),
+//   createBazookaModel(); createRocketMesh() — летящая ракета базуки (нос в -Z)
 //   const d = createTrainingDummy({ armor: true });  // манекен на столбе, лицом в -Z, стоит на y = 0
 //   createRobotDummy(), createRangeCrate() — робот-мишень и ящик для тира
 //
@@ -243,6 +244,66 @@ function createShotgunModel() {
   weaponPart(g, 0.02, 0.03, 0.02, 0xd0d0d0, 0, 0.07, -1.56, { edges: false }); // мушка
   g.userData.glow = [];
   g.userData.muzzle = new THREE.Vector3(0, 0.03, -1.6);
+  return g;
+}
+
+// Базука — оливковая труба длиной ~1,5 на плече: хвост с раструбом торчит за плечом, рукоять под правую
+// руку (z ≈ −0,45), передняя ручка под левую (z ≈ −0,7), сверху прицельная планка. Труба поднята над
+// корпусом, как у гранатомета, дуло — userData.muzzle. Внутри у дула видна боеголовка заряженной ракеты
+function createBazookaModel() {
+  const g = new THREE.Group();
+  const olive = 0x4f5a34;
+  const dark = 0x2a3020;
+  const metal = 0x5a5f66;
+  const tube = (r, len, color, z) => {
+    const geo = new THREE.CylinderGeometry(r, r, len, 12).rotateX(Math.PI / 2);
+    const m = new THREE.Mesh(geo, new LitMaterial({ color }));
+    m.position.set(0, 0.1, z);
+    g.add(m);
+    return m;
+  };
+  tube(0.1, 1.3, olive, -0.45); // труба
+  tube(0.125, 0.12, dark, 0.22); // раструб сзади
+  tube(0.115, 0.08, dark, -0.18); // бандаж у плеча
+  tube(0.115, 0.08, dark, -0.78); // бандаж у передней ручки
+  tube(0.12, 0.1, metal, -1.12); // дульное кольцо
+  const grip = weaponPart(g, 0.07, 0.18, 0.09, dark, 0, -0.06, -0.45); // рукоять под правую руку
+  grip.rotation.x = 0.25;
+  weaponPart(g, 0.02, 0.05, 0.04, metal, 0, -0.01, -0.53); // спуск
+  weaponPart(g, 0.06, 0.14, 0.07, dark, 0, -0.04, -0.7); // передняя ручка под левую
+  weaponPart(g, 0.04, 0.06, 0.34, metal, 0, 0.22, -0.55); // прицельная планка
+  weaponPart(g, 0.08, 0.08, 0.1, dark, 0.09, 0.22, -0.42); // оптика сбоку
+  // Боеголовка ракеты в дуле: красный нос
+  const tip = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.14, 10).rotateX(-Math.PI / 2), new LitMaterial({ color: 0xc83a2a }));
+  tip.position.set(0, 0.1, -1.16);
+  g.add(tip);
+  const lens = weaponPart(g, 0.02, 0.05, 0.05, 0xffa040, 0.135, 0.22, -0.42, { glow: true }); // огонек готовности
+  g.userData.glow = [lens.material];
+  g.userData.muzzle = new THREE.Vector3(0, 0.1, -1.18);
+  return g;
+}
+
+// Ракета базуки в полете: корпус, красный нос, четыре стабилизатора и светящееся сопло (userData.flame)
+function createRocketMesh() {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.5, 10).rotateX(Math.PI / 2), new LitMaterial({ color: 0x6a7348 }));
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.18, 10).rotateX(-Math.PI / 2), new LitMaterial({ color: 0xc83a2a }));
+  nose.position.z = -0.34;
+  g.add(body, nose);
+  for (let i = 0; i < 4; i++) {
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.12, 0.14), new LitMaterial({ color: 0x2a3020 }));
+    const a = (i * Math.PI) / 2;
+    fin.position.set(Math.cos(a) * 0.1, Math.sin(a) * 0.1, 0.2);
+    fin.rotation.z = a;
+    g.add(fin);
+  }
+  const flame = new THREE.Mesh(
+    new THREE.ConeGeometry(0.065, 0.32, 8).rotateX(Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color: 0xffb050, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }),
+  );
+  flame.position.z = 0.42;
+  g.add(flame);
+  g.userData.flame = flame;
   return g;
 }
 

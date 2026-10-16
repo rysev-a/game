@@ -15,6 +15,7 @@
 //                (pastFrames назад); промах оставляет «эхо» на линии выстрела, и цель, которая пересечет
 //                ее в ближайшие секунды, получит удар задним числом
 //   'spread'   — дробовик: веер дробинок, каждая — обычный заряд
+//   'rocket'   — базука: самонаводящаяся ракета с дымным следом, взрыв бьет всех в радиусе (splash)
 //
 // Подключается после src/engine/weapons.js и до src/player/weapons.js.
 
@@ -558,6 +559,182 @@ WEAPON_KINDS.spread = {
       const a = (Math.random() - 0.5) * angle;
       const h = shot.heading + a;
       spawnBolt(w, shot.x, shot.y + (Math.random() - 0.5) * 0.1, shot.z, -Math.sin(h), -Math.cos(h), w.range * (0.8 + Math.random() * 0.4), shot.slope);
+    }
+  },
+};
+
+// ---------- rocket: базука ----------
+// w.rocket: { speed0 — скорость на вылете, accel — разгон за кадр (до w.speed), turn — доворот за кадр (рад),
+//             lock — конус захвата впереди (рад), seek — радиус, в котором ищем цель у курсора,
+//             splash — радиус взрыва, edge — доля урона на краю взрыва }
+// Цель захватывается при выстреле: та, что у курсора, иначе ближайшая в конусе lock. Нет цели — ракета летит
+// прямо и ищет ее по пути. Летит, пока не попадет в цель, стену, землю или не пролетит range; взрыв — урон
+// w.damage в центре, к краю splash — edge от него, толчок от центра, разлет ящиков
+const rockets = [];
+const rocketSmoke = [];
+const rocketSmokeGeo = new THREE.SphereGeometry(1, 8, 6);
+
+function rocketLockTarget(w, s) {
+  const r = w.rocket;
+  if (s.aim) {
+    let best = null;
+    let bestD = r.seek;
+    for (const t of combatTargets) {
+      if (t.dead) continue;
+      const d = Math.hypot(t.x + t.off.x - s.aim.x, t.z + t.off.z - s.aim.z) - t.r;
+      if (d < bestD) {
+        best = t;
+        bestD = d;
+      }
+    }
+    if (best) return best;
+  }
+  return rocketSeek(w, s.x, s.z, s.dirX, s.dirZ);
+}
+
+// Живая цель в конусе lock по направлению (dx, dz) от точки (x, z), ближе всех к оси конуса
+function rocketSeek(w, x, z, dx, dz) {
+  let best = null;
+  let bestA = w.rocket.lock;
+  for (const t of combatTargets) {
+    if (t.dead) continue;
+    const vx = t.x + t.off.x - x;
+    const vz = t.z + t.off.z - z;
+    const d = Math.hypot(vx, vz);
+    if (d > w.range || d < 0.5) continue;
+    const a = Math.acos(Math.max(-1, Math.min(1, (vx * dx + vz * dz) / d)));
+    if (a > bestA) continue;
+    best = t;
+    bestA = a;
+  }
+  return best;
+}
+
+function rocketExplode(w, x, y, z) {
+  const r = w.rocket;
+  spawnWeaponFx(x, y, z, 0xffffff, 0.5, 12, 1.2);
+  spawnWeaponFx(x, y, z, 0xff8a30, 0.9, 20, 1.12);
+  for (let i = 0; i < 12; i++) {
+    spawnWeaponFx(x + (Math.random() - 0.5) * 2.4, y + Math.random() * 1.4, z + (Math.random() - 0.5) * 2.4, 0xffc060, 0.15, 14, 1.12);
+  }
+  spawnShockRing(x, 0.1, z, 0xffa040, 0.6, 22, 1.2);
+  spawnShockRing(x, y, z, 0xffffff, 0.4, 14, 1.25);
+  for (let i = 0; i < 10; i++) addRocketSmoke(x + (Math.random() - 0.5) * 2, Math.max(0.3, y) + Math.random(), z + (Math.random() - 0.5) * 2, 0.5, 60);
+  playWeaponSound('explosion');
+  for (const t of combatTargets) {
+    if (t.dead) continue;
+    const vx = t.x + t.off.x - x;
+    const vz = t.z + t.off.z - z;
+    const d = Math.max(0, Math.hypot(vx, vz) - t.r);
+    if (d > r.splash) continue;
+    const k = 1 - (1 - r.edge) * (d / r.splash);
+    const len = Math.hypot(vx, vz) || 1;
+    hitTarget(t, {
+      damage: Math.round(w.damage * k), type: w.type, x, z, weapon: w.id, effects: w.effects,
+      push: { x: (vx / len) * w.push * k, z: (vz / len) * w.push * k },
+    });
+  }
+  for (const l of looseObjects) {
+    const vx = l.x - x;
+    const vz = l.z - z;
+    const d = Math.hypot(vx, vz) || 1;
+    if (d < r.splash * 1.3) pushLoose(l, (vx / d) * 0.4, (vz / d) * 0.4);
+  }
+}
+
+// Клуб дыма: серый шар растет, всплывает и тает
+function addRocketSmoke(x, y, z, size, life) {
+  const mesh = new THREE.Mesh(rocketSmokeGeo, new THREE.MeshBasicMaterial({ color: 0x9a9a9a, transparent: true, opacity: 0.45, depthWrite: false }));
+  mesh.position.set(x, y, z);
+  mesh.scale.setScalar(size);
+  cityGroup.add(mesh);
+  rocketSmoke.push({ mesh, life, max: life });
+}
+
+WEAPON_KINDS.rocket = {
+  fire(w, s) {
+    const mesh = createRocketMesh();
+    cityGroup.add(mesh);
+    const slope = s.slope || 0;
+    const n = Math.hypot(1, slope);
+    rockets.push({
+      w, x: s.x, y: s.y, z: s.z, vx: s.dirX / n, vy: slope / n, vz: s.dirZ / n,
+      speed: w.rocket.speed0, traveled: 0, target: rocketLockTarget(w, s), mesh,
+    });
+    spawnWeaponFx(s.x, s.y, s.z, 0xffc060, 0.2, 6, 1.2);
+    for (let i = 0; i < 4; i++) addRocketSmoke(s.x - s.dirX * 0.6 * i, s.y, s.z - s.dirZ * 0.6 * i, 0.25, 30); // выхлоп назад
+    playWeaponSound('rocket');
+  },
+  update() {
+    for (let i = rockets.length - 1; i >= 0; i--) {
+      const r = rockets[i];
+      const R = r.w.rocket;
+      r.speed = Math.min(r.w.speed, r.speed + R.accel);
+      if (r.target && r.target.dead) r.target = null;
+      if (!r.target && r.traveled > 2) r.target = rocketSeek(r.w, r.x, r.z, r.vx, r.vz);
+      // Доворот на цель: направление тянется к ней не больше чем на turn за кадр
+      if (r.target) {
+        const t = r.target;
+        let tx = t.x + t.off.x - r.x;
+        let ty = t.height * 0.5 - r.y;
+        let tz = t.z + t.off.z - r.z;
+        const d = Math.hypot(tx, ty, tz) || 1;
+        tx /= d;
+        ty /= d;
+        tz /= d;
+        const dot = Math.max(-1, Math.min(1, r.vx * tx + r.vy * ty + r.vz * tz));
+        const ang = Math.acos(dot);
+        const k = ang > R.turn ? R.turn / ang : 1;
+        r.vx += (tx - r.vx) * k;
+        r.vy += (ty - r.vy) * k;
+        r.vz += (tz - r.vz) * k;
+        const n = Math.hypot(r.vx, r.vy, r.vz) || 1;
+        r.vx /= n;
+        r.vy /= n;
+        r.vz /= n;
+      }
+      let done = false;
+      const steps = Math.ceil(r.speed / 0.4);
+      for (let k = 0; k < steps && !done; k++) {
+        r.x += (r.vx * r.speed) / steps;
+        r.y += (r.vy * r.speed) / steps;
+        r.z += (r.vz * r.speed) / steps;
+        r.traveled += r.speed / steps;
+        if (targetAt(r.x, r.z, r.y)) {
+          done = true;
+        } else if (boltBlocked(r.x, r.z)) {
+          r.x -= r.vx * 0.3;
+          r.z -= r.vz * 0.3;
+          done = true;
+        } else if (r.y < 0.05) {
+          r.y = 0.1;
+          done = true;
+        } else if (r.traveled >= r.w.range) {
+          done = true;
+        }
+      }
+      r.mesh.position.set(r.x, r.y, r.z);
+      r.mesh.rotation.set(Math.asin(Math.max(-1, Math.min(1, r.vy))), Math.atan2(-r.vx, -r.vz), 0, 'YXZ');
+      r.mesh.userData.flame.scale.z = 0.8 + Math.random() * 0.6;
+      // Дымный след за соплом
+      addRocketSmoke(r.x - r.vx * 0.5, r.y - r.vy * 0.5, r.z - r.vz * 0.5, 0.12, 36);
+      if (done) {
+        rocketExplode(r.w, r.x, r.y, r.z);
+        cityGroup.remove(r.mesh);
+        rockets.splice(i, 1);
+      }
+    }
+    for (let i = rocketSmoke.length - 1; i >= 0; i--) {
+      const p = rocketSmoke[i];
+      p.life--;
+      p.mesh.scale.multiplyScalar(1.035);
+      p.mesh.position.y += 0.01;
+      p.mesh.material.opacity = 0.45 * (p.life / p.max);
+      if (p.life <= 0) {
+        cityGroup.remove(p.mesh);
+        p.mesh.material.dispose();
+        rocketSmoke.splice(i, 1);
+      }
     }
   },
 };
