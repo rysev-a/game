@@ -1,9 +1,9 @@
 // src/player/player.js
-// ИГРОК — идущий человечек в красной кофте, зафиксирован в центре экрана. Модель смотрит в -Z.
+// ИГРОК — детектив в плаще и шляпе (набор 'detective' в src/models/person.js), зафиксирован в центре экрана. Модель смотрит в -Z.
 // Здесь же: состояние игрока в мире (playerWorldX/Z, вращение вида), ходьба с коллизиями,
 // прыжок, анимация шагов и камера.
 
-const player = createWalkingMan({ shirtColor: 0xd23c3c });
+const player = createPerson('detective');
 player.position.set(0, 0, 0);
 scene.add(player);
 

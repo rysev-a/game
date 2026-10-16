@@ -112,14 +112,7 @@ function addCordon(cx, cz, half) {
 
 // Полицейский стоит на своем месте лицом к телу, раз в 5–15 секунд делает пару шагов
 function addOfficer(x, z, gender) {
-  const mesh = createWalkingMan({
-    gender,
-    shirtColor: 0x1b2a4a,
-    pantsColor: 0x16202e,
-    dressColor: 0x1b2a4a,
-    skinColor: pick(npcSkins),
-    hairColor: 0x1a1a1a,
-  });
+  const mesh = createPerson('police', { gender, skinColor: pick(npcSkins), hairColor: 0x1a1a1a });
   const o = {
     mesh,
     gender,

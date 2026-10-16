@@ -2,7 +2,7 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <title>Демо: идущий человек</title>
+    <title>Демо: люди</title>
     <style>
       body {
         margin: 0;
@@ -30,8 +30,25 @@
 
       scene.add(new THREE.GridHelper(20, 20, 0x555555, 0x333333));
 
-      const man = createWalkingMan();
-      scene.add(man);
+      // Ряд: детектив (игрок) и все типы прохожих
+      const lineup = [
+        createPerson('detective'),
+        createPerson('police'),
+        createPerson('police', { gender: 'female', hairColor: 0x5a3a22 }),
+        createPerson('office', { hairColor: 0x1a1a1a, glasses: true }),
+        createPerson('casual', { gender: 'female', hairColor: 0xc9a24a, dressColor: 0x3fa35b }),
+        createPerson('student', { hairColor: 0x7a2a1a, shirtColor: 0x8a5fc4, bagColor: 0x2a4a6a }),
+        createPerson('worker', { hairColor: 0x5a3a22, beard: true }),
+        createPerson('elder', { gender: 'female', dressColor: 0x8a5fc4 }),
+        createPerson('elder', { beard: true, glasses: true }),
+        createPerson('child', { hairColor: 0xc9a24a, shirtColor: 0xe0c341 }),
+        createPerson('casual', { hat: 'beanie', hatColor: 0x8a2a2a, shirtColor: 0x4a8a9a }),
+      ];
+      lineup.forEach((m, i) => {
+        m.position.x = (i - (lineup.length - 1) / 2) * 1.1;
+        scene.add(m);
+      });
+      const man = lineup[0];
 
       window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
@@ -43,9 +60,9 @@
       (function loop() {
         requestAnimationFrame(loop);
         const t = clock.getElapsedTime();
-        man.updateWalk(t * 6); // частота шагов
-        const a = t * 0.5; // камера медленно облетает модель
-        camera.position.set(Math.sin(a) * 4.5, 2.4, Math.cos(a) * 4.5);
+        lineup.forEach((m, i) => m.updateWalk(t * 6 + i)); // частота шагов
+        const a = Math.PI + Math.sin(t * 0.3) * 0.6; // камера покачивается перед рядом (люди смотрят в -Z)
+        camera.position.set(Math.sin(a) * 9, 2.4, Math.cos(a) * 9);
         camera.lookAt(0, 1, 0);
         renderer.render(scene, camera);
       })();

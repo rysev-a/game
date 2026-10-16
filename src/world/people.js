@@ -7,22 +7,52 @@ const npcDresses = [0xc4506a, 0x8a5fc4, 0xe0c341, 0x3fa35b, 0x4a8a9a, 0xe58a2f, 
 const npcPants = [0x2f2f2f, 0x3a4a6a, 0x5a4a3a, 0x4a4a4a];
 const npcHair = [0x1a1a1a, 0x5a3a22, 0x8a6a3a, 0xc9a24a, 0x7a2a1a];
 const npcSkins = [0xd9a066, 0xf0c8a0, 0xa66e3c, 0x7a4a2a];
+const npcBags = [0x5a4632, 0x2a2a2a, 0x8a2a2a, 0x2a4a6a, 0x4a6a3a];
+const npcHats = [0x2a2a2a, 0x8a2a2a, 0x2a4a6a, 0xc9a24a, 0x4a6a3a];
 
-function makePerson(gender) {
+// Какой это человек: набор из PERSON_PRESETS (src/models/person.js) и мелкие детали.
+// Полицейский — kind 'police' или изредка обычный прохожий в городе
+function personType(kind) {
+  if (kind === 'police') return 'police';
+  const r = Math.random();
+  if (kind === 'passerby' && r < 0.06) return 'police';
+  if (r < 0.16) return 'elder';
+  if (r < 0.26) return 'child';
+  if (r < 0.42) return 'office';
+  if (r < 0.56) return 'student';
+  if (r < 0.66) return 'worker';
+  return 'casual';
+}
+
+function makePerson(gender, type = personType()) {
   const opts = {
     gender,
     shirtColor: pick(npcShirts),
     dressColor: pick(npcDresses),
     skinColor: pick(npcSkins),
     hairColor: pick(npcHair),
+    bagColor: pick(npcBags),
+    hatColor: pick(npcHats),
   };
   if (gender === 'male') opts.pantsColor = pick(npcPants);
-  return createWalkingMan(opts);
+  // Детали поверх набора: очки, борода, шапка
+  if (type !== 'child') {
+    if (Math.random() < 0.18) opts.glasses = true;
+    if (gender === 'male' && type !== 'police' && Math.random() < 0.2) opts.beard = true;
+  }
+  if (type === 'casual' && Math.random() < 0.2) opts.hat = 'beanie';
+  // У набора свои цвета формы, прически и т. п. — случайные цвета их не перекрывают
+  const preset = PERSON_PRESETS[type] || {};
+  for (const key in preset) delete opts[key];
+  const mesh = createPerson(type, opts);
+  mesh.personType = type;
+  return mesh;
 }
 
-// kind — кто это: 'passerby' (прохожий), 'resident' (житель поселка)
+// kind — кто это: 'passerby' (прохожий), 'resident' (житель поселка), 'police' (полицейский)
 function addNpc(seg, gender, kind = 'passerby') {
-  const mesh = makePerson(gender);
+  const type = personType(kind);
+  const mesh = makePerson(gender, type);
 
   // Отрезок прогулки: на длинном тротуаре берем кусок 30–60 юнитов
   let { x1, z1, x2, z2 } = seg;
@@ -43,7 +73,8 @@ function addNpc(seg, gender, kind = 'passerby') {
     x: x1 + (x2 - x1) * t,
     z: z1 + (z2 - z1) * t,
     dir: Math.random() < 0.5 ? 1 : -1, // 1 — к точке b, -1 — к точке a
-    speed: rand(0.07, 0.12),
+    type,
+    speed: type === 'elder' ? rand(0.04, 0.06) : rand(0.07, 0.12), // пожилые ходят медленнее
     phase: rand(0, 6),
     amp: 0,
     wait: 0,
