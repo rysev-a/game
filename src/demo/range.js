@@ -16,7 +16,7 @@
   const rack = boxWithEdges(1.2, 1.0, rackLen, 0x3a3f4a);
   rack.position.set(rackX, 0.5, rangeZ);
   cityGroup.add(rack);
-  addHoverInfo(rack, { kind: 'ДЕМО', name: 'Тир: стойка с оружием', desc: 'E — взять оружие, Q — достать, ЛКМ — огонь по манекенам.' });
+  addHoverInfo(rack, { kind: 'ДЕМО', name: 'Тир: стойка с оружием', desc: 'E — взять оружие, Q — достать, R — сменить, ЛКМ — огонь по манекенам.' });
   addObstacle({ x: rackX, z: rangeZ, hx: 0.6, hz: rackLen / 2 });
   mapObjects.push({ x: rackX, z: rangeZ, hx: 0.6, hz: rackLen / 2, color: '#3a3f4a' });
 
@@ -37,7 +37,7 @@
     // Взятое оружие со стойки исчезает (как вещи со стола); выбросили из инвентаря — снова на стойке
     const take = () => {
       if (hasItem(id)) return;
-      if (addItem(id)) setTimeout(() => showToast(w.name + ': Q — достать, ЛКМ — огонь', 4000), 1200);
+      if (addItem(id)) setTimeout(() => showToast(w.name + ': Q — достать, R — сменить, ЛКМ — огонь', 4000), 1200);
       else showToast('Инвентарь полон');
     };
     addInteractable({
