@@ -430,17 +430,31 @@ function createWalkingMan(options = {}) {
 
   // ---------- Руки: pivot в плече, внутри — рука чуть разведена в стороны (A-поза) ----------
   const handColor = o.gloves !== null ? o.gloves : o.skinColor;
+  // Рука от плеча до кисти — 0,62, локоть на 0,34 от плеча. Рукав и голая рука — из двух частей:
+  // плечо (в inner) и предплечье (в fore), сужаются от плеча к запястью (wTop/dTop — у плеча)
+  const ELBOW = 0.34;
+  function limb(w, h, d, color, wTop, dTop, inner, fore) {
+    const k = ELBOW / h;
+    const wE = wTop + (w - wTop) * k;
+    const dE = dTop + (d - dTop) * k;
+    at(prism(wE, ELBOW, dE, color, wTop, dTop), 0, -ELBOW / 2, 0, inner);
+    at(prism(w, h - ELBOW, d, color, wE, dE), 0, -(ELBOW + h) / 2 + ELBOW, 0, fore);
+  }
   function makeArm(side) {
     const arm = new THREE.Group();
     arm.position.set(side * (shoulder + 0.02 * K), 1.56, 0);
     const inner = new THREE.Group();
     inner.rotation.z = side * 0.28; // руки разведены, как на листе
     arm.add(inner);
+    // Локоть: предплечье с кистью — отдельная группа fore, ее можно согнуть (setAim('rifle'))
+    const fore = new THREE.Group();
+    fore.position.y = -ELBOW;
+    inner.add(fore);
     if (bareArms) {
-      at(prism(0.09, 0.62, 0.1, o.skinColor, 0.12, 0.12), 0, -0.31, 0, inner);
+      limb(0.09, 0.62, 0.1, o.skinColor, 0.12, 0.12, inner, fore);
       if (o.tshirt) at(prism(0.13, 0.22, 0.14, o.shirtColor, 0.15, 0.15), 0, -0.09, 0, inner);
     } else {
-      at(prism(0.11 * K, 0.62, 0.12 * K, sleeveColor, 0.14 * K, 0.15 * K), 0, -0.31, 0, inner);
+      limb(0.11 * K, 0.62, 0.12 * K, sleeveColor, 0.14 * K, 0.15 * K, inner, fore);
       at(prism(0.115, 0.05, 0.125, personShade(sleeveColor, 0.15)), 0, -0.6, 0, inner); // манжета
     }
     if (o.gauntlets) {
@@ -468,7 +482,14 @@ function createWalkingMan(options = {}) {
       at(glow(0.012, 0.5, 0.03), side * 0.056, -0.32, 0, inner);
       at(glow(0.12, 0.018, 0.13), 0, -0.58, 0, inner);
     }
-    return { arm, inner };
+    // Всё, что ниже локтя (манжета, перчатка, кисть, полоски на предплечье), переезжает в предплечье
+    for (const c of [...inner.children]) {
+      if (c === fore || c.position.y > -ELBOW - 0.02) continue;
+      inner.remove(c);
+      c.position.y += ELBOW;
+      fore.add(c);
+    }
+    return { arm, inner, fore };
   }
   const L = makeArm(-1);
   const R = makeArm(1);
@@ -737,6 +758,36 @@ function createWalkingMan(options = {}) {
     inner.rotation.z = 0;
     inner.scale.y = Math.min(1.3, Math.max(1, len / 0.69));
   }
+  // Согнуть руку в локте так, чтобы кисть пришла в точку p корпуса (две кости: плечо ELBOW, предплечье до
+  // кисти HAND_FORE). Локоть уходит вниз, наружу и назад (pole), как у стрелка, прижавшего приклад
+  const HAND_FORE = 0.7 - ELBOW;
+  const _v = new THREE.Vector3();
+  const _m = new THREE.Matrix4();
+  function bendArm(side, a, p, pole) {
+    const S = new THREE.Vector3().copy(a.arm.position);
+    const H = new THREE.Vector3(p[0], p[1], p[2]);
+    const u = H.clone().sub(S);
+    const d = Math.min(u.length(), ELBOW + HAND_FORE - 0.001);
+    u.normalize();
+    // Где локоть: на расстоянии x вдоль плеча-кисти и h в сторону pole
+    const x = (ELBOW * ELBOW - HAND_FORE * HAND_FORE + d * d) / (2 * d);
+    const h = Math.sqrt(Math.max(0, ELBOW * ELBOW - x * x));
+    const pv = new THREE.Vector3(pole[0], pole[1], pole[2]);
+    pv.sub(u.clone().multiplyScalar(pv.dot(u))).normalize();
+    const E = S.clone().add(u.clone().multiplyScalar(x)).add(pv.multiplyScalar(h));
+    // Плечо — на локоть; предплечье — на кисть (в осях плеча)
+    pointArm(a.arm, a.inner, [E.x, E.y, E.z]);
+    a.inner.scale.y = 1;
+    a.arm.updateMatrix();
+    a.inner.updateMatrix();
+    _m.multiplyMatrices(a.arm.matrix, a.inner.matrix).invert();
+    _v.set(H.x, H.y, H.z).applyMatrix4(_m).sub(a.fore.position).normalize();
+    a.fore.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), _v);
+  }
+  function straightArm(a) {
+    a.fore.quaternion.identity();
+  }
+
   // Винтовка — как у солдата с автоматом: корпус развернут левым плечом вперед (RIFLE_YAW), приклад упирается
   // в правое плечо, правая кисть на рукояти со спуском, левая далеко впереди держит ствол снизу. Точки — в
   // осях героя (стоит, смотрит в -Z); в оси корпуса их переводит toBody. Хват на модели: рукоять — 0,45
@@ -744,7 +795,7 @@ function createWalkingMan(options = {}) {
   const RIFLE_YAW = -0.45;
   const RIFLE_AT = [0.24, 1.34, 0.12];
   const RIFLE_GRIP_R = [0.24, 1.2, -0.33];
-  const RIFLE_GRIP_L = [0.22, 1.23, -0.58];
+  const RIFLE_GRIP_L = [0.22, 1.25, -0.5];
   const toBody = ([x, y, z]) => [
     x * Math.cos(-RIFLE_YAW) + z * Math.sin(-RIFLE_YAW),
     y,
@@ -759,10 +810,14 @@ function createWalkingMan(options = {}) {
     poseYaw = aiming === 'rifle' ? RIFLE_YAW : 0;
     body.rotation.y = poseYaw;
     if (aiming === 'rifle') {
-      pointArm(armR, R.inner, toBody(RIFLE_GRIP_R));
-      pointArm(armL, L.inner, toBody(RIFLE_GRIP_L));
+      // Обе руки согнуты в локтях, как у стрелка на фото: правый локоть отведен в сторону и чуть вниз,
+      // левый — под цевьем, смотрит вниз
+      bendArm(1, R, toBody(RIFLE_GRIP_R), toBody([1, -0.35, 0.25]));
+      bendArm(-1, L, toBody(RIFLE_GRIP_L), toBody([-0.35, -1, 0]));
       return;
     }
+    straightArm(R);
+    straightArm(L);
     R.inner.scale.y = L.inner.scale.y = 1;
     armR.rotation.set(aiming ? 1.5 : 0, 0, 0);
     armL.rotation.set(0, 0, 0);
@@ -785,7 +840,7 @@ function createWalkingMan(options = {}) {
   // handR — в кулак: вещь повернута так, что ее -Z смотрит вдоль руки (из кулака), а +Y — от груди вверх
   // при вытянутой вперед руке
   // rifle — к корпусу: начало координат вещи — приклад у правого плеча, -Z — ствол вперед
-  const WEAR_SLOTS = { wristL: [L.inner, -0.56, 0], wristR: [R.inner, -0.56, 0], handR: [R.inner, -0.7, -Math.PI / 2] };
+  const WEAR_SLOTS = { wristL: [L.fore, -0.56 + ELBOW, 0], wristR: [R.fore, -0.56 + ELBOW, 0], handR: [R.fore, -0.7 + ELBOW, -Math.PI / 2] };
   root.attach = function (slot, obj) {
     root.userData.rig.attached.push([slot, obj]);
     if (slot === 'rifle') {
