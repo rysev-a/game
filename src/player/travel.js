@@ -207,6 +207,10 @@ function travelWithHelper(wx, wz) {
 }
 
 minimap.addEventListener('click', (e) => {
+  if (mmSwiped) {
+    mmSwiped = false; // это был свайп по карте на телефоне, а не касание
+    return;
+  }
   const p = minimapWorldPoint(e);
   travelTo(p.x, p.z);
 });
