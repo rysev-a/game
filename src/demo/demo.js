@@ -14,7 +14,7 @@ function updateMallPeople() {}
 function updateGasStation() {}
 
 // ---------- Площадка ----------
-const demoHalf = 80; // площадка 160 × 160 с центром в (0, 0)
+const demoHalf = 125; // площадка 250 × 250 с центром в (0, 0)
 const demoRect = { x1: -demoHalf, x2: demoHalf, z1: -demoHalf, z2: demoHalf };
 flatRect(demoHalf * 2, demoHalf * 2, 0x3f6b3a, 0.006, 0, 0);
 mapObjects.push({ x: 0, z: 0, hx: demoHalf, hz: demoHalf, color: '#2f5233', ground: true });
@@ -308,8 +308,33 @@ addInteractable({
   });
 }
 
+// ---------- Здания ----------
+// Все заготовки из реестра (src/content/buildings) стоят в ряд дважды: пустые (только стены, двери,
+// этажи) и полные (мебель, станции, жильцы). Фасады — на север, к площадке
+{
+  const rows = [
+    { z: 70, full: false, title: 'ЗДАНИЯ: пустые — стены, двери, этажи' },
+    { z: 104, full: true, title: 'ЗДАНИЯ: полные — станции, вещи, жильцы' },
+  ];
+  const ids = Object.keys(BUILDINGS);
+  const gap = 10;
+  const total = ids.reduce((sum, id) => sum + BUILDINGS[id].size.w, 0) + gap * (ids.length - 1);
+  for (const row of rows) {
+    let x = -total / 2;
+    demoLabel(row.title, 0, 8, row.z - 16, { size: 1.3, color: '#ffe08a' });
+    for (const id of ids) {
+      const def = BUILDINGS[id];
+      const cx = x + def.size.w / 2;
+      flatRect(def.size.w + 4, def.size.d + 4, 0x3c3c3c, 0.012, cx, row.z);
+      placeBuilding(id, { x: cx, z: row.z, heading: Math.PI, full: row.full });
+      demoLabel(def.name + '\n' + id, cx, 3.2, row.z - def.size.d / 2 - 4.5, { size: 0.8 });
+      x += def.size.w + gap;
+    }
+  }
+}
+
 demoLabel('ДЕМО-РЕЖИМ', 0, 9, -6, { size: 2.4, color: '#ffe08a' });
 
 // Старт на улице, за подставкой с приборами: впереди приборы, стол с предметами, персонажи, дорога и дом
 const demoStart = { x: 0, z: 48 };
-showToast('ДЕМО: впереди приборы, стол со всеми предметами и персонажи; дом с машиной — за дорогой', 8000);
+showToast('ДЕМО: впереди приборы, стол со всеми предметами и персонажи; дом с машиной — за дорогой, все здания — за спиной', 8000);

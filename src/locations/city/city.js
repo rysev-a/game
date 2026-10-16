@@ -9,7 +9,8 @@ const cityEdge = cityStep * 2.5; // половина ширины города �
 const cityHalfZ = cityStep * 2 + 4; // половина высоты города по дорогам
 // Города: центр (x, z) и расцветка. cityXs — центры городов на трассе (z = 0)
 const cities = [
-  { x: 220, z: 0, theme: { big: '#7d7d82', small: '#a39e92', top: 0x5c5c60 } }, // серый город
+  // reserved — участки (колонка i от −2 до 2, ряд z) под здания-заготовки из src/locations/city/city-buildings.js
+  { x: 220, z: 0, theme: { big: '#7d7d82', small: '#a39e92', top: 0x5c5c60 }, reserved: [[0, -18], [1, 18]] }, // серый город
   { x: 520, z: 0, theme: { big: '#a65a3c', small: '#d1a94a', top: 0x6b4a3a } }, // кирпичный город
   { x: -900, z: -600, theme: { big: '#4f7a8a', small: '#a8c4cc', top: 0x3a5663 } }, // голубой город
   { x: -450, z: -600, theme: { big: '#6a8a4a', small: '#c9d49a', top: 0x4a6035 } }, // зеленый город
@@ -93,7 +94,10 @@ function buildCity(city) {
   // 5 колонок × 4 ряда = 20 участков по обе стороны от главной дороги города (z = cz)
   const slots = [];
   for (let i = -2; i <= 2; i++) {
-    for (const row of [-54, -18, 18, 54]) slots.push([cx + i * cityStep, cz + row]);
+    for (const row of [-54, -18, 18, 54]) {
+      if ((city.reserved || []).some(([ri, rz]) => ri === i && rz === row)) continue;
+      slots.push([cx + i * cityStep, cz + row]);
+    }
   }
   for (let i = slots.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
