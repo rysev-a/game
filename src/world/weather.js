@@ -142,6 +142,7 @@ function updateRain() {
 //     либо нет. Ночью (22:00–6:00) дождь бывает почти в каждом отрезке (85%), днем — примерно в одном из семи.
 //     «Случайность» детерминирована номером отрезка, поэтому после загрузки сохранения погода та же.
 // P включает/выключает дождь вручную до ближайшей смены по расписанию.
+// Если в настройках дождь выключен, его не бывает вовсе — ни по расписанию, ни по P.
 const rainFirstAt = 20; // игровых минут от начала истории
 const rainDuration = 30;
 const rainSlotMinutes = 60;
@@ -182,6 +183,7 @@ function updateSchedule() {
     rainManual = null; // расписание сменилось — ручной режим сбрасывается
   }
   const wasOn = rainOn;
-  rainOn = rainManual !== null ? rainManual : scheduled;
+  // Дождь выключен в настройках (src/engine/settings.js) — его нет совсем, всегда хорошая погода
+  rainOn = settings.rain && (rainManual !== null ? rainManual : scheduled);
   if (wasOn && !rainOn) rainEndedAt = gameTime;
 }

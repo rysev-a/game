@@ -22,6 +22,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # вся история: из нее версия и список обновлений
 
       # The game is plain static files with no build step. Serve it as-is,
       # with ex.html as the start page. Folders starting with a dot
@@ -34,6 +36,24 @@ jobs:
             cp _site/ex.html _site/index.html
           fi
           touch _site/.nojekyll
+
+      # Version and recent updates for the bottom of the settings menu (src/engine/settings.js):
+      # version = number of merges into main, changes = the last 10 of them.
+      - name: Write version.json
+        run: |
+          export TZ=Europe/Moscow
+          {
+            printf '{"version":"1.%s","date":"%s","sha":"%s","changes":[' \
+              "$(git rev-list --count --first-parent HEAD)" \
+              "$(git log -1 --date=format-local:'%d.%m.%Y' --format=%cd)" \
+              "$(git rev-parse --short HEAD)"
+            git log --first-parent -10 --date=format-local:'%d.%m.%Y' --format='%cd%x09%s' \
+              | sed -E 's/ \(#[0-9]+\)$//' \
+              | jq -R -s -c 'split("\n") | map(select(length > 0) | split("\t") | {date: .[0], title: .[1]})' \
+              | sed -E 's/^\[//; s/\]$//'
+            printf ']}'
+          } > _site/version.json
+          cat _site/version.json
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

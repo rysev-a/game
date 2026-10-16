@@ -137,11 +137,12 @@ function clearSave(i) {
 
 function loadFromSlot(i) {
   const data = getSave(i);
-  if (!hasDeviceTag('saves')) return;
+  if (!hasDeviceTag('saves')) return false;
   if (!data || data.version !== SAVE_VERSION) {
     showToast('Это сохранение не подходит к текущей версии игры');
-    return;
+    return false;
   }
   applyGame(data);
   showToast('Загружено: слот ' + (i + 1));
+  return true;
 }

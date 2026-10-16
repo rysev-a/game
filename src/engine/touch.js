@@ -45,7 +45,7 @@ if (touchUI) {
     body.touch #fullscreenBtn { padding: 4px 9px; font-size: 16px; top: max(8px, env(safe-area-inset-top)); }
     body.touch #settingsBtn { top: max(8px, env(safe-area-inset-top)); bottom: auto; left: auto; right: 58px;
       width: 34px; height: 34px; font-size: 20px; }
-    body.touch #settingsMenu { top: 50px; bottom: auto; left: auto; right: 10px; }
+    body.touch #settingsMenu { top: 50px; bottom: auto; left: auto; right: 10px; z-index: 40; max-height: calc(100vh - 60px); }
     body.touch #minimapWrap { top: 50px; width: 120px; height: 120px; }
     body.touch #minimap { width: 120px; height: 120px; }
     body.touch #mmInfo, body.touch #clock, body.touch #mouseHint { display: none; }
@@ -60,6 +60,17 @@ if (touchUI) {
       overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; background: rgba(5, 8, 12, 0.92);
     }
     body.touch.invOpen #inventory.open { width: auto; max-width: 372px; margin: 0 auto; }
+    /* Сохранения — полоса на всю ширину сверху (10 слотов), под ней вещи слева и снаряжение справа */
+    body.touch.invOpen #inventory .invSaves {
+      position: fixed; top: 0; left: 0; right: 0; height: 64px; z-index: 32; box-sizing: border-box;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
+      background: rgba(14, 18, 26, 0.98); border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+    }
+    body.touch.invOpen #inventory .invSaves .invTools { margin: 0; padding: 0; border: none; }
+    body.touch.invOpen #inventory .invSaves .invGrid.saves { margin: 0; }
+    body.touch #inventory .invGrid.saves .px.dim { opacity: 0.3; }
+    body.touch.invOpen.invSavesOn #topLeft, body.touch.invOpen.invSavesOn #mEquip { top: 64px; }
     #mEquip {
       position: fixed; top: 0; right: 0; bottom: 0; width: 236px; z-index: 31; box-sizing: border-box; display: none;
       flex-direction: column; gap: 10px; padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 12px 12px;

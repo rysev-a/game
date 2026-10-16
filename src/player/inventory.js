@@ -126,9 +126,18 @@ function renderInventory() {
     return;
   }
 
+  // На телефоне раскрытый инвентарь — на весь экран, и сохранения идут полосой сверху: 10 слотов в ряд,
+  // под ними вещи слева и снаряжение справа (src/engine/touch.js)
+  const savesStrip = touchUI && savesOn;
+  document.body.classList.toggle('invSavesOn', savesStrip);
+  const slotCount = touchUI ? 10 : SAVE_SLOTS;
+  const savesBox = document.createElement('div');
+  savesBox.className = 'invSaves';
+  if (savesStrip) inventoryEl.appendChild(savesBox);
   inventoryEl.appendChild(chevron);
   inventoryEl.appendChild(grid);
   if (!savesOn) return;
+  if (!savesStrip) inventoryEl.appendChild(savesBox);
 
   // Сохранения: значки «сохранить» и «очистить», под ними 2 строки по 8 слотов
   const tools = document.createElement('div');
@@ -146,16 +155,17 @@ function renderInventory() {
     });
     tools.appendChild(btn);
   }
-  inventoryEl.appendChild(tools);
+  savesBox.appendChild(tools);
 
   const slots = document.createElement('div');
   slots.className = 'invGrid saves';
-  slots.style.gridTemplateColumns = 'repeat(' + inventory.columns + ', 40px)';
-  for (let i = 0; i < SAVE_SLOTS; i++) {
+  slots.style.gridTemplateColumns = 'repeat(' + (touchUI ? slotCount : inventory.columns) + ', 40px)';
+  for (let i = 0; i < slotCount; i++) {
     const filled = !!getSave(i);
     // Пульсируют все слоты, пока ждем выбора
     const c = cell('slot' + (filled ? ' filled' : '') + (savesMode ? ' pulse' : ''));
     if (filled) c.appendChild(pixelIcon('slot'));
+    else if (touchUI) c.appendChild(pixelIcon('save')).classList.add('dim'); // на телефоне: «сохранить сюда»
     c.title = filled ? saveTitle(i) : 'Пустой слот ' + (i + 1);
     c.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -163,7 +173,7 @@ function renderInventory() {
     });
     slots.appendChild(c);
   }
-  inventoryEl.appendChild(slots);
+  savesBox.appendChild(slots);
 }
 
 // Быстрый слот под свернутым инвентарем: пустой — сохраняет, заполненный — загружает
@@ -188,7 +198,12 @@ function onSlotClick(i) {
       renderInventory(); // остаемся в режиме: можно очищать дальше
     }
   } else if (getSave(i)) {
-    loadFromSlot(i);
+    // На телефоне инвентарь закрывает весь экран — после загрузки он закрывается, чтобы сразу играть
+    if (loadFromSlot(i) && touchUI) setInventoryOpen(false);
+  } else if (touchUI) {
+    // На телефоне касание пустого слота сразу сохраняет игру в него, и инвентарь закрывается
+    saveToSlot(i);
+    setInventoryOpen(false);
   }
 }
 
@@ -200,6 +215,7 @@ function setSavesMode(mode) {
 function setInventoryOpen(open) {
   inventoryOpen = open;
   savesMode = null;
+  if (!open) document.body.classList.remove('invSavesOn');
   renderInventory();
 }
 
