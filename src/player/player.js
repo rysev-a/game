@@ -28,7 +28,7 @@ let playerSpeed = 0.3;
 
 // БОЕВОЙ РЕЖИМ (docs/mechanics/combat.md): пока оружие в руках, герой по умолчанию бежит (быстрее в
 // combatRunFactor раз, шаги чаще и шире), зажатый Shift — идти шагом. Камера плавно отъезжает чуть дальше
-const combatRunFactor = 1.8;
+const combatRunFactor = 2;
 const combatCameraZoom = 1.15;
 const inCombatMode = () => !drivingCar && !pushingCar && !!heroWeapon.id;
 const isRunning = () => inCombatMode() && !keys['ShiftLeft'] && !keys['ShiftRight'];
