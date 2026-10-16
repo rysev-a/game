@@ -5,6 +5,7 @@
 //     едет сама, с газом разгоняется), M — ручной режим: справа появляются передачи 1–6, их переключают
 //     стрелками вверх и вниз. На каждой передаче свой предел скорости, на низких — сильнее тянет; без газа
 //     машина катится и плавно сбрасывает скорость.
+//   • рядом — ручник: держите на ходу и поворачивайте — машину заносит, остаются следы шин (src/player/driving.js);
 //   • над ними — скорость в км/ч;
 //   • руль — наклон телефона (src/engine/gyro-steer.js), а если датчика нет — кнопки ◀ ▶ справа.
 // Садясь в машину, коробка стоит в P. Кнопка 🚪 рядом с оружием — выйти (src/engine/touch.js).
@@ -13,7 +14,7 @@
 //                                     по педалям и передаче; true — посчитано здесь, клавиатура не нужна
 //   touchDriveSteer()               — руль кнопками ◀ ▶: −1..1 (плюс — налево), 0 — не нажаты
 
-const touchDrive = { gas: false, brake: false, gear: 'P', n: 1, steer: 0 };
+const touchDrive = { gas: false, brake: false, handbrake: false, gear: 'P', n: 1, steer: 0 };
 const touchDriveCreep = 0.06; // скорость «ползком» в D без газа (полная у легковушки — 0.8)
 const touchDriveCreepBack = 0.035; // то же в R
 const touchDriveGears = 6;
@@ -44,6 +45,7 @@ if (touchUI) {
       color: white; font: bold 12px sans-serif; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 6px; }
     #mDrive .pedal.brake { width: 66px; height: 74px; }
     #mDrive .pedal.gas { width: 50px; height: 112px; }
+    #mDrive .pedal.hand { width: 46px; height: 56px; border-radius: 23px 23px 10px 10px; font-size: 11px; }
     #mDrive .pedal.down { border-color: #ffd84a; background: repeating-linear-gradient(0deg, rgba(255, 216, 74, 0.5) 0 4px, rgba(60, 50, 10, 0.6) 4px 11px); }
     #mGearsM { right: max(14px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom));
       flex-direction: column; align-items: center; gap: 6px; }
@@ -66,7 +68,7 @@ if (touchUI) {
   panel.innerHTML =
     '<div class="speed"><span>0</span><small>км/ч</small></div><div class="row"><div class="box">' +
     ['P', 'R', 'D', 'M'].map((g) => '<button data-g="' + g + '">' + g + '</button>').join('') +
-    '</div><div class="pedal brake">ТОРМ</div><div class="pedal gas">ГАЗ</div></div>';
+    '</div><div class="pedal brake">ТОРМ</div><div class="pedal gas">ГАЗ</div><div class="pedal hand">РУЧН</div></div>';
   document.body.appendChild(panel);
   const speedEl = panel.querySelector('.speed span');
   let speedShown = -1;
@@ -118,6 +120,7 @@ if (touchUI) {
   }
   hold(panel.querySelector('.gas'), () => (touchDrive.gas = true), () => (touchDrive.gas = false));
   hold(panel.querySelector('.brake'), () => (touchDrive.brake = true), () => (touchDrive.brake = false));
+  hold(panel.querySelector('.hand'), () => (touchDrive.handbrake = true), () => (touchDrive.handbrake = false));
   for (const b of steerEl.querySelectorAll('button')) {
     const s = +b.dataset.s;
     hold(b, () => (touchDrive.steer = s), () => touchDrive.steer === s && (touchDrive.steer = 0));
@@ -141,7 +144,7 @@ if (touchUI) {
     const slow = (amount) => (car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), amount));
     const toward = (target, step) => (car.speed += Math.max(-step, Math.min(step, target - car.speed)));
     const g = touchDrive.gear;
-    const gas = touchDrive.gas && hasFuel;
+    const gas = touchDrive.gas && hasFuel && !touchDrive.handbrake; // на ручнике газ не тянет (как на компьютере)
     if (touchDrive.brake) {
       slow(k.brake);
     } else if (g === 'P') {
@@ -171,7 +174,7 @@ if (touchUI) {
     if (drivingCar !== wasDriving) {
       wasDriving = drivingCar;
       touchDrive.gear = 'P';
-      touchDrive.gas = touchDrive.brake = false;
+      touchDrive.gas = touchDrive.brake = touchDrive.handbrake = false;
       touchDrive.steer = 0;
       showGear();
     }
