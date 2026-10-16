@@ -146,14 +146,20 @@
     }
   }
 
+  // Пока журнал открыт, он считается «открытым разговором» (dialogueOpen): так игра не принимает ввод, а Esc в
+  // src/engine/mouse-look.js закрывает открытое окно, а не открывает настройки (его проверка escOverlayOpen — константа,
+  // обернуть ее нельзя). При переносе в основные файлы здесь будет свой флаг journalOpen в escOverlayOpen.
   function setOpen(value) {
-    if (value && (dialogueOpen || settingsOpen)) return;
+    if (value === open || (value && (dialogueOpen || settingsOpen))) return;
     open = value;
     root.classList.toggle('on', open);
     if (open) {
       for (const k of Object.keys(keys)) keys[k] = false; // отпускаем зажатые клавиши
       if (document.exitPointerLock) document.exitPointerLock();
+      dialogueOpen = true;
       render();
+    } else if (!dialogueNode) {
+      dialogueOpen = false; // если в это время не начался настоящий разговор
     }
   }
 
