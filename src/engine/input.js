@@ -44,7 +44,7 @@ fullscreenBtn.addEventListener('click', () => {
 function updateMouseHint() {
   mouseHint.style.display = 'block';
   mouseHint.textContent = mouseLookActive()
-    ? 'W/S — вперед/назад · A/D — вбок · мышь — прицел · колесо — оружие · Esc — отпустить мышь'
+    ? 'W/S — вперед/назад · A/D — вбок · мышь — прицел · колесо — оружие · Esc — выйти из боя'
     : 'Клик по земле — идти · по зданию — войти · по противнику — в бой · W/S — вперед/назад · A/D — поворот · E — действие · зажатое колесо мыши или стрелки — камера · клик по вещи — взять';
 }
 updateMouseHint();
