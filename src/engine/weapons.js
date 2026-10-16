@@ -44,6 +44,9 @@ const WEAPONS = {};
 //         с накоплением: пока кнопка зажата, заряд растет от 0 до 1 за time секунд; отпустили — выстрел,
 //         урон, толчок, шатание, толщина и длина заряда — между «от» и «до» по набранному заряду. Меньше min — не
 //         выстрелит. Полный заряд — удар 'blast'
+//   beam: { delay, range, dps, every, elixir } — непрерывный луч (плазмомет): щелчок — обычный выстрел, зажать
+//         дольше delay секунд — вместо очереди бьет луч до первой цели или стены (не дальше range), урон dps
+//         в секунду порциями раз в every кадров, тратит elixir (доля шкалы) в секунду
 //   spinUp — секунды раскрутки (пулемет): зажал — стволы раскручиваются (userData.spin модели), стрельба
 //         начинается, когда раскрутились; отпустил — медленно останавливаются
 //   elixir — сколько эликсира тратит выстрел, доля полной шкалы (heroStats.maxElixir); у оружия с charge —
@@ -131,6 +134,7 @@ const heroWeapon = {
   sinceShot: 999, // кадров после последнего выстрела
   mouseHeld: false,
   spin: 0, // раскрутка стволов 0..1 (оружие со spinUp)
+  holdAt: 0, // когда зажали кнопку (оружие с beam)
   spinAt: 0,
   charge: 0, // набранный заряд 0..1 (оружие с charge)
   charging: false,
@@ -169,6 +173,7 @@ function holsterWeapon(quiet = false) {
   heroWeapon.aimFrames = 0;
   stopCharge();
   heroWeapon.spin = 0;
+  if (beamOn) stopBeam();
   player.setAim(false);
   if (!quiet) playWeaponSound('holster');
   updateWeaponHud();
@@ -297,12 +302,7 @@ function fireWeapon(aim, power) {
   // Корпус разворачивается к цели, заряд выходит из дула (справа от груди)
   heroWeapon.aimHeading = heading;
   heroWeapon.aimFrames = 45;
-  const rightX = Math.cos(heading);
-  const rightZ = -Math.sin(heading);
-  const m = w.muzzle;
-  const x = playerWorldX + dirX * m.forward + rightX * m.right;
-  const z = playerWorldZ + dirZ * m.forward + rightZ * m.right;
-  const y = player.position.y + m.up;
+  const { x, y, z } = muzzleAt(w, heading);
   const kind = WEAPON_KINDS[w.kind];
   if (kind && kind.fire) kind.fire(w, { x, y, z, dirX, dirZ, heading, aim });
   else spawnBolt(w, x, y, z, dirX, dirZ);
@@ -376,6 +376,127 @@ function updateCharge(w) {
   if (!canUseWeapon()) return;
   if (power >= w.charge.min) fireWeapon(aim, power);
   else playWeaponSound('dry'); // отпустили слишком рано — заряд рассеялся
+}
+
+// Где дуло оружия w, если герой развернут на heading (в мире)
+function muzzleAt(w, heading) {
+  const m = w.muzzle;
+  return {
+    x: playerWorldX - Math.sin(heading) * m.forward + Math.cos(heading) * m.right,
+    y: player.position.y + m.up,
+    z: playerWorldZ - Math.cos(heading) * m.forward - Math.sin(heading) * m.right,
+  };
+}
+
+// ---------- Непрерывный луч (плазмомет) ----------
+// Щелчок — обычный выстрел (шар плазмы, на нажатие). Держат дольше beam.delay — луч: от дула до первой цели
+// или стены. Урон — порциями раз в beam.every кадров, эликсир — понемногу каждый кадр; кончился — луч гаснет.
+// Луч — светящаяся сердцевина и толстое мерцающее свечение, на конце — искры
+const beamParts = (() => {
+  const g = new THREE.Group();
+  const add = { transparent: true, blending: THREE.AdditiveBlending, depthWrite: false };
+  const core = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 1), new THREE.MeshBasicMaterial({ color: 0xeaffea, ...add }));
+  const glow = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 1), new THREE.MeshBasicMaterial({ color: 0x5cff6a, opacity: 0.55, ...add }));
+  const halo = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.42, 1), new THREE.MeshBasicMaterial({ color: 0x2aff4a, opacity: 0.18, ...add }));
+  for (const m of [core, glow, halo]) {
+    m.position.z = 0.5; // начало — у дула, тянется по +Z
+    g.add(m);
+  }
+  g.visible = false;
+  cityGroup.add(g);
+  return { g, glow, halo };
+})();
+let beamOn = false;
+let beamFrame = 0;
+function updateBeam(w) {
+  const held = (heroWeapon.mouseHeld || keys['KeyK']) && canUseWeapon();
+  const long = held && performance.now() - heroWeapon.holdAt > w.beam.delay * 1000;
+  if (!long || !spendWeaponElixir(w.beam.elixir / 60)) {
+    if (long && heroWeapon.sinceShot > 30) {
+      playWeaponSound('dry');
+      showToast(w.name + ': нет эликсира');
+      heroWeapon.sinceShot = 0;
+    }
+    if (beamOn) stopBeam();
+    return;
+  }
+  if (!beamOn) {
+    beamOn = true;
+    startBeamSound();
+  }
+  beamFrame++;
+  const { heading } = aimHeadingFor(w, heroWeapon.mouseHeld ? mouseAimPoint() : null);
+  heroWeapon.aimHeading = heading;
+  heroWeapon.aimFrames = 45;
+  heroWeapon.sinceShot = 0;
+  const m = muzzleAt(w, heading);
+  const dx = -Math.sin(heading);
+  const dz = -Math.cos(heading);
+  // Идем по лучу шагами по 0,3 до цели, стены или дальности
+  let len = 0;
+  let hit = null;
+  while (len < w.beam.range) {
+    len += 0.3;
+    const x = m.x + dx * len;
+    const z = m.z + dz * len;
+    hit = targetAt(x, z, m.y);
+    if (hit || boltBlocked(x, z)) break;
+  }
+  len = Math.min(len, w.beam.range);
+  const ex = m.x + dx * len;
+  const ez = m.z + dz * len;
+  const { g, glow, halo } = beamParts;
+  g.visible = true;
+  g.position.set(m.x, m.y, m.z);
+  g.rotation.y = Math.atan2(dx, dz);
+  g.scale.set(1, 1, len);
+  const flick = 0.8 + Math.random() * 0.4;
+  glow.scale.set(flick, flick, 1);
+  halo.scale.set(1.2 - flick * 0.3, 1.2 - flick * 0.3, 1);
+  if (beamFrame % w.beam.every === 0) {
+    if (hit) {
+      weaponHit(w, hit, ex, m.y, ez, dx, dz, { damage: Math.round((w.beam.dps * w.beam.every) / 60) });
+    } else if (len < w.beam.range) spawnWeaponFx(ex, m.y, ez, w.color, 0.12, 6, 1.15); // искры о стену
+  }
+  if (beamFrame % 3 === 0) spawnWeaponFx(ex + (Math.random() - 0.5) * 0.3, m.y + (Math.random() - 0.5) * 0.3, ez + (Math.random() - 0.5) * 0.3, w.color, 0.08, 6, 1.2);
+}
+function stopBeam() {
+  beamOn = false;
+  beamParts.g.visible = false;
+  stopBeamSound();
+}
+// Гул луча: два низких тона с дрожанием, пока луч горит
+let beamHum = null;
+function startBeamSound() {
+  stopBeamSound();
+  if (typeof muted !== 'undefined' && (muted || !audioUnlocked)) return;
+  if (!weaponCtx) weaponCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const ctx = weaponCtx;
+  const g = ctx.createGain();
+  g.gain.value = 0.1 * (typeof settings !== 'undefined' ? settings.volume : 1);
+  g.connect(ctx.destination);
+  const lfo = ctx.createOscillator();
+  const lfoGain = ctx.createGain();
+  lfo.frequency.value = 13;
+  lfoGain.gain.value = 25;
+  lfo.connect(lfoGain);
+  const oscs = [['sawtooth', 110], ['square', 220]].map(([type, f]) => {
+    const o = ctx.createOscillator();
+    o.type = type;
+    o.frequency.value = f;
+    lfoGain.connect(o.frequency);
+    o.connect(g);
+    o.start();
+    return o;
+  });
+  lfo.start();
+  beamHum = { g, oscs: [...oscs, lfo] };
+}
+function stopBeamSound() {
+  if (!beamHum) return;
+  for (const o of beamHum.oscs) o.stop();
+  beamHum.g.disconnect();
+  beamHum = null;
 }
 
 // ---------- Раскрутка стволов (пулемет) ----------
@@ -594,6 +715,7 @@ function updateWeapons() {
   heroWeapon.sinceShot++;
   if (w && w.charge) updateCharge(w);
   else if (w && w.spinUp) updateSpin(w);
+  else if (w && w.beam) updateBeam(w);
   else if (w) {
     if (heroWeapon.mouseHeld) fireWeapon(mouseAimPoint());
     else if (keys['KeyK']) fireWeapon(null);
@@ -645,13 +767,14 @@ weaponHud.style.cssText =
 weaponHud.innerHTML =
   '<div id="weaponName" style="font-weight:bold"></div>' +
   '<div style="font-size:11px;color:#ff8a7a;margin-bottom:5px">Боевой режим: бег · Shift — шагом</div>' +
-  '<div style="height:7px;background:rgba(255,255,255,0.15);border-radius:3px;overflow:hidden">' +
+  '<div id="weaponBar" style="height:7px;background:rgba(255,255,255,0.15);border-radius:3px;overflow:hidden">' +
   '<div id="weaponHeat" style="height:100%;width:0"></div></div>' +
   '<div id="weaponHint" style="margin-top:5px;font-size:11px;opacity:0.75"></div>';
 document.body.appendChild(weaponHud);
 const weaponHudParts = {
   name: weaponHud.querySelector('#weaponName'),
   heat: weaponHud.querySelector('#weaponHeat'),
+  bar: weaponHud.querySelector('#weaponBar'),
   hint: weaponHud.querySelector('#weaponHint'),
 };
 let weaponHudKey = '';
@@ -665,6 +788,8 @@ function updateWeaponHud() {
   weaponHud.style.display = w ? 'block' : 'none';
   if (!w) return;
   weaponHudParts.name.textContent = w.name;
+  // Шкала — только у оружия с накоплением (перегрева у оружия нет)
+  weaponHudParts.bar.style.display = w.charge || w.heat ? 'block' : 'none';
   weaponHudParts.heat.style.width = Math.round(bar * 100) + '%';
   if (w.charge) {
     // Шкала заряда: голубая, полная — белая
@@ -676,7 +801,9 @@ function updateWeaponHud() {
   weaponHudParts.heat.style.background = heroWeapon.overheated ? '#e0483a' : heroWeapon.heat > 0.7 ? '#e8b83a' : '#4ee6ff';
   weaponHudParts.hint.textContent = heroWeapon.overheated
     ? 'Перегрев — остывает'
-    : 'ЛКМ — огонь по курсору · K — по взгляду · R — сменить · Q — убрать';
+    : w.beam
+      ? 'ЛКМ — выстрел, зажать — луч · K — по взгляду · R — сменить · Q — убрать'
+      : 'ЛКМ — огонь по курсору · K — по взгляду · R — сменить · Q — убрать';
 }
 
 // ---------- Звук (синтез, как шаги в src/player/footsteps.js) ----------
@@ -834,6 +961,7 @@ function playWeaponSound(kind) {
 window.addEventListener('keydown', (e) => {
   if (e.repeat || settingsOpen || dialogueOpen) return;
   if (e.code === 'KeyQ') toggleWeapon();
+  if (e.code === 'KeyK') heroWeapon.holdAt = performance.now();
   if (e.code === 'KeyR') nextWeapon();
   if (e.code === 'KeyK' && heroWeapon.id && !WEAPONS[heroWeapon.id].charge && !WEAPONS[heroWeapon.id].spinUp) fireWeapon(null);
 });
@@ -841,6 +969,7 @@ window.addEventListener('keydown', (e) => {
 renderer.domElement.addEventListener('mousedown', (e) => {
   if (e.button !== 0 || !heroWeapon.id || hoveredPickable) return;
   heroWeapon.mouseHeld = true;
+  heroWeapon.holdAt = performance.now();
   const w = WEAPONS[heroWeapon.id];
   if (!w.charge && !w.spinUp) fireWeapon(mouseAimPoint()); // с накоплением — выстрел, когда отпустят; пулемет — когда раскрутится
 });
