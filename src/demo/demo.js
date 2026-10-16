@@ -236,12 +236,15 @@ addInteractable({
   mapObjects.push({ x: 0, z: tableZ, hx: tableW / 2, hz: 0.8, color: '#8a6a3c' });
   demoLabel('ПРЕДМЕТЫ — E, чтобы взять', 0, 3.4, tableZ, { size: 1.6, color: '#ffe08a' });
 
-  const colors = [0xe0c341, 0x3a7bd5, 0xc43a3a, 0x3fa35b, 0x8a5fc4, 0xe58a2f, 0xdad6c8, 0x4a8a9a, 0xd07a2f];
   ids.forEach((id, i) => {
     const x = x0 + i * step;
-    const box = boxWithEdges(0.6, 0.4, 0.6, colors[i % colors.length]);
-    box.position.set(x, 1.1, tableZ);
-    cityGroup.add(box);
+    // Объемная пиксельная модель вещи (src/models/items.js), медленно вращается
+    const model = createItemModel(id, 0.9);
+    model.position.set(x, 0.95, tableZ);
+    model.children[0].onBeforeRender = () => {
+      model.rotation.y = performance.now() / 1000 + i;
+    };
+    cityGroup.add(model);
     demoLabel(ITEMS[id].name, x, 2.1, tableZ, { size: 0.85 });
     const take = () => {
       if (hasItem(id)) showToast('Уже в инвентаре: ' + ITEMS[id].name);
@@ -253,8 +256,8 @@ addInteractable({
       prompt: () => 'E — взять: ' + ITEMS[id].name,
       act: take,
     });
-    // Мышью: навести на коробку (подсветится) и кликнуть
-    addPickable({ mesh: box, canPick: () => !drivingCar && !insideBuilding(), pick: take });
+    // Мышью: навести на вещь (подсветится) и кликнуть
+    addPickable({ mesh: model, canPick: () => !drivingCar && !insideBuilding(), pick: take });
   });
 }
 
