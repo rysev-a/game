@@ -561,10 +561,11 @@ const weaponWhite = new THREE.Color(0xffffff);
 const weaponHud = document.createElement('div');
 weaponHud.id = 'weaponHud';
 weaponHud.style.cssText =
-  'position:fixed;right:14px;bottom:14px;z-index:20;display:none;min-width:190px;padding:8px 10px;' +
+  'position:fixed;right:14px;bottom:72px;z-index:20;display:none;min-width:190px;padding:8px 10px;' +
   'background:rgba(0,0,0,0.55);color:#fff;font:13px sans-serif;border-radius:6px;pointer-events:none';
 weaponHud.innerHTML =
-  '<div id="weaponName" style="font-weight:bold;margin-bottom:5px"></div>' +
+  '<div id="weaponName" style="font-weight:bold"></div>' +
+  '<div style="font-size:11px;color:#ff8a7a;margin-bottom:5px">Боевой режим: бег · Shift — шагом</div>' +
   '<div style="height:7px;background:rgba(255,255,255,0.15);border-radius:3px;overflow:hidden">' +
   '<div id="weaponHeat" style="height:100%;width:0"></div></div>' +
   '<div id="weaponHint" style="margin-top:5px;font-size:11px;opacity:0.75"></div>';

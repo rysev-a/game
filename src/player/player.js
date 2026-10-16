@@ -24,6 +24,14 @@ const zoomMax = 2.5;
 const cameraHeightMin = 2;
 const cameraHeightMax = 60;
 let playerSpeed = 0.3;
+
+// БОЕВОЙ РЕЖИМ (docs/mechanics/combat.md): пока оружие в руках, герой по умолчанию бежит (быстрее в
+// combatRunFactor раз, шаги чаще и шире), зажатый Shift — идти шагом. Камера плавно отъезжает чуть дальше
+const combatRunFactor = 1.8;
+const combatCameraZoom = 1.15;
+const inCombatMode = () => !drivingCar && !pushingCar && !!heroWeapon.id;
+const isRunning = () => inCombatMode() && !keys['ShiftLeft'] && !keys['ShiftRight'];
+let combatCamera = 0; // 0..1 — насколько камера отъехала для боя
 let rotationSpeed = 0.025;
 
 // Простая физика прыжка (в кадрах, не в секундах).
@@ -41,6 +49,7 @@ let worldRotation = 0;
 // КЛАВИШИ УПРАВЛЕНИЯ
 //   W / S — вперед / назад      A / D — поворот (налево / направо)
 //   E — действие               F — выйти из машины / отпустить   стрелки — камера (←→ вращать, ↑↓ наклон)
+//   Shift — в боевом режиме (оружие в руках) идти шагом, а не бежать
 // За рулем и при толкании машины A/D — руль: left/right
 function readControls() {
   return {
@@ -82,7 +91,8 @@ function updateWalking(c) {
   if (onFoot) {
     turn = ((c.turnLeft ? 1 : 0) - (c.turnRight ? 1 : 0)) * playerTurnRate; // налево — плюс, как у машины
     const f = (c.up ? 1 : 0) - (c.down ? 1 : 0);
-    const fwd = f > 0 ? playerSpeed : f < 0 ? -playerSpeed * playerBackFactor : 0;
+    const speed = playerSpeed * (isRunning() ? combatRunFactor : 1);
+    const fwd = f > 0 ? speed : f < 0 ? -speed * playerBackFactor : 0;
     // Вперед в мире — (−sin h, −cos h), как у машины
     vx = -Math.sin(playerHeading + turn) * fwd;
     vz = -Math.cos(playerHeading + turn) * fwd;
@@ -159,9 +169,11 @@ function updatePlayerBody(move) {
   const onGround = player.position.y <= playerGroundY + 0.01;
   const moving = move.moving && onGround;
   const turning = move.turn !== 0 && onGround;
-  if (moving) walkPhase += 0.18 * move.dir; // шаги подстроены под скорость (пятится — в обратную сторону)
+  // Бег: шаги чаще и шире
+  const run = isRunning() && moving;
+  if (moving) walkPhase += 0.18 * (run ? 1.55 : 1) * move.dir; // шаги подстроены под скорость (пятится — в обратную сторону)
   else if (turning) walkPhase += 0.11;
-  const targetAmp = moving ? 1 : turning ? 0.55 : 0;
+  const targetAmp = moving ? (run ? 1.35 : 1) : turning ? 0.55 : 0;
   walkAmp += (targetAmp - walkAmp) * 0.18;
   player.updateWalk(walkPhase, walkAmp);
   updateFootsteps(moving || turning);
@@ -171,6 +183,8 @@ function updatePlayerBody(move) {
 function updateCamera() {
   if (keys['ArrowUp']) cameraHeight = Math.min(cameraHeight + 0.5, cameraHeightMax);
   if (keys['ArrowDown']) cameraHeight = Math.max(cameraHeight - 0.5, cameraHeightMin);
-  camera.position.set(0, cameraHeight * zoom, cameraDistance * zoom);
+  combatCamera += ((inCombatMode() ? 1 : 0) - combatCamera) * 0.05;
+  const z = zoom * (1 + (combatCameraZoom - 1) * combatCamera);
+  camera.position.set(0, cameraHeight * z, cameraDistance * z);
   camera.lookAt(0, 1, 0);
 }
