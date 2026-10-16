@@ -2,6 +2,7 @@
 // КАРТА НА ВЕСЬ ЭКРАН. Кнопка ⤢ в углу миникарты (на компьютере и на телефоне) открывает карту на весь экран.
 // Ее можно двигать (тащить мышью или пальцем), приближать и отдалять (колесо мыши, щипок двумя пальцами,
 // кнопки + и −) и крутить (правая кнопка мыши или Shift + тащить, поворот двумя пальцами, кнопки ⟲ ⟳).
+// Касание или клик по точке — герой перемещается туда, как по клику на миникарте (src/player/travel.js).
 // Навели мышь или коснулись здания — внизу видно, что это (то же, что в панели «что это»,
 // src/engine/hoverinfo.js), а здание на карте обводится желтой рамкой. ⌖ — вернуть карту к игроку,
 // ✕ или Esc — закрыть. Игра в это время идет как обычно. Рисует ту же карту, что и миникарта (drawMapView).
@@ -19,6 +20,7 @@ mapFullStyle.textContent = `
   }
   #mmExpand:hover { background: rgba(60, 60, 60, 0.85); }
   body.touch #mmExpand { width: 26px; height: 26px; font-size: 15px; top: 4px; left: 4px; }
+  body.mapFullOn #toast { z-index: 70; }
   #mapFull { position: fixed; inset: 0; z-index: 60; display: none; background: #111; touch-action: none; }
   #mapFull.on { display: block; }
   #mapFull canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
@@ -65,7 +67,9 @@ document.body.appendChild(mapFullEl);
 const mapFullCanvas = mapFullEl.querySelector('canvas');
 const mapFullCtx = mapFullCanvas.getContext('2d');
 const mapFullInfo = mapFullEl.querySelector('.info');
-const mapFullHint = touchUI ? 'Коснитесь здания — что это. Двумя пальцами — масштаб и поворот' : 'Наведите на здание — что это. Колесо — масштаб, правая кнопка — поворот';
+const mapFullHint = touchUI
+  ? 'Коснитесь точки — переместиться, здания — что это. Двумя пальцами — масштаб и поворот'
+  : 'Клик — переместиться, наведите на здание — что это. Колесо — масштаб, правая кнопка — поворот';
 
 function mapFullToMe() {
   mapFull.cx = playerWorldX;
@@ -84,6 +88,7 @@ function setMapFullOpen(open) {
   }
   mapFull.open = open;
   mapFullEl.classList.toggle('on', open);
+  document.body.classList.toggle('mapFullOn', open); // сообщения (куда переместились, почему нельзя) — поверх карты
 }
 
 mapFullEl.querySelector('.btns').addEventListener('click', (e) => {
@@ -232,7 +237,12 @@ function mfUp(e) {
   if (!mfPointers.has(e.pointerId)) return;
   mfPointers.delete(e.pointerId);
   if (mfPointers.size === 0) {
-    if (mfDown && !mfDown.moved && performance.now() - mfDown.t < 500) mapFullShowAt(e.clientX, e.clientY); // касание — что здесь
+    // Касание или клик — что здесь, и герой отправляется в эту точку, как по клику на миникарте (src/player/travel.js)
+    if (mfDown && !mfDown.moved && !mfDown.turn && performance.now() - mfDown.t < 500) {
+      mapFullShowAt(e.clientX, e.clientY);
+      const w = mapFullToWorld(e.clientX, e.clientY);
+      travelTo(w.x, w.z);
+    }
     mfDown = null;
     mapFullCanvas.classList.remove('drag');
   } else if (mfDown) {
