@@ -6,7 +6,8 @@
 //   fireEnemyShot({ kind, x, y, z, tx, ty, tz, speed, damage, type, area })
 //       kind: 'bullet' — пуля (летит прямо, быстро), 'rocket' — ракета (дым, взрыв по площади area),
 //             'spit'   — плевок жидкостью по дуге (на земле остается горящая лужа), 'fire' — капля пламени,
-//             'plasma' — зеленый сгусток плазмы (светится, по площади area)
+//             'plasma' — зеленый сгусток плазмы (светится, по площади area);
+//       color — свой цвет пули, плевка (и его лужи) или плазмы
 //   zapHero(from, damage)  — разряд молнией: мгновенно, от точки from { x, y, z } до героя
 //   heroIsTarget()         — можно ли сейчас бить героя (не за рулем, не в здании, не лежит). Бронемашина
 //                            (БТР, car.kind.armored) — тоже цель: попадания роботов бьют по ней (damageVehicle,
@@ -116,7 +117,7 @@ function fireEnemyShot(o) {
     s.vz = (dz / d) * s.speed;
   }
   const g = new THREE.Group();
-  if (s.kind === 'bullet') g.add(new THREE.Mesh(shotGeo.bullet, new THREE.MeshBasicMaterial({ color: 0xffd24a })));
+  if (s.kind === 'bullet') g.add(new THREE.Mesh(shotGeo.bullet, new THREE.MeshBasicMaterial({ color: s.color || 0xffd24a })));
   else if (s.kind === 'rocket') {
     const body = new THREE.Mesh(shotGeo.rocket, new LitMaterial({ color: 0x5a6468 }));
     body.rotation.x = -Math.PI / 2;
@@ -125,9 +126,9 @@ function fireEnemyShot(o) {
     flare.rotation.x = -Math.PI / 2;
     flare.position.z = 0.42;
     g.add(flare);
-  } else if (s.kind === 'spit') g.add(new THREE.Mesh(shotGeo.spit, new THREE.MeshBasicMaterial({ color: 0xff9a2a })));
+  } else if (s.kind === 'spit') g.add(new THREE.Mesh(shotGeo.spit, new THREE.MeshBasicMaterial({ color: s.color || 0xff9a2a })));
   else if (s.kind === 'plasma') {
-    g.add(new THREE.Mesh(shotGeo.plasma, new THREE.MeshBasicMaterial({ color: 0x5aff6a, transparent: true, opacity: 0.6 })));
+    g.add(new THREE.Mesh(shotGeo.plasma, new THREE.MeshBasicMaterial({ color: s.color || 0x5aff6a, transparent: true, opacity: 0.6 })));
     g.add(new THREE.Mesh(shotGeo.plasmaCore, new THREE.MeshBasicMaterial({ color: 0xe8ffe0 })));
   } else g.add(new THREE.Mesh(shotGeo.fire, new THREE.MeshBasicMaterial({ color: Math.random() < 0.5 ? 0xffb040 : 0xff6a20, transparent: true })));
   g.position.set(s.x, s.y, s.z);
@@ -165,8 +166,8 @@ function spawnBlast(x, z, r, color) {
 }
 
 // Горящая лужа: светится, жжет героя, пока он в ней стоит
-function spawnPuddle(x, z) {
-  const m = new THREE.Mesh(new THREE.CircleGeometry(1, 7), new THREE.MeshBasicMaterial({ color: 0xff8a2a, transparent: true, opacity: 0.85 }));
+function spawnPuddle(x, z, color = 0xff8a2a) {
+  const m = new THREE.Mesh(new THREE.CircleGeometry(1, 7), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85 }));
   m.rotation.x = -Math.PI / 2;
   m.position.set(x, 0.03, z);
   m.scale.setScalar(0.2);
@@ -224,7 +225,7 @@ function updateEnemyAttacks() {
       done = true;
     } else if (shotBlocked(s.x, s.y, s.z)) {
       if (s.area) explodeAt(s.x, s.z, s.area, s.damage, s.type, s.robot);
-      if (s.kind === 'spit') spawnPuddle(s.x, s.z);
+      if (s.kind === 'spit') spawnPuddle(s.x, s.z, s.color);
       done = true;
     }
     if (done) {
