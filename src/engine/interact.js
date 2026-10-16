@@ -96,7 +96,7 @@ const pickWorldPos = new THREE.Vector3();
 // Какая вещь под курсором (mouse — координаты -1..1); раз в кадр из главного цикла
 function updatePickHover(mouse) {
   let best = null;
-  if (mouse && !dialogueOpen && !settingsOpen && !inventoryOpen) {
+  if (mouse && !dialogueOpen && !settingsOpen) {
     const meshes = [];
     for (const p of pickables) {
       if (!p.mesh.visible || !p.canPick()) continue;

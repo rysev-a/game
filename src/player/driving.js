@@ -292,7 +292,7 @@ function updateCarMeshes() {
 
 // F — выйти из машины или отпустить толкаемую (E у колонки заправляет, поэтому выходим по F)
 window.addEventListener('keydown', (e) => {
-  if (e.code === 'KeyF' && !e.repeat && !settingsOpen && !dialogueOpen && !inventoryOpen) {
+  if (e.code === 'KeyF' && !e.repeat && !settingsOpen && !dialogueOpen) {
     if (drivingCar) exitCar();
     else if (pushingCar) releaseCar();
   }

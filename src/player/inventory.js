@@ -200,14 +200,11 @@ function setSavesMode(mode) {
 function setInventoryOpen(open) {
   inventoryOpen = open;
   savesMode = null;
-  if (open) {
-    for (const k of Object.keys(keys)) keys[k] = false; // отпускаем зажатые клавиши
-  }
   renderInventory();
 }
 
 // Свернутую панель раскрывает клик по любому месту. Раскрытая остается открытой,
-// пока ее не свернут вручную: стрелкой, клавишей I или Esc
+// пока ее не свернут вручную: стрелкой, клавишей I или Esc. Игра при этом идет как обычно
 inventoryEl.addEventListener('click', () => {
   if (!inventoryOpen) setInventoryOpen(true);
 });

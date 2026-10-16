@@ -134,7 +134,7 @@ const weaponBolts = []; // летящие заряды
 const weaponFx = []; // вспышки у ствола и попадания: { mesh, life, max, grow }
 
 const canUseWeapon = () =>
-  !drivingCar && !pushingCar && !dialogueOpen && !settingsOpen && !inventoryOpen;
+  !drivingCar && !pushingCar && !dialogueOpen && !settingsOpen;
 
 function drawWeapon(id) {
   const w = WEAPONS[id];
@@ -734,7 +734,7 @@ function playWeaponSound(kind) {
 
 // ---------- Ввод ----------
 window.addEventListener('keydown', (e) => {
-  if (e.repeat || settingsOpen || dialogueOpen || inventoryOpen) return;
+  if (e.repeat || settingsOpen || dialogueOpen) return;
   if (e.code === 'KeyQ') toggleWeapon();
   if (e.code === 'KeyR') nextWeapon();
   if (e.code === 'KeyK' && heroWeapon.id && !WEAPONS[heroWeapon.id].charge) fireWeapon(null);
