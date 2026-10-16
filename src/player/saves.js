@@ -92,7 +92,8 @@ function applyGame(data) {
   setGarageDoorInstant(!!data.car.garageOpen);
 
   // Инвентарь и вещи, лежащие в доме (взятые — исчезают, остальные на месте)
-  inventory.items = data.inventory.filter((id) => ITEMS[id]);
+  // Удостоверение (badge) из старых сохранений стало пропуском в IT-компанию
+  inventory.items = data.inventory.map((id) => (id === 'badge' ? 'itpass' : id)).filter((id) => ITEMS[id]);
   // Приборы: возврат идет с памятью, поэтому надетое сейчас не снимается, а надетое тогда — надевается
   for (const id of data.devices || []) if (DEVICES[id]) wearDevice(id, true);
   renderInventory();

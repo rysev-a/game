@@ -3,7 +3,7 @@
 // (с небольшим отступом) четыре быстрых слота сохранения: клик по пустому — сохранить игру в него,
 // по заполненному — загрузить. По клику на инвентарь (или клавише I) панель раскрывается: сетка 8 × 5
 // и под ней все сохранения — две строки по 8 слотов (быстрые слоты — это первые четыре из них).
-// Все значки пиксельные (src/player/icons.js). В начале игры в инвентаре гаечный ключ и отвертка.
+// Все значки пиксельные (src/player/icons.js). В начале игры инвентарь пуст.
 // Сохранения появляются только с браслетом возврата на руке (тег 'saves', src/player/devices.js):
 // до него ни быстрых слотов, ни панели сохранений нет.
 //
@@ -22,7 +22,7 @@ const ITEMS = {
   keys: { name: 'Ключи от машины', icon: 'keys' },
   wallet: { name: 'Кошелек', icon: 'wallet' },
   phone: { name: 'Телефон', icon: 'phone' },
-  badge: { name: 'Удостоверение', icon: 'badge' },
+  itpass: { name: 'Пропуск в IT-компанию', icon: 'itpass' },
   notebook: { name: 'Блокнот', icon: 'notebook' },
   flashlight: { name: 'Фонарик', icon: 'flashlight' },
   canister: { name: 'Канистра с бензином', icon: 'canister' }, // от соседа; E у своей машины — залить
@@ -33,7 +33,7 @@ const inventory = {
   columns: 8,
   collapsedCells: 3, // в свернутом виде видны первые три
   quickSlots: 4, // под ними всегда видны четыре слота сохранения (первые четыре из 16)
-  items: ['wrench', 'screwdriver'], // id вещей по порядку ячеек
+  items: [], // id вещей по порядку ячеек; в начале игры инвентарь пуст
 };
 
 const inventoryEl = document.getElementById('inventory');
@@ -217,6 +217,7 @@ function addItem(id) {
   inventory.items.push(id);
   renderInventory();
   showToast('Взято: ' + ITEMS[id].name);
+  playPickupClick(); // щелчок (src/player/footsteps.js)
   return true;
 }
 

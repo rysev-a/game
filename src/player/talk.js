@@ -98,7 +98,6 @@ function rootDialogue(p) {
     options.push({ text: 'Моя машина села. Не поможете подтолкнуть?', next: askPush });
   }
   if (isOfficer) {
-    if (hasItem('badge')) options.push({ text: 'Я из уголовного розыска. Что здесь произошло?', next: officerBadge });
     options.push({ text: 'Кто нашел тело?', next: officerWho });
   } else {
     options.push({ text: 'Как дела?', next: chat });
@@ -121,12 +120,6 @@ const riverRumor = (p) => ({
     'Слышал, у моста нашли человека. Больше ничего не знаю.',
   ]),
   options: [{ text: 'Спасибо.', end: true }],
-});
-
-const officerBadge = (p) => ({
-  speaker: personLabel(p),
-  text: 'Понял, товарищ. Тело нашли утром у реки, накрыто простыней. Осмотритесь, но ничего не трогайте.',
-  options: [{ text: 'Хорошо.', end: true }],
 });
 
 const officerWho = (p) => ({
