@@ -25,7 +25,7 @@ function propPart(w, h, d, color, edges = true) {
     const geo = new THREE.BoxGeometry(w, h, d);
     propGeoCache.set(key, { geo, edges: new THREE.EdgesGeometry(geo) });
   }
-  if (!propMatCache.has(color)) propMatCache.set(color, new THREE.MeshBasicMaterial({ color }));
+  if (!propMatCache.has(color)) propMatCache.set(color, new LitMaterial({ color }));
   const g = propGeoCache.get(key);
   const mesh = new THREE.Mesh(g.geo, propMatCache.get(color));
   if (edges) mesh.add(new THREE.LineSegments(g.edges, propEdgeMat));
@@ -103,12 +103,12 @@ const leafyTrunkGeo = new THREE.CylinderGeometry(0.22, 0.32, 2.2, 5).translate(0
 const leafyCrownGeo = new THREE.IcosahedronGeometry(1.6, 0).translate(0, 3.4, 0);
 const leafyTopGeo = new THREE.IcosahedronGeometry(1.1, 0).translate(0.4, 4.4, 0.2);
 const bushGeo = new THREE.IcosahedronGeometry(0.75, 0).scale(1.2, 0.75, 1).translate(0, 0.45, 0);
-const leafyTrunkMat = new THREE.MeshBasicMaterial({ color: 0x5a3d26 });
+const leafyTrunkMat = new LitMaterial({ color: 0x5a3d26 });
 const leafyGreens = [0x4f8a3a, 0x5f9a42, 0x3f7a35, 0x7a9a3a];
 
 function createLeafyTree(color = leafyGreens[0]) {
   const root = new THREE.Group();
-  const leaves = new THREE.MeshBasicMaterial({ color });
+  const leaves = new LitMaterial({ color });
   root.add(new THREE.Mesh(leafyTrunkGeo, leafyTrunkMat));
   for (const geo of [leafyCrownGeo, leafyTopGeo]) {
     const crown = new THREE.Mesh(geo, leaves);
@@ -119,7 +119,7 @@ function createLeafyTree(color = leafyGreens[0]) {
 }
 
 function createBush(color = leafyGreens[2]) {
-  const bush = new THREE.Mesh(bushGeo, new THREE.MeshBasicMaterial({ color }));
+  const bush = new THREE.Mesh(bushGeo, new LitMaterial({ color }));
   bush.add(new THREE.LineSegments(new THREE.EdgesGeometry(bushGeo), propEdgeMat));
   return bush;
 }

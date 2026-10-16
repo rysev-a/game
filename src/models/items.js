@@ -84,7 +84,7 @@ function createItemModel(id, size = 0.6) {
   const icon = (ITEMS[id] && ITEMS[id].icon) || id;
   const { geo, edges } = itemModelGeometry(icon, size);
   const root = new THREE.Group();
-  const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true }));
+  const mesh = new THREE.Mesh(geo, new LitMaterial({ vertexColors: true }));
   mesh.add(new THREE.LineSegments(edges, itemEdgeMat));
   root.add(mesh);
   return root;

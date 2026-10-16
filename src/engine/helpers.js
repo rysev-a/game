@@ -12,7 +12,7 @@ const clearZones = []; // где лес не растет: { x1, x2, z1, z2 } �
 const cityEdgeMat = new THREE.LineBasicMaterial({ color: 0x111111 });
 function boxWithEdges(w, h, d, color) {
   const geo = new THREE.BoxGeometry(w, h, d);
-  const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color }));
+  const mesh = new THREE.Mesh(geo, new LitMaterial({ color }));
   mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), cityEdgeMat));
   return mesh;
 }
@@ -23,7 +23,7 @@ const rand = (min, max) => min + Math.random() * (max - min);
 function flatRect(w, d, color, y, x, z) {
   const quad = new THREE.Mesh(
     new THREE.PlaneGeometry(w, d),
-    new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide }),
+    new LitMaterial({ color, side: THREE.DoubleSide }),
   );
   quad.rotation.x = -Math.PI / 2;
   quad.position.set(x, y, z);

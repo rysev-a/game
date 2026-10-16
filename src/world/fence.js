@@ -20,7 +20,7 @@
   const meshTex = new THREE.CanvasTexture(cv);
   meshTex.wrapS = meshTex.wrapT = THREE.RepeatWrapping;
 
-  const railMat = new THREE.MeshBasicMaterial({ color: 0x7d868e });
+  const railMat = new LitMaterial({ color: 0x7d868e });
   const R = worldRadius;
   const segments = 360; // кольцо из 360 граней: отклонение от круга — доли юнита
   const circumference = 2 * Math.PI * R;
@@ -31,7 +31,7 @@
   tex.repeat.set(circumference / 2, fenceH / 2);
   const panel = new THREE.Mesh(
     new THREE.CylinderGeometry(R, R, fenceH, segments, 1, true),
-    new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.3, side: THREE.DoubleSide }),
+    new LitMaterial({ map: tex, transparent: true, alphaTest: 0.3, side: THREE.DoubleSide }),
   );
   panel.position.set(worldCenter.x, fenceH / 2 + 0.1, worldCenter.z);
   cityGroup.add(panel);

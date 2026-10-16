@@ -94,7 +94,7 @@ const tufts = []; // { x, z, color }
 // ---------- Мебель двора и посадка жителя ----------
 function createChair() {
   const g = new THREE.Group();
-  const wood = new THREE.MeshBasicMaterial({ color: 0x8a5a2e });
+  const wood = new LitMaterial({ color: 0x8a5a2e });
   const part = (w, h, d, x, y, z) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wood);
     m.position.set(x, y, z);
@@ -108,14 +108,14 @@ function createChair() {
 
 function createTable() {
   const g = new THREE.Group();
-  const wood = new THREE.MeshBasicMaterial({ color: 0xb98a52 });
+  const wood = new LitMaterial({ color: 0xb98a52 });
   const top = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.06, 0.8), wood);
   top.position.y = 0.7;
   g.add(top);
   const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.68, 0.1), wood);
   leg.position.y = 0.34;
   g.add(leg);
-  const mug = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.14), new THREE.MeshBasicMaterial({ color: 0xe0c341 }));
+  const mug = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.14), new LitMaterial({ color: 0xe0c341 }));
   mug.position.set(0.1, 0.8, 0.05);
   g.add(mug);
   return g;
@@ -273,7 +273,7 @@ for (const side of [-1, 1]) {
 
   for (const fs of Object.values(fenceStyles)) {
     if (!fs.parts.length) continue;
-    const mesh = new THREE.InstancedMesh(unit, new THREE.MeshBasicMaterial({ color: fs.color }), fs.parts.length);
+    const mesh = new THREE.InstancedMesh(unit, new LitMaterial({ color: fs.color }), fs.parts.length);
     fs.parts.forEach(([x, y, z, sx, sy, sz], i) => {
       mesh.setMatrixAt(i, m4.compose(pos.set(x, y, z), quat, scale.set(sx, sy, sz)));
     });
@@ -284,8 +284,8 @@ for (const side of [-1, 1]) {
   // Деревья участков: ствол + низкополигональная круглая крона
   const trunkGeo = new THREE.CylinderGeometry(0.22, 0.3, 2.2, 6).translate(0, 1.1, 0);
   const crownGeo = new THREE.IcosahedronGeometry(1.7, 0).translate(0, 3.3, 0);
-  const trunks = new THREE.InstancedMesh(trunkGeo, new THREE.MeshBasicMaterial({ color: 0x5a3d26 }), yardTrees.length);
-  const crowns = new THREE.InstancedMesh(crownGeo, new THREE.MeshBasicMaterial({ color: 0xffffff }), yardTrees.length);
+  const trunks = new THREE.InstancedMesh(trunkGeo, new LitMaterial({ color: 0x5a3d26 }), yardTrees.length);
+  const crowns = new THREE.InstancedMesh(crownGeo, new LitMaterial({ color: 0xffffff }), yardTrees.length);
   const tint = new THREE.Color();
   yardTrees.forEach((t, i) => {
     m4.makeScale(t.s, t.s, t.s).setPosition(t.x, 0, t.z);
@@ -300,7 +300,7 @@ for (const side of [-1, 1]) {
 
   // Трава: маленькие конусы-пучки
   const tuftGeo = new THREE.ConeGeometry(0.16, 0.5, 4).translate(0, 0.25, 0);
-  const grass = new THREE.InstancedMesh(tuftGeo, new THREE.MeshBasicMaterial({ color: 0xffffff }), tufts.length);
+  const grass = new THREE.InstancedMesh(tuftGeo, new LitMaterial({ color: 0xffffff }), tufts.length);
   tufts.forEach((t, i) => {
     const s = 0.7 + Math.random() * 0.8;
     m4.makeScale(s, s, s).setPosition(t.x, 0.01, t.z);

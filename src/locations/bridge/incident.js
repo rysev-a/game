@@ -35,7 +35,7 @@ function addEmergencyCar(kind, x, z, heading) {
       : { bodyColor: 0xf1ede2, cabinColor: 0xc9d6e0 },
   );
   const box = (w, h, d, color, px, py, pz) => {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color }));
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new LitMaterial({ color }));
     m.position.set(px, py, pz);
     mesh.add(m);
     return m;
@@ -68,7 +68,7 @@ function addBody(x, z) {
   const edge = new THREE.LineBasicMaterial({ color: 0x7a766a });
   const piece = (w, h, d, px, py, pz) => {
     const geo = new THREE.BoxGeometry(w, h, d);
-    const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xdcd8cb }));
+    const m = new THREE.Mesh(geo, new LitMaterial({ color: 0xdcd8cb }));
     m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edge));
     m.position.set(px, py, pz);
     g.add(m);
@@ -87,8 +87,8 @@ function addBody(x, z) {
 // Оцепление: желтая лента на четырех столбиках вокруг тела и желтые метки улик
 function addCordon(cx, cz, half) {
   const g = new THREE.Group();
-  const tape = new THREE.MeshBasicMaterial({ color: 0xe8c82a });
-  const post = new THREE.MeshBasicMaterial({ color: 0x555555 });
+  const tape = new LitMaterial({ color: 0xe8c82a });
+  const post = new LitMaterial({ color: 0x555555 });
   const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
   corners.forEach(([sx, sz], i) => {
     const [ex, ez] = corners[(i + 1) % 4];
@@ -101,7 +101,7 @@ function addCordon(cx, cz, half) {
     g.add(strip);
   });
   for (const [mx, mz, r] of [[-1.5, 0.6, 0.3], [1.3, -1.0, -0.5], [0.9, 1.9, 0.8], [-1.0, -2.1, 0.1]]) {
-    const mark = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.3, 0.14), new THREE.MeshBasicMaterial({ color: 0xf0d020 }));
+    const mark = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.3, 0.14), new LitMaterial({ color: 0xf0d020 }));
     mark.position.set(cx + mx, 0.15, cz + mz);
     mark.rotation.y = r;
     g.add(mark);

@@ -8,7 +8,7 @@
 
 function createBraceletModel() {
   const g = new THREE.Group();
-  const band = new THREE.MeshBasicMaterial({ color: 0x2a2e38 });
+  const band = new LitMaterial({ color: 0x2a2e38 });
   const glow = new THREE.MeshBasicMaterial({ color: 0x6ff0ff });
   const edge = new THREE.LineBasicMaterial({ color: 0x111111 });
   // Рука 0,16 × 0,16: обод — четыре планки вокруг нее

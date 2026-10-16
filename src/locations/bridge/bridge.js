@@ -26,7 +26,7 @@ const bridgeHalfW = 6.25;
         3,
       ),
     );
-    cityGroup.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xa09266, side: THREE.DoubleSide })));
+    cityGroup.add(new THREE.Mesh(geo, new LitMaterial({ color: 0xa09266, side: THREE.DoubleSide })));
     flatRect(2, riverLen, 0xb8a878, 0.008, riverX + side * (riverHalf + 1), 0); // песчаная кромка
   }
   // Вода: пересекает склоны на уровне waterLevel (≈13,3 юнита от оси)

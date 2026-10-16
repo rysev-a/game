@@ -90,13 +90,13 @@ function createWalkingMan(options = {}) {
   // Бокс с четким контуром по ребрам — в одном стиле со зданиями
   function part(w, h, d, color) {
     const geo = new THREE.BoxGeometry(w, h, d);
-    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color }));
+    const mesh = new THREE.Mesh(geo, new LitMaterial({ color }));
     mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));
     return mesh;
   }
   // Мелкая деталь без контура (глаза, пуговицы): у крошечных боксов контур съедает цвет
   function flat(w, h, d, color) {
-    return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color }));
+    return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new LitMaterial({ color }));
   }
 
   const root = new THREE.Group();
@@ -239,7 +239,7 @@ function createWalkingMan(options = {}) {
   const headY = 1.82;
   function ball(r, color, thetaLength = Math.PI) {
     const geo = new THREE.SphereGeometry(r, 14, 10, 0, Math.PI * 2, 0, thetaLength);
-    return new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide }));
+    return new THREE.Mesh(geo, new LitMaterial({ color, side: THREE.DoubleSide }));
   }
   const head = ball(headR, o.skinColor);
   head.position.y = headY;
