@@ -40,9 +40,9 @@ const WEAPONS = {};
 //          'tracer' (тонкий трассер пули) | 'wave' (электромагнитная волна:
 //          две синусоиды — вертикальная и горизонтальная — вокруг светящейся оси; wave: { length,
 //          amplitude, wavelength })
-//   charge: { time, min, damage: [от, до], push: [от, до], stagger: [от, до], scale: [от, до] } — выстрел
+//   charge: { time, min, damage: [от, до], push: [от, до], stagger: [от, до], scale: [от, до], length: [от, до] } — выстрел
 //         с накоплением: пока кнопка зажата, заряд растет от 0 до 1 за time секунд; отпустили — выстрел,
-//         урон, толчок, шатание и толщина заряда — между «от» и «до» по набранному заряду. Меньше min — не
+//         урон, толчок, шатание, толщина и длина заряда — между «от» и «до» по набранному заряду. Меньше min — не
 //         выстрелит. Полный заряд — удар 'blast'
 //   spinUp — секунды раскрутки (пулемет): зажал — стволы раскручиваются (userData.spin модели), стрельба
 //         начинается, когда раскрутились; отпустил — медленно останавливаются
@@ -262,6 +262,8 @@ function chargedWeapon(w, power) {
     push: lerpRange(c.push, power),
     effects: Object.assign({}, w.effects, { stagger: Math.round(lerpRange(c.stagger, power)) }),
     hitFx: power >= 0.95 ? 'blast' : w.hitFx,
+    // Волна длиннее по заряду (геометрия та же, растянута по длине — см. fireWeapon)
+    wave: w.wave && c.length ? Object.assign({}, w.wave, { length: w.wave.length * lerpRange(c.length, power) }) : w.wave,
   });
 }
 
@@ -293,7 +295,10 @@ function fireWeapon(aim, power) {
   else spawnBolt(w, x, y, z, dirX, dirZ);
   // Заряд с накоплением: чем больше набрано, тем толще волна и ярче вспышка
   const scale = w.charge ? lerpRange(w.charge.scale, power) : 1;
-  if (w.charge) weaponBolts[weaponBolts.length - 1].mesh.scale.set(scale, scale, 1);
+  if (w.charge) {
+    const stretch = w.charge.length ? lerpRange(w.charge.length, power) : 1;
+    weaponBolts[weaponBolts.length - 1].mesh.scale.set(scale, scale, stretch);
+  }
   if (!w.noFlash) spawnWeaponFx(x, y, z, w.color, 0.14 * scale, 5, 1.12); // вспышка у ствола
 
   heroWeapon.cooldown = Math.max(1, Math.round(60 / w.fireRate));
@@ -402,7 +407,7 @@ function spawnBolt(w, x, y, z, dx, dz, range = w.range) {
 const waveCache = {};
 function waveParts(w) {
   if (waveCache[w.id]) return waveCache[w.id];
-  const { length: L, amplitude: A, wavelength: lambda } = w.wave;
+  const { length: L, amplitude: A, wavelength: lambda } = WEAPONS[w.id].wave; // всегда исходная длина: заряженный выстрел растягивает меш
   // Синусоида с огибающей: у головы и хвоста амплитуда сходит на нет — получается «пакет»
   const curve = (plane) => {
     const pts = [];
