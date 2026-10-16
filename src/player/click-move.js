@@ -5,6 +5,9 @@
 //   Клик по зданию с дверью (запись в interactables с clickObject и walkTo, src/engine/interact.js): герой идет
 //   к двери; если не дошел за clickDoorFrames (2 секунды) — сразу оказывается внутри, а время уходит так,
 //   будто он дошел (оставшийся путь / скорость, как при перемещении по карте, src/player/travel.js).
+//   Клик по противнику (живая запись в combatTargets) — сразу боевой режим: герой достает оружие (последнее,
+//   что доставал, иначе из активной ячейки или первое) и разворачивается к нему вместе с камерой; мышь
+//   захватывается для прицела тем же кликом (src/engine/mouse-look.js).
 // Клик по вещи берет вещь (src/engine/input.js); в боевом режиме клик — огонь (src/engine/weapons.js).
 // clickMoveSteer() зовет updateWalking (src/player/player.js), updateClickMove() — главный цикл.
 
@@ -70,11 +73,40 @@ function clickDoorEntry() {
   return null;
 }
 
+// Живой противник под курсором (луч уже направлен clickGroundPoint) или null
+function clickEnemy() {
+  const meshes = combatTargets.filter((t) => !t.dead && t.mesh && hoverShown(t.mesh)).map((t) => t.mesh);
+  if (!meshes.length) return null;
+  const hit = clickRaycaster.intersectObjects(meshes, true)[0];
+  if (!hit) return null;
+  for (let o = hit.object; o; o = o.parent) {
+    const t = combatTargets.find((c) => c.mesh === o);
+    if (t) return t;
+  }
+  return null;
+}
+
+// Клик по противнику: оружие в руки и лицом к нему. Без оружия — подсказка, где его взять (toggleWeapon)
+function clickStartCombat(t) {
+  clickMoveStop();
+  const ids = weaponSlotIds();
+  const id = ids.includes(heroWeapon.last) ? heroWeapon.last : heroEquip.weapons[heroEquip.active] || ids[0];
+  if (!id) return toggleWeapon();
+  if (!drawWeapon(id)) return;
+  playerHeading = Math.atan2(-(t.x - playerWorldX), -(t.z - playerWorldZ));
+  worldRotation = -playerHeading; // камера за спиной, противник впереди
+}
+
 // Слушатель стоит раньше, чем в input.js: клик по подсвеченной вещи — взять вещь, а не идти
 renderer.domElement.addEventListener('mousedown', (e) => {
   if (e.button !== 0 || !clickMoveAllowed() || hoveredPickable) return;
   const p = clickGroundPoint(e);
   if (!p) return;
+  const enemy = clickEnemy();
+  if (enemy) {
+    clickStartCombat(enemy);
+    return;
+  }
   const entry = clickDoorEntry();
   if (entry) {
     clickMoveTo(entry.walkTo.x, entry.walkTo.z);
