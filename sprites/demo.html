@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Демо: идущий человек</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: #111;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+    <script src="walking-man.js"></script>
+    <script>
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x334455);
+
+      const camera = new THREE.PerspectiveCamera(
+        60,
+        window.innerWidth / window.innerHeight,
+        0.5,
+        100,
+      );
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      scene.add(new THREE.GridHelper(20, 20, 0x555555, 0x333333));
+
+      const man = createWalkingMan();
+      scene.add(man);
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      const clock = new THREE.Clock();
+      (function loop() {
+        requestAnimationFrame(loop);
+        const t = clock.getElapsedTime();
+        man.updateWalk(t * 6); // частота шагов
+        const a = t * 0.5; // камера медленно облетает модель
+        camera.position.set(Math.sin(a) * 4.5, 2.4, Math.cos(a) * 4.5);
+        camera.lookAt(0, 1, 0);
+        renderer.render(scene, camera);
+      })();
+    </script>
+  </body>
+</html>

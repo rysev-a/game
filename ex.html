@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>GTA Псевдо-3D: Вращение вокруг игрока</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: #111;
+      }
+      canvas {
+        display: block;
+      }
+      #fullscreenBtn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+        padding: 10px 14px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 6px;
+        font-family: sans-serif;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      #fullscreenBtn:hover {
+        background: rgba(50, 50, 50, 0.85);
+      }
+      #mouseHint {
+        position: absolute;
+        bottom: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: white;
+        font-family: sans-serif;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 8px 12px;
+        border-radius: 6px;
+        z-index: 10;
+        pointer-events: none;
+        display: none;
+      }
+      /* Слева сверху: инвентарь и рядом кнопка-глаз (вид мышью) */
+      #topLeft {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 11;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      #eyeBtn {
+        width: 40px;
+        height: 40px;
+        box-sizing: border-box;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        background: rgba(10, 14, 20, 0.62);
+        cursor: pointer;
+      }
+      #eyeBtn:hover {
+        background: rgba(60, 60, 70, 0.8);
+      }
+      #eyeBtn .px {
+        width: 28px;
+        height: 28px;
+        image-rendering: pixelated;
+        opacity: 0.45;
+        pointer-events: none;
+      }
+      #eyeBtn.active {
+        border-color: #ffd84a;
+        background: rgba(255, 216, 74, 0.25);
+      }
+      #eyeBtn.active .px {
+        opacity: 1;
+      }
+      #inventory {
+        position: relative;
+        box-sizing: border-box;
+        padding: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        background: rgba(10, 14, 20, 0.62);
+        user-select: none;
+      }
+      #inventory.closed {
+        cursor: pointer;
+      }
+      #inventory .invTop {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      /* Быстрые слоты сохранения под свернутым инвентарем: с небольшим отступом */
+      #inventory .invGrid.quick {
+        margin-top: 10px;
+      }
+      #inventory .invCell.quick {
+        cursor: pointer;
+      }
+      #inventory .invCell.quick:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      #inventory .invCell.quick.empty {
+        border-style: dashed;
+      }
+      #inventory .invCell.quick.empty .px {
+        opacity: 0.32;
+      }
+      #inventory.open {
+        width: 372px;
+      }
+      #inventory .invGrid {
+        display: grid;
+        gap: 4px;
+      }
+      #inventory .invGrid.saves {
+        margin-top: 6px;
+      }
+      #inventory .invCell {
+        width: 40px;
+        height: 40px;
+        box-sizing: border-box;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.07);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #inventory .px {
+        width: 28px;
+        height: 28px;
+        image-rendering: pixelated;
+        pointer-events: none;
+      }
+      #inventory .invChevron {
+        width: 22px;
+        height: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      #inventory.open .invChevron {
+        margin-bottom: 4px;
+      }
+      #inventory .invChevron .px {
+        width: 18px;
+        height: 18px;
+      }
+      #inventory .invTools {
+        display: flex;
+        gap: 4px;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      #inventory .invCell.tool {
+        cursor: pointer;
+      }
+      #inventory .invCell.tool:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      #inventory .invCell.tool.active {
+        border-color: #ffd84a;
+        background: rgba(255, 216, 74, 0.25);
+      }
+      #inventory .invCell.slot.filled {
+        cursor: pointer;
+      }
+      #inventory .invCell.slot.filled:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      /* Слоты пульсируют, пока ждем клика (сохранить / очистить) */
+      #inventory .invCell.slot.pulse {
+        cursor: pointer;
+        animation: slotPulse 0.9s ease-in-out infinite;
+      }
+      @keyframes slotPulse {
+        0%,
+        100% {
+          transform: scale(1);
+          background: rgba(255, 255, 255, 0.07);
+          border-color: rgba(255, 255, 255, 0.28);
+        }
+        50% {
+          transform: scale(1.14);
+          background: rgba(255, 216, 74, 0.3);
+          border-color: #ffd84a;
+        }
+      }
+      #dialogue {
+        position: absolute;
+        left: 50%;
+        bottom: 84px;
+        transform: translateX(-50%);
+        z-index: 13;
+        display: none;
+        width: min(620px, 92vw);
+        box-sizing: border-box;
+        padding: 14px 18px;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 10px;
+        background: rgba(10, 14, 20, 0.94);
+        color: white;
+        font-family: sans-serif;
+      }
+      #dialogue .speaker {
+        font-weight: bold;
+        color: #8fd0ff;
+        margin-bottom: 6px;
+      }
+      #dialogue .text {
+        font-size: 16px;
+        line-height: 1.45;
+        margin-bottom: 10px;
+      }
+      #dialogue .option {
+        margin-top: 5px;
+        padding: 7px 10px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.09);
+        cursor: pointer;
+      }
+      #dialogue .option:hover {
+        background: rgba(143, 208, 255, 0.28);
+      }
+      #dialogue .hint {
+        font-size: 12px;
+        opacity: 0.65;
+      }
+      #settingsBtn {
+        position: absolute;
+        bottom: 14px;
+        left: 14px;
+        z-index: 12;
+        width: 46px;
+        height: 46px;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.6);
+        color: white;
+        font-size: 28px;
+        line-height: 1;
+        cursor: pointer;
+      }
+      #settingsBtn:hover {
+        background: rgba(60, 60, 60, 0.85);
+      }
+      #settingsMenu {
+        position: absolute;
+        bottom: 70px;
+        left: 14px;
+        z-index: 12;
+        display: none;
+        width: 250px;
+        box-sizing: border-box;
+        padding: 14px 16px;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 10px;
+        background: rgba(15, 18, 24, 0.92);
+        color: white;
+        font-family: sans-serif;
+      }
+      #settingsMenu .title {
+        font-size: 16px;
+        font-weight: bold;
+        margin-bottom: 12px;
+      }
+      #settingsMenu .row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 14px;
+        margin-bottom: 6px;
+      }
+      #settingsMenu input[type='range'] {
+        width: 100%;
+        cursor: pointer;
+      }
+      #settingsMenu .hint {
+        margin-top: 10px;
+        font-size: 11px;
+        opacity: 0.6;
+      }
+      #fuel {
+        position: absolute;
+        bottom: 14px;
+        left: 70px;
+        z-index: 10;
+        display: none;
+        align-items: center;
+        gap: 8px;
+        color: white;
+        font-family: sans-serif;
+        font-size: 18px;
+        background: rgba(0, 0, 0, 0.6);
+        padding: 8px 12px;
+        border-radius: 8px;
+        pointer-events: none;
+      }
+      #fuel .bar {
+        width: 120px;
+        height: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 6px;
+        overflow: hidden;
+      }
+      #fuelFill {
+        height: 100%;
+        width: 0;
+        background: #3fa35b;
+      }
+      #toast {
+        position: absolute;
+        bottom: 130px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+        color: white;
+        font-family: sans-serif;
+        background: rgba(30, 90, 50, 0.85);
+        padding: 8px 14px;
+        border-radius: 6px;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      #hud {
+        position: absolute;
+        top: 424px;
+        right: 10px;
+        max-width: 240px;
+        text-align: right;
+        z-index: 10;
+        color: rgba(255, 255, 255, 0.8);
+        font-family: sans-serif;
+        font-size: 13px;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 6px 10px;
+        border-radius: 6px;
+        pointer-events: none;
+      }
+      #sunTint {
+        position: absolute;
+        inset: 0;
+        z-index: 5;
+        background: rgb(255, 244, 214);
+        opacity: 0;
+        pointer-events: none;
+      }
+      #rainTint {
+        position: absolute;
+        inset: 0;
+        z-index: 5;
+        background: rgb(8, 16, 28);
+        opacity: 0;
+        pointer-events: none;
+      }
+      #prompt {
+        position: absolute;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: white;
+        font-family: sans-serif;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 8px 12px;
+        border-radius: 6px;
+        z-index: 10;
+        pointer-events: none;
+        display: none;
+      }
+      #minimapWrap {
+        position: absolute;
+        top: 60px;
+        right: 10px;
+        width: 320px;
+        height: 320px;
+        z-index: 10;
+        pointer-events: none;
+      }
+      #minimap {
+        display: block;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 10px;
+        pointer-events: auto;
+      }
+      #mmInfo {
+        position: absolute;
+        top: 388px;
+        right: 10px;
+        max-width: 300px;
+        z-index: 10;
+        color: rgba(255, 255, 255, 0.85);
+        font-family: sans-serif;
+        font-size: 12px;
+        text-align: right;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 4px 10px;
+        border-radius: 6px;
+        pointer-events: none;
+      }
+      #clock {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: white;
+        font-family: sans-serif;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 4px 14px;
+        border-radius: 8px;
+        pointer-events: none;
+      }
+      #clock .px {
+        width: 24px;
+        height: 24px;
+        image-rendering: pixelated;
+      }
+      #clockTime {
+        font-size: 22px;
+        font-weight: bold;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+      }
+      #clockDate {
+        font-size: 12px;
+        opacity: 0.8;
+      }
+      #nightTint {
+        position: absolute;
+        inset: 0;
+        z-index: 5;
+        background: rgb(4, 8, 26);
+        opacity: 0;
+        pointer-events: none;
+      }
+      #travelFade {
+        position: absolute;
+        inset: 0;
+        z-index: 40;
+        background: black;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.35s;
+      }
+    </style>
+  </head>
+  <body>
+    <button id="fullscreenBtn">⛶ На весь экран</button>
+    <div id="mouseHint"></div>
+    <div id="topLeft">
+      <div id="inventory"></div>
+      <button id="eyeBtn" title="Вид мышью (V)"></button>
+    </div>
+    <div id="toast"></div>
+    <div id="dialogue">
+      <div id="dlgSpeaker" class="speaker"></div>
+      <div id="dlgText" class="text"></div>
+      <div id="dlgOptions"></div>
+    </div>
+    <button id="settingsBtn" title="Настройки (O)">⚙</button>
+    <div id="settingsMenu">
+      <div class="title">Настройки</div>
+      <div class="row"><span>Громкость</span><span id="volumeValue">100%</span></div>
+      <input id="volumeSlider" type="range" min="0" max="100" step="1" value="100" />
+      <div class="hint">O или Esc — закрыть. M — выключить звук</div>
+    </div>
+    <div id="fuel">⛽<div class="bar"><div id="fuelFill"></div></div></div>
+    <div id="prompt"></div>
+    <div id="rainTint"></div>
+    <div id="sunTint"></div>
+    <div id="nightTint"></div>
+    <div id="travelFade"></div>
+    <div id="clock">
+      <span id="clockIcon"></span>
+      <div><div id="clockTime">09:00</div><div id="clockDate"></div></div>
+    </div>
+    <div id="hud"><div id="hudZone"></div>R — действие · I — инвентарь · V — вид мышью · P — дождь · M — звук · O — настройки<div id="hudSound"></div></div>
+    <div id="minimapWrap"><canvas id="minimap" width="320" height="320"></canvas></div>
+    <div id="mmInfo"></div>
+    <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+    <script src="sprites/walking-man.js"></script>
+    <script src="sprites/car.js"></script>
+    <script src="sprites/house.js"></script>
+    <script src="sprites/shop.js"></script>
+    <script src="sprites/mall-interior.js"></script>
+    <script src="core/layout.js"></script>
+    <script src="core/scene.js"></script>
+    <script src="core/helpers.js"></script>
+    <script src="core/zones.js"></script>
+    <script src="core/roads.js"></script>
+    <script src="core/ground.js"></script>
+    <script src="core/fade.js"></script>
+    <script src="core/cars.js"></script>
+    <script src="core/collisions.js"></script>
+    <script src="core/people.js"></script>
+    <script src="core/interiors.js"></script>
+    <script src="core/interact.js"></script>
+    <script src="core/dialogue.js"></script>
+    <script src=".user/player.js"></script>
+    <script src=".user/icons.js"></script>
+    <script src="core/clock.js"></script>
+    <script src=".user/saves.js"></script>
+    <script src=".user/inventory.js"></script>
+    <script src=".user/footsteps.js"></script>
+    <script src=".user/car.js"></script>
+    <script src=".user/home.js"></script>
+    <script src=".user/talk.js"></script>
+    <script src=".user/travel.js"></script>
+    <script src=".village/village.js"></script>
+    <script src=".city/mall.js"></script>
+    <script src=".city/city.js"></script>
+    <script src=".city/gas-station.js"></script>
+    <script src=".bridge/bridge.js"></script>
+    <script src=".bridge/incident.js"></script>
+    <script src="core/world.js"></script>
+    <script src="core/forest.js"></script>
+    <script src="core/fence.js"></script>
+    <script src="core/settings.js"></script>
+    <script src="core/input.js"></script>
+    <script src="core/minimap.js"></script>
+    <script src="core/weather.js"></script>
+    <script src="core/sound.js"></script>
+    <script src="core/game.js"></script>
+  </body>
+</html>
