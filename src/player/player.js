@@ -1,9 +1,9 @@
 // src/player/player.js
-// ИГРОК — детектив в плаще и шляпе (набор 'detective' в src/models/person.js), зафиксирован в центре экрана. Модель смотрит в -Z.
+// ИГРОК — гик в свитере, джинсах и кроссовках, в очках (набор 'geek' в src/models/person.js), зафиксирован в центре экрана. Модель смотрит в -Z.
 // Здесь же: состояние игрока в мире (playerWorldX/Z, вращение вида), ходьба с коллизиями,
 // прыжок, анимация шагов и камера.
 
-const player = createPerson('detective');
+const player = createPerson('geek');
 player.position.set(0, 0, 0);
 scene.add(player);
 

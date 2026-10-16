@@ -24,12 +24,15 @@
 //   hat: 'fedora' | 'cap' | 'police' | 'beanie', hatColor
 //   coat: true, coatColor — длинный плащ до колен (поверх рубашки, с воротником и поясом)
 //   tie: true, tieColor   — белая рубашка и галстук спереди
+//   sweater: true, sweaterStripeColor — вязаный свитер (цвет — shirtColor): полосы на груди и рукавах,
+//                         резинка по низу и на манжетах
+//   sneakers: true, sneakerStripeColor — белые кроссовки с толстой подошвой и цветной полосой сбоку
 //   glasses, beard (цвет бороды — hairColor), badge (жетон на груди)
 //   bag: 'backpack' | 'tote', bagColor — рюкзак за спиной или сумка в левой руке
 //   cane: true          — трость в правой руке; stoop: 0..0.3 — сутулость (наклон корпуса)
 //   dress: false        — женщина без платья (в брюках)
 //   scale: 0.7          — ребенок
-// Готовые наборы: createPerson('detective' | 'police' | 'elder' | 'child' | ..., опции) ниже.
+// Готовые наборы: createPerson('geek' | 'coat' | 'police' | 'elder' | 'child' | ..., опции) ниже.
 //
 // Зависимость: глобальный THREE (three.js r128+).
 
@@ -55,6 +58,10 @@ function createWalkingMan(options = {}) {
       coat: false,
       coatColor: 0x8a7350,
       tie: false,
+      sweater: false,
+      sweaterStripeColor: 0xd8d2c0,
+      sneakers: false,
+      sneakerStripeColor: 0xd23c3c,
       tieColor: 0x7a1f1f,
       glasses: false,
       beard: false,
@@ -101,9 +108,18 @@ function createWalkingMan(options = {}) {
     const shin = part(0.22, 0.85, 0.22, o.pantsColor);
     shin.position.y = -0.425;
     leg.add(shin);
-    const foot = part(0.24, 0.12, 0.34, o.shoeColor);
+    const foot = part(0.24, 0.12, 0.34, o.sneakers ? 0xf2f0ea : o.shoeColor);
     foot.position.set(0, -0.79, -0.06); // носок вперед — модель смотрит в -Z
     leg.add(foot);
+    if (o.sneakers) {
+      // Кроссовок: толстая светлая подошва и цветная полоса по внешнему боку
+      const sole = flat(0.26, 0.05, 0.36, 0xb8b4aa);
+      sole.position.set(0, -0.86, -0.06);
+      leg.add(sole);
+      const stripe = flat(0.01, 0.05, 0.2, o.sneakerStripeColor);
+      stripe.position.set(sideX > 0 ? 0.122 : -0.122, -0.78, -0.07);
+      leg.add(stripe);
+    }
     return leg;
   }
   const legL = makeLeg(-0.14);
@@ -121,6 +137,21 @@ function createWalkingMan(options = {}) {
 
   // Перед корпуса — плоскость z = -0.15 (модель смотрит в -Z)
   const front = -0.155;
+  if (o.sweater) {
+    // Вязаный свитер: две полосы на груди, резинка по низу и под горлом
+    const rib = Math.max(0, o.shirtColor - 0x141414);
+    for (const y of [1.36, 1.46]) {
+      const band = flat(0.63, 0.05, 0.31, o.sweaterStripeColor);
+      band.position.y = y;
+      body.add(band);
+    }
+    const hem = part(0.64, 0.08, 0.32, rib);
+    hem.position.y = 0.98;
+    body.add(hem);
+    const collar = part(0.3, 0.05, 0.3, rib);
+    collar.position.y = 1.645;
+    body.add(collar);
+  }
   if (o.tie) {
     const shirt = flat(o.coat ? 0.2 : 0.16, o.coat ? 0.5 : 0.3, 0.01, 0xf2f0e8);
     shirt.position.set(0, o.coat ? 1.38 : 1.48, front);
@@ -167,6 +198,14 @@ function createWalkingMan(options = {}) {
     const hand = part(0.17, 0.14, 0.17, o.skinColor);
     hand.position.y = -0.68;
     arm.add(hand);
+    if (o.sweater) {
+      const stripe = flat(0.17, 0.05, 0.17, o.sweaterStripeColor);
+      stripe.position.y = -0.22;
+      arm.add(stripe);
+      const cuff = part(0.17, 0.07, 0.17, Math.max(0, o.shirtColor - 0x141414));
+      cuff.position.y = -0.58;
+      arm.add(cuff);
+    }
     return arm;
   }
   const armL = makeArm(-0.39);
@@ -355,13 +394,18 @@ function createWalkingMan(options = {}) {
 }
 
 // Готовые наборы людей. createPerson(тип, опции): опции перекрывают набор.
-//   'detective' — игрок: бежевый плащ, шляпа, рубашка с галстуком
+//   'geek'      — игрок: свитер с полосами, джинсы, белые кроссовки, очки, темные волосы
+//   'coat'      — длинный плащ, шляпа, рубашка с галстуком (начальники, ученые)
 //   'police'    — полицейский: синяя форма, фуражка, жетон
 //   'elder'     — пожилой: седина, трость, сутулится
 //   'child'     — ребенок (уменьшенная модель)
 //   'casual', 'office', 'student', 'worker' — обычные прохожие
 const PERSON_PRESETS = {
-  detective: { coat: true, coatColor: 0x9a8058, hat: 'fedora', hatColor: 0x4a3c2a, tie: true, pantsColor: 0x3a3428, shoeColor: 0x2a1a10 },
+  geek: {
+    sweater: true, shirtColor: 0x3f5f7f, sweaterStripeColor: 0xd8d2c0, pantsColor: 0x3a4f6e,
+    sneakers: true, sneakerStripeColor: 0xd23c3c, glasses: true, hairColor: 0x2a1c12,
+  },
+  coat: { coat: true, coatColor: 0x9a8058, hat: 'fedora', hatColor: 0x4a3c2a, tie: true, pantsColor: 0x3a3428, shoeColor: 0x2a1a10 },
   police: { shirtColor: 0x2c4a7a, pantsColor: 0x1c2848, hat: 'police', hatColor: 0x1c2848, badge: true, dress: false },
   elder: { hairColor: 0xc8c8c0, cane: true, stoop: 0.18 },
   child: { scale: 0.68 },
