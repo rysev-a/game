@@ -772,6 +772,7 @@ function updateWeapons() {
   for (const k in WEAPON_KINDS) if (WEAPON_KINDS[k].update) WEAPON_KINDS[k].update();
   updateWeaponFx();
   updateWeaponHud();
+  updateWeaponCard();
   updateElixirHud();
 }
 const weaponGlowColor = new THREE.Color();
@@ -830,6 +831,79 @@ function weaponKeysHint() {
   return mouseLookActive()
     ? 'мышь — прицел · колесо или R — сменить · Q — убрать · Esc — отпустить мышь'
     : 'K — по взгляду · колесо или R — сменить · Q — убрать';
+}
+
+// ---------- Карточка оружия (только компьютер, боевой режим) ----------
+// Справа от инвентаря: крупный значок оружия в руках (две клетки) и три полоски — насколько хорошо оно
+// поражает роботов, биосуществ и как далеко бьет. Цифры не задаются вручную, а считаются из записи оружия
+// (урон, скорострельность, дробь, сгустки, перескоки, луч, накопление) и таблицы ENEMY_KINDS (combat.js),
+// поэтому новое оружие и правка цифр сразу видны на карточке. Полная полоска — лучшее оружие в игре.
+function weaponDps(w) {
+  let per = w.damage;
+  if (w.spread) per *= w.spread.pellets;
+  if (w.stream) per *= w.stream.perShot;
+  if (w.arc) for (let i = 1, k = w.arc.falloff; i < w.arc.chains; i++, k *= w.arc.falloff) per += w.damage * k;
+  let dps = per * w.fireRate;
+  if (w.charge) dps = Math.max(dps, w.charge.damage[1] / w.charge.time);
+  if (w.beam) dps = Math.max(dps, w.beam.dps);
+  return dps;
+}
+// Множитель урона по виду врага: 0 — иммунитет; плазмомет (hitsAll) иммунитет не держит
+function weaponKindMult(w, kind) {
+  const m = ENEMY_KINDS[kind].weak[w.type];
+  const mult = m === undefined ? 1 : m;
+  return w.hitsAll ? Math.max(mult, 1) : mult;
+}
+// Доли 0..1 для трех полосок. Урон — под корнем: слабое оружие не сливается с нулем, а ноль (иммунитет)
+// остается пустой полоской
+function weaponRatings(w) {
+  const all = Object.values(WEAPONS);
+  const eff = (x, kind) => weaponDps(x) * weaponKindMult(x, kind);
+  const best = Math.max(1, ...all.map((x) => Math.max(eff(x, 'robot'), eff(x, 'bio'))));
+  const far = Math.max(1, ...all.map((x) => x.range));
+  return {
+    robot: Math.sqrt(eff(w, 'robot') / best),
+    bio: Math.sqrt(eff(w, 'bio') / best),
+    range: w.range / far,
+  };
+}
+
+const weaponCardBars = [
+  { key: 'robot', label: 'Роботы', color: '#8fb8ff' },
+  { key: 'bio', label: 'Био', color: '#7be07b' },
+  { key: 'range', label: 'Дальность', color: '#ffd84a' },
+];
+const weaponCard = document.createElement('div');
+weaponCard.id = 'weaponCard';
+weaponCard.style.cssText =
+  'display:none;align-items:center;gap:10px;padding:6px 10px 6px 6px;border:1px solid rgba(255,255,255,0.3);' +
+  'border-radius:8px;background:rgba(10,14,20,0.62);color:#fff;font:12px sans-serif;pointer-events:none';
+weaponCard.innerHTML =
+  '<div style="width:84px;height:84px;box-sizing:border-box;border:1px solid rgba(255,255,255,0.28);border-radius:4px;' +
+  'background:rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:center">' +
+  '<img id="weaponCardIcon" style="width:72px;height:72px;image-rendering:pixelated" /></div>' +
+  '<div style="display:flex;flex-direction:column;gap:7px">' +
+  weaponCardBars
+    .map(
+      (b) =>
+        '<div><div style="font-size:11px;opacity:0.8;margin-bottom:2px">' + b.label + '</div>' +
+        '<div style="width:130px;height:9px;background:rgba(255,255,255,0.15);border-radius:4px;overflow:hidden">' +
+        '<div data-bar="' + b.key + '" style="height:100%;width:0;background:' + b.color + '"></div></div></div>',
+    )
+    .join('') +
+  '</div>';
+(document.getElementById('topLeft') || document.body).appendChild(weaponCard);
+let weaponCardKey = '';
+function updateWeaponCard() {
+  const w = !touchUI && inCombatMode() ? WEAPONS[heroWeapon.id] : null;
+  const key = w ? w.id : '';
+  if (key === weaponCardKey) return;
+  weaponCardKey = key;
+  weaponCard.style.display = w ? 'flex' : 'none';
+  if (!w) return;
+  weaponCard.querySelector('#weaponCardIcon').src = pixelIconURL(w.icon);
+  const r = weaponRatings(w);
+  for (const b of weaponCardBars) weaponCard.querySelector('[data-bar="' + b.key + '"]').style.width = Math.round(r[b.key] * 100) + '%';
 }
 
 // ---------- Звук (синтез, как шаги в src/player/footsteps.js) ----------
