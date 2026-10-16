@@ -226,6 +226,7 @@ function addTireMark(x1, z1, x2, z2) {
 
 function updateTireMarks(car, handbrake) {
   const sliding = Math.abs(car.speed) > 0.08 && (handbrake || Math.abs(car.slip) > 0.12);
+  car.sliding = sliding; // визг шин на заносе (src/engine/sound.js)
   // Задние колеса: сзади от центра (нос машины — по -z модели) и по бокам
   const h = car.heading;
   const back = car.half.l * 0.65;
