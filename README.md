@@ -1,6 +1,7 @@
 # Игра-детектив (браузер, three.js)
 
 Сюжет, персонажи, квесты и локации описаны в [docs/story](docs/story/README.md).
+ДЕМО-площадка для проверки механик — `demo/index.html` (на сайте `/demo/`, см. [docs/mechanics/demo.md](docs/mechanics/demo.md)).
 Как будут устроены квесты, диалоги, инвентарь, крафт, приборы, бои и головоломки — в [docs/mechanics](docs/mechanics/README.md).
 
 Открывать через любой локальный сервер, например `python3 -m http.server`, и перейти на `index.html`.

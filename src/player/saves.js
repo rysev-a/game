@@ -11,7 +11,7 @@
 //   saveToSlot(i), loadFromSlot(i), clearSave(i), getSave(i)
 
 const SAVE_SLOTS = 16;
-const SAVES_KEY = 'game.saves';
+const SAVES_KEY = window.SAVES_KEY || 'game.saves'; // в ДЕМО свой ключ (demo/index.html)
 const SAVE_VERSION = 1;
 
 function readSaves() {
