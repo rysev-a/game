@@ -37,23 +37,24 @@ jobs:
           fi
           touch _site/.nojekyll
 
-      # Version and recent updates for the bottom of the settings menu (src/engine/settings.js):
-      # version = number of merges into main, changes = the last 10 of them.
+      # Version and version history for the settings menu (src/engine/settings.js): every merge into main
+      # is a version 1.<n>; the Russian text for each one comes from changelog.json by PR number.
       - name: Write version.json
         run: |
           export TZ=Europe/Moscow
-          {
-            printf '{"version":"1.%s","date":"%s","sha":"%s","changes":[' \
-              "$(git rev-list --count --first-parent HEAD)" \
-              "$(git log -1 --date=format-local:'%d.%m.%Y' --format=%cd)" \
-              "$(git rev-parse --short HEAD)"
-            git log --first-parent -10 --date=format-local:'%d.%m.%Y' --format='%cd%x09%s' \
-              | sed -E 's/ \(#[0-9]+\)$//' \
-              | jq -R -s -c 'split("\n") | map(select(length > 0) | split("\t") | {date: .[0], title: .[1]})' \
-              | sed -E 's/^\[//; s/\]$//'
-            printf ']}'
-          } > _site/version.json
-          cat _site/version.json
+          git log --first-parent --reverse --date=format-local:'%d.%m.%Y' --format='%cd%x09%s' \
+            | jq -R -s -c --arg sha "$(git rev-parse --short HEAD)" '
+                split("\n") | map(select(length > 0) | split("\t"))
+                | to_entries
+                | map({
+                    version: "1.\(.key + 1)",
+                    date: .value[0],
+                    title: (.value[1] | sub(" \\(#[0-9]+\\)$"; "")),
+                    pr: ((.value[1] | capture("#(?<n>[0-9]+)") | .n) // null)
+                  })
+                | reverse
+                | {version: .[0].version, date: .[0].date, sha: $sha, changes: .}' > _site/version.json
+          head -c 600 _site/version.json
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
