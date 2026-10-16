@@ -41,6 +41,7 @@ function wearDevice(id, quiet = false) {
   heroDevices.worn.push(id);
   if (d.wear && d.model) heroDevices.meshes[id] = player.attach(d.wear, d.model());
   if (typeof renderInventory === 'function') renderInventory(); // могла появиться панель сохранений
+  if (typeof renderEquipHud === 'function') renderEquipHud(); // ячейка «браслет» внизу
   if (!quiet) showToast(d.wornText || 'Надето: ' + d.name, 3500);
   return true;
 }
@@ -53,5 +54,6 @@ function takeOffDevice(id) {
   if (mesh && mesh.parent) mesh.parent.remove(mesh);
   delete heroDevices.meshes[id];
   if (typeof renderInventory === 'function') renderInventory();
+  if (typeof renderEquipHud === 'function') renderEquipHud();
   return true;
 }

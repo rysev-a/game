@@ -11,8 +11,8 @@
 // вспышка w.hitFx.
 //
 // Управление:
-//   Q — достать / убрать оружие (берется последнее доставленное или первое из инвентаря)
-//   R — следующее оружие из инвентаря (по кругу); без оружия в руках — достает первое
+//   Q — достать / убрать оружие (из активной ячейки оружия на нижней панели, src/player/equipment.js)
+//   R — следующее оружие из трех ячеек оружия (по кругу); без оружия в руках — достает первое
 //   ЛКМ — выстрел туда, где курсор (герой разворачивается корпусом к точке, камера не дергается);
 //         зажать — очередь. У оружия с накоплением (charge, импульсный лазер) зажать — копить заряд,
 //         отпустить — выстрел. Клик по вещи, которую можно взять, по-прежнему берет вещь
@@ -138,15 +138,17 @@ const canUseWeapon = () =>
 
 function drawWeapon(id) {
   const w = WEAPONS[id];
-  if (!w || !hasItem(id) || !canUseWeapon()) return false;
+  if (!w || !heroEquip.weapons.includes(id) || !canUseWeapon()) return false; // достают только из ячеек оружия
   if (heroWeapon.id) holsterWeapon(true);
   heroWeapon.id = id;
   heroWeapon.last = id;
+  setActiveWeaponSlot(id);
   const rifle = w.hold === 'rifle';
   if (w.model) heroWeapon.mesh = player.attach(rifle ? 'rifle' : 'handR', w.model());
   player.setAim(rifle ? 'rifle' : true);
   playWeaponSound('draw');
   updateWeaponHud();
+  renderEquipHud(); // активная ячейка подсвечивается: оружие в руках
   return true;
 }
 
@@ -161,6 +163,7 @@ function holsterWeapon(quiet = false) {
   player.setAim(false);
   if (!quiet) playWeaponSound('holster');
   updateWeaponHud();
+  renderEquipHud();
 }
 
 function toggleWeapon() {
@@ -168,18 +171,22 @@ function toggleWeapon() {
     holsterWeapon();
     return;
   }
-  const id = heroWeapon.last && hasItem(heroWeapon.last) ? heroWeapon.last : inventory.items.find(isWeapon);
-  if (!id) showToast('Оружия нет. В ДЕМО оно лежит в тире и на столе предметов');
-  else drawWeapon(id);
+  // Достаем из активной ячейки, а если она пуста — первое оружие из ячеек
+  const ids = weaponSlotIds();
+  const id = heroEquip.weapons[heroEquip.active] || ids[0];
+  if (id) drawWeapon(id);
+  else if (inventory.items.some(isWeapon)) showToast('Оружие лежит в инвентаре: откройте его (I) и кликните по оружию, чтобы взять в ячейку');
+  else showToast('Оружия нет. В ДЕМО оно лежит в тире и на столе предметов');
 }
 
-// Следующее оружие из инвентаря по кругу (R). Одно оружие — подсказка, что сменить не на что
+// Следующее оружие из трех ячеек оружия по кругу (R). Одно оружие — подсказка, что сменить не на что
 function nextWeapon() {
-  const ids = inventory.items.filter(isWeapon);
+  const ids = weaponSlotIds();
   if (!ids.length) return toggleWeapon();
+  if (!heroWeapon.id) return drawWeapon(heroEquip.weapons[heroEquip.active] || ids[0]);
   const i = ids.indexOf(heroWeapon.id);
   const id = ids[(i + 1) % ids.length];
-  if (id === heroWeapon.id) return showToast('Другого оружия нет — возьмите еще в тире');
+  if (id === heroWeapon.id) return showToast('В других ячейках оружия нет — возьмите еще в тире');
   if (drawWeapon(id)) showToast(WEAPONS[id].name, 1500);
 }
 
@@ -503,7 +510,7 @@ function updateWeaponFx() {
 // ---------- Кадр ----------
 function updateWeapons() {
   // Оружие пропало из инвентаря (загрузка, отдали) или герой сел в машину — убрать
-  if (heroWeapon.id && (!hasItem(heroWeapon.id) || drivingCar || pushingCar)) holsterWeapon(true);
+  if (heroWeapon.id && (!heroEquip.weapons.includes(heroWeapon.id) || drivingCar || pushingCar)) holsterWeapon(true);
 
   const w = WEAPONS[heroWeapon.id];
   if (heroWeapon.cooldown > 0) heroWeapon.cooldown--;

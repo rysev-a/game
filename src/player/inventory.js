@@ -13,7 +13,9 @@
 //   клик по заполненному слоту (без режимов) — загрузить игру
 //
 // API для остального кода:
-//   addItem(id) — положить вещь, hasItem(id) — есть ли, removeItem(id)
+//   addItem(id) — положить вещь, hasItem(id) — есть ли (в сетке или надета), removeItem(id)
+// Надеваемое (браслет, броня, ботинки, оружие) в раскрытом инвентаре надевается кликом —
+// уходит в ячейку нижней панели (src/player/equipment.js)
 //   showToast(текст, мс) — короткое сообщение внизу экрана
 
 const ITEMS = {
@@ -27,6 +29,11 @@ const ITEMS = {
   flashlight: { name: 'Фонарик', icon: 'flashlight', desc: 'Светит далеко. Ночью без него никуда.' },
   canister: { name: 'Канистра с бензином', icon: 'canister', desc: 'Бензин от соседа. E у своей машины — залить в бак.' }, // от соседа; E у своей машины — залить
 };
+
+// Надеваемые приборы (браслет) тоже лежат в инвентаре, пока их не надели
+for (const id in DEVICES) {
+  if (!ITEMS[id]) ITEMS[id] = { name: DEVICES[id].name, icon: id, kind: 'device', desc: DEVICES[id].desc };
+}
 
 const inventory = {
   size: 40, // 8 × 5 клеток в раскрытом виде
@@ -65,6 +72,15 @@ function renderInventory() {
     if (id) {
       c.appendChild(pixelIcon(ITEMS[id].icon));
       c.title = ITEMS[id].name;
+      // В раскрытом инвентаре клик по надеваемой вещи — надеть (в ячейку нижней панели)
+      if (inventoryOpen && typeof equipSlotOf === 'function' && equipSlotOf(id)) {
+        c.classList.add('wearable');
+        c.title += ' — клик надевает';
+        c.addEventListener('click', (e) => {
+          e.stopPropagation();
+          equipItem(id);
+        });
+      }
     }
     grid.appendChild(c);
   }
@@ -206,11 +222,12 @@ window.addEventListener('keydown', (e) => {
 
 // ---------- Вещи ----------
 
-const hasItem = (id) => inventory.items.includes(id);
+const hasItem = (id) => inventory.items.includes(id) || (typeof isEquipped === 'function' && isEquipped(id));
 
 function addItem(id) {
   if (hasItem(id) || inventory.items.length >= inventory.size) return false;
   inventory.items.push(id);
+  if (typeof autoEquip === 'function') autoEquip(id); // оружие — сразу в свободную ячейку
   renderInventory();
   showToast('Взято: ' + ITEMS[id].name);
   playPickupClick(); // щелчок (src/player/footsteps.js)
@@ -227,6 +244,7 @@ function registerCarKey(car, name) {
 function removeItem(id) {
   const i = inventory.items.indexOf(id);
   if (i >= 0) inventory.items.splice(i, 1);
+  if (typeof dropEquipped === 'function') dropEquipped(id);
   renderInventory();
 }
 

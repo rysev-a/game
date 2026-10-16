@@ -250,7 +250,7 @@ addInteractable({
 // из инвентаря (ее там больше нет), она снова появляется на столе
 {
   const tableZ = 34;
-  const ids = Object.keys(ITEMS);
+  const ids = Object.keys(ITEMS).filter((id) => !DEVICES[id]); // приборы — на своей подставке
   const step = 3;
   const x0 = -((ids.length - 1) * step) / 2;
   const tableW = ids.length * step + 2;
@@ -320,19 +320,20 @@ addInteractable({
       if (isWorn(id)) {
         takeOffDevice(id);
         showToast('Снято: ' + d.name);
-      } else wearDevice(id);
+      } else if (!hasItem(id)) wearDevice(id);
     };
     addInteractable({
       priority: 2,
-      near: () => !drivingCar && !insideBuilding() && Math.hypot(playerWorldX - x, playerWorldZ - standZ) < 2.4,
+      // Прибор в инвентаре (не надет) — подставка пустая, надевают его из инвентаря
+      near: () => !drivingCar && !insideBuilding() && (isWorn(id) || !hasItem(id)) && Math.hypot(playerWorldX - x, playerWorldZ - standZ) < 2.4,
       prompt: () => (isWorn(id) ? 'E — снять и положить обратно: ' : 'E — надеть: ') + d.name,
       act: toggle,
     });
-    addPickable({ id, mesh, canPick: () => !drivingCar && !insideBuilding() && !isWorn(id), pick: toggle });
+    addPickable({ id, mesh, canPick: () => !drivingCar && !insideBuilding() && !hasItem(id), pick: toggle });
   });
-  // Каждый кадр, пока подставка на экране: надетого прибора на ней нет
+  // Каждый кадр, пока подставка на экране: прибора, который на герое или в инвентаре, на ней нет
   stand.onBeforeRender = () => {
-    for (const t of onStand) t.mesh.visible = !isWorn(t.id);
+    for (const t of onStand) t.mesh.visible = !hasItem(t.id);
   };
 }
 
@@ -362,6 +363,14 @@ addInteractable({
   }
 }
 
+
+// ---------- Снаряжение ----------
+// Браслет возврата сразу лежит в инвентаре: открыть инвентарь (I) и кликнуть — он защелкнется на руке
+// и встанет в ячейку «браслет» нижней панели. С собой — немного эликсира (src/player/equipment.js)
+if (!hasItem('bracelet')) inventory.items.push('bracelet');
+heroStats.elixir = 5;
+renderInventory();
+renderEquipHud();
 
 // Старт на улице, за подставкой с приборами: впереди приборы, стол с предметами, персонажи, дорога и дом
 const demoStart = { x: 0, z: 48 };
