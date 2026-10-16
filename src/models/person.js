@@ -17,6 +17,8 @@
 //   man.attach('wristL', mesh);     // надеть вещь на левое запястье (браслет), качается с рукой
 //   man.attach('handR', gun);       // вложить оружие в правую руку: ствол (-Z модели) идет вдоль руки
 //   man.setAim(true);               // правая рука вытянута вперед (держит оружие); setAim(false) — опустить
+//   man.attach('rifle', gun);       // винтовка у груди: приклад у правого плеча, ствол (-Z модели) вперед
+//   man.setAim('rifle');            // хват двумя руками: правая — на рукояти, левая — на цевье
 //
 // Прохожие: gender 'female' добавляет юбку и длинные волосы,
 // hairColor включает прическу (без него человечек лысый):
@@ -531,7 +533,7 @@ function createWalkingMan(options = {}) {
   // Положительный угол X поворачивает конечность вперед (в -Z)
   let sitting = false;
   let pushing = false;
-  let aiming = false; // правая рука вытянута вперед с оружием
+  let aiming = false; // false | 'hand' — правая рука вытянута с оружием | 'rifle' — винтовка двумя руками
   root.updateWalk = function (t, amp = 1) {
     if (sitting) return; // сидящий не шагает
     const swing = Math.sin(t) * amp;
@@ -546,8 +548,8 @@ function createWalkingMan(options = {}) {
     }
     legL.rotation.x = swing * 0.75;
     legR.rotation.x = -swing * 0.75;
-    armL.rotation.x = -swing * 0.55;
-    armR.rotation.x = aiming ? 1.5 : swing * 0.55;
+    if (aiming !== 'rifle') armL.rotation.x = -swing * 0.55; // с винтовкой руки держат оружие
+    if (!aiming) armR.rotation.x = swing * 0.55;
     body.rotation.z = Math.sin(t) * 0.04 * amp; // легкое покачивание корпуса
     body.rotation.y = Math.cos(t) * 0.06 * amp;
     hips.position.y = Math.abs(Math.cos(t)) * 0.04 * amp; // «подпрыгивание» шага
@@ -582,11 +584,34 @@ function createWalkingMan(options = {}) {
     }
   };
 
-  // Поза «целится»: правая рука вытянута вперед на уровне плеча (держит оружие), левая шагает как обычно
+  // Направить руку (pivot в плече) кистью в точку p корпуса: рука смотрит вниз (-Y), поворот X — вперед,
+  // Z — вбок. Кисть на длине ~0,69 от плеча
+  function pointArm(arm, inner, p) {
+    const dx = p[0] - arm.position.x;
+    const dy = p[1] - arm.position.y;
+    const dz = p[2] - arm.position.z;
+    const len = Math.hypot(dx, dy, dz);
+    arm.rotation.set(Math.atan2(-dz, -dy), 0, Math.asin(dx / len));
+    inner.rotation.z = 0;
+  }
+  // Где у винтовки рукоять и цевье (в осях корпуса) — туда тянутся кисти; приклад у правого плеча
+  const RIFLE_AT = { x: 0.14, y: 1.36, z: 0.02 };
+  const RIFLE_GRIP_R = [0.15, 1.2, -0.42];
+  const RIFLE_GRIP_L = [0.12, 1.26, -0.68];
+
+  // Позы «целится»: on = true ('hand') — правая рука вытянута вперед на уровне плеча (держит оружие),
+  // левая шагает как обычно; 'rifle' — винтовка двумя руками; false — опустить
   root.setAim = function (on) {
-    aiming = on;
-    armR.rotation.set(on ? 1.5 : 0, 0, 0);
-    R.inner.rotation.z = on ? 0 : 0.28;
+    aiming = on === true ? 'hand' : on;
+    if (aiming === 'rifle') {
+      pointArm(armR, R.inner, RIFLE_GRIP_R);
+      pointArm(armL, L.inner, RIFLE_GRIP_L);
+      return;
+    }
+    armR.rotation.set(aiming ? 1.5 : 0, 0, 0);
+    armL.rotation.set(0, 0, 0);
+    R.inner.rotation.z = aiming ? 0 : 0.28;
+    L.inner.rotation.z = -0.28;
   };
 
   // Поза «сидит»: таз опускается на высоту сиденья, ноги вытянуты вперед, руки на коленях
@@ -603,9 +628,15 @@ function createWalkingMan(options = {}) {
   // Запястье — чуть выше кисти (кисть на y = −0,69 в группе руки). Снять: obj.parent.remove(obj)
   // handR — в кулак: вещь повернута так, что ее -Z смотрит вдоль руки (из кулака), а +Y — от груди вверх
   // при вытянутой вперед руке
+  // rifle — к корпусу: начало координат вещи — приклад у правого плеча, -Z — ствол вперед
   const WEAR_SLOTS = { wristL: [L.inner, -0.56, 0], wristR: [R.inner, -0.56, 0], handR: [R.inner, -0.7, -Math.PI / 2] };
   root.attach = function (slot, obj) {
     root.userData.rig.attached.push([slot, obj]);
+    if (slot === 'rifle') {
+      obj.position.set(RIFLE_AT.x, RIFLE_AT.y, RIFLE_AT.z);
+      body.add(obj);
+      return obj;
+    }
     const [arm, y, rx] = WEAR_SLOTS[slot];
     obj.position.set(0, y, 0);
     obj.rotation.x = rx;

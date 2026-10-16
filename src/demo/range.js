@@ -24,11 +24,12 @@
   ids.forEach((id, i) => {
     const w = WEAPONS[id];
     const z = z0 + i * step;
-    // Модель оружия лежит на стойке стволом к мишеням, крупнее, чем в руке
+    // Модель оружия лежит на стойке, чуть крупнее, чем в руке
     const mesh = new THREE.Group();
     const model = w.model ? w.model() : createItemModel(id, 0.9);
-    model.rotation.y = -Math.PI / 2;
-    model.scale.setScalar(2.2);
+    // Лежит вдоль стойки стволом на север, по центру своего места (начало модели — приклад)
+    model.scale.setScalar(1.3);
+    model.position.z = 1;
     mesh.add(model);
     mesh.position.set(rackX, 1.15, z);
     cityGroup.add(mesh);
