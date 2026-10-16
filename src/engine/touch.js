@@ -316,7 +316,7 @@ if (touchUI) {
         const r = joyBase.getBoundingClientRect();
         const cx = r.left + r.width / 2;
         const cy = r.top + r.height / 2;
-        if (!joyTouch && Math.hypot(t.clientX - cx, t.clientY - cy) < joyRadius * joyGrab) {
+        if (!joyTouch && !drivingCar && Math.hypot(t.clientX - cx, t.clientY - cy) < joyRadius * joyGrab) { // в машине — педали
           joyTouch = { id: t.identifier, x: cx, y: cy };
           joyBase.classList.add('on');
           setJoy(t.clientX - cx, t.clientY - cy);
