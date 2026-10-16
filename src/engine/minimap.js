@@ -140,12 +140,20 @@ function drawMinimap() {
     mmCtx.fill('evenodd');
   }
 
-  // Прохожие: розовые — женщины, голубые — мужчины
-  const dot = Math.max(2, 3 * px);
+  // Прохожие — кружки: розовые — женщины, голубые — мужчины, полицейские — синие с белой обводкой
+  const dot = Math.max(1.2, 1.8 * px);
   for (const n of npcs) {
     if (!near(n.x, n.z)) continue;
-    mmCtx.fillStyle = n.gender === 'female' ? '#ff8fb3' : '#8fd0ff';
-    mmCtx.fillRect(n.x - cx - dot / 2, n.z - cz - dot / 2, dot, dot);
+    const police = n.type === 'police' || n.kind === 'officer';
+    mmCtx.fillStyle = police ? '#2f5bd8' : n.gender === 'female' ? '#ff8fb3' : '#8fd0ff';
+    mmCtx.beginPath();
+    mmCtx.arc(n.x - cx, n.z - cz, dot, 0, Math.PI * 2);
+    mmCtx.fill();
+    if (police) {
+      mmCtx.strokeStyle = '#ffffff';
+      mmCtx.lineWidth = px;
+      mmCtx.stroke();
+    }
   }
 
   // Люди в зданиях (координаты внутри этажа смещены по Z)
@@ -154,7 +162,9 @@ function drawMinimap() {
       const wz = p.z + def.floorZ[p.floor];
       if (!near(p.x, wz)) continue;
       mmCtx.fillStyle = p.gender === 'female' ? '#ff8fb3' : '#8fd0ff';
-      mmCtx.fillRect(p.x - cx - 0.7, wz - cz - 0.7, 1.5, 1.5);
+      mmCtx.beginPath();
+      mmCtx.arc(p.x - cx, wz - cz, 0.75, 0, Math.PI * 2);
+      mmCtx.fill();
     }
   }
 
@@ -176,15 +186,75 @@ function drawMinimap() {
     }
     mmCtx.restore();
   }
+
+  // Значки мест (дом, заправка): всегда стоят ровно и одного размера на экране
+  if (!ci) {
+    for (const icon of mapIcons) {
+      if (!near(icon.x, icon.z)) continue;
+      mmCtx.save();
+      mmCtx.translate(icon.x - cx, icon.z - cz);
+      mmCtx.rotate(worldRotation);
+      mmCtx.scale(px, px);
+      drawMapIcon(icon.icon);
+      mmCtx.restore();
+    }
+  }
+
+  // Игрок — красная стрелка носом туда, куда он смотрит (за рулем — куда смотрит машина).
+  // Рисуется в его настоящем месте, даже если карту сдвинули колесиком
+  mmCtx.save();
+  mmCtx.translate(playerWorldX - cx, playerWorldZ - cz);
+  mmCtx.rotate(-(drivingCar ? drivingCar.heading : playerHeading));
+  mmCtx.scale(px, px);
+  mmCtx.beginPath();
+  mmCtx.moveTo(0, -7);
+  mmCtx.lineTo(5, 5);
+  mmCtx.lineTo(0, 2.5);
+  mmCtx.lineTo(-5, 5);
+  mmCtx.closePath();
+  mmCtx.fillStyle = '#ff2a2a';
+  mmCtx.fill();
+  mmCtx.strokeStyle = '#ffffff';
+  mmCtx.lineWidth = 1.2;
+  mmCtx.stroke();
   mmCtx.restore();
 
-  // Игрок — красный квадрат (в центре; если карту сдвинули — там, где игрок на самом деле)
-  const k = mmScale;
-  // игрок относительно центра карты — это (-mmPan); холст повернут на -worldRotation
-  const cosR = Math.cos(worldRotation);
-  const sinR = Math.sin(worldRotation);
-  const pu = (-mmPan.x * cosR - mmPan.z * sinR) * k;
-  const pv = (mmPan.x * sinR - mmPan.z * cosR) * k;
-  mmCtx.fillStyle = '#ff2a2a';
-  mmCtx.fillRect(S / 2 + pu - 3, S / 2 + pv - 3, 6, 6);
+  mmCtx.restore();
+}
+
+// Значок на карте в пикселях вокруг (0, 0): кружок-подложка и рисунок внутри
+function drawMapIcon(kind) {
+  const c = mmCtx;
+  c.beginPath();
+  c.arc(0, 0, 8, 0, Math.PI * 2);
+  c.fillStyle = kind === 'home' ? '#d9a066' : '#d23c3c';
+  c.fill();
+  c.strokeStyle = '#111111';
+  c.lineWidth = 1.5;
+  c.stroke();
+  c.fillStyle = '#ffffff';
+  c.beginPath();
+  if (kind === 'home') {
+    // домик: крыша-треугольник и стены
+    c.moveTo(0, -5);
+    c.lineTo(5, -0.5);
+    c.lineTo(-5, -0.5);
+    c.closePath();
+    c.fill();
+    c.fillRect(-3.5, -0.5, 7, 5);
+    c.fillStyle = '#d9a066';
+    c.fillRect(-1, 1.5, 2, 3); // дверь
+  } else if (kind === 'gas') {
+    // колонка со шлангом
+    c.fillRect(-4, -4.5, 5, 9);
+    c.fillStyle = '#d23c3c';
+    c.fillRect(-3, -3.5, 3, 2.5); // окошко
+    c.strokeStyle = '#ffffff';
+    c.lineWidth = 1.2;
+    c.beginPath();
+    c.moveTo(1, -2.5);
+    c.lineTo(3.5, -1);
+    c.lineTo(3.5, 3);
+    c.stroke();
+  }
 }

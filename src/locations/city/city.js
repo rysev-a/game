@@ -50,6 +50,37 @@ function makeBuilding(w, h, d, facade, topColor) {
   fadeBoxes.push({ mesh, mats: [side, top, edge], half: [w / 2, h / 2, d / 2], fade: 1 });
   return mesh;
 }
+// Сквер: фонарь в центре, две скамейки лицом к нему, деревья по углам и кусты вдоль краев
+// (модели — src/models/props.js)
+function buildSquare(px, pz) {
+  const lamp = createStreetLamp();
+  lamp.position.set(px, 0, pz);
+  cityGroup.add(lamp);
+  addObstacle({ x: px, z: pz, hx: 0.25, hz: 0.25 });
+  for (const side of [-1, 1]) {
+    const bench = createBench();
+    bench.position.set(px, 0, pz + side * 4);
+    bench.rotation.y = side > 0 ? 0 : Math.PI; // сидящий смотрит на фонарь
+    cityGroup.add(bench);
+    addObstacle({ x: px, z: pz + side * 4, hx: 0.95, hz: 0.35 });
+  }
+  for (const dx of [-7, 7]) {
+    for (const dz of [-7, 7]) {
+      const tree = createLeafyTree(pick(leafyGreens));
+      tree.position.set(px + dx, 0, pz + dz);
+      tree.rotation.y = rand(0, Math.PI * 2);
+      tree.scale.setScalar(rand(0.9, 1.2));
+      cityGroup.add(tree);
+      addObstacle({ x: px + dx, z: pz + dz, hx: 0.35, hz: 0.35 });
+    }
+  }
+  for (const [dx, dz] of [[0, -9.5], [0, 9.5], [-9.5, 0], [9.5, 0]]) {
+    const bush = createBush();
+    bush.position.set(px + dx, 0, pz + dz);
+    cityGroup.add(bush);
+  }
+}
+
 function buildCity(city) {
   const { x: cx, z: cz, theme } = city;
   const ownSidewalks = (city.sidewalks = []);
@@ -74,6 +105,7 @@ function buildCity(city) {
       // сквер
       flatRect(22, 22, 0x2f5233, 0.015, px, pz);
       mapObjects.push({ x: px, z: pz, hx: 11, hz: 11, color: '#2f5233', ground: true });
+      buildSquare(px, pz);
       return;
     }
     const big = idx < 5;
@@ -141,6 +173,17 @@ function buildCity(city) {
     }
   }
   sidewalks.push(...ownSidewalks);
+
+  // Фонари вдоль главной дороги, между проезжей частью и тротуаром, плафоном к дороге
+  for (let i = -2; i <= 2; i++) {
+    for (const side of [-1, 1]) {
+      const lamp = createStreetLamp();
+      lamp.position.set(cx + i * cityStep, 0, cz + side * 4.4);
+      lamp.rotation.y = side < 0 ? Math.PI : 0;
+      cityGroup.add(lamp);
+      addObstacle({ x: cx + i * cityStep, z: cz + side * 4.4, hx: 0.2, hz: 0.2 });
+    }
+  }
 }
 cities.forEach(buildCity);
 
