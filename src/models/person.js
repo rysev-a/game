@@ -24,6 +24,7 @@
 //   hat: 'fedora' | 'cap' | 'police' | 'beanie', hatColor
 //   coat: true, coatColor — длинный плащ до колен (поверх рубашки, с воротником и поясом)
 //   tie: true, tieColor   — белая рубашка и галстук спереди
+//   tshirt: true         — футболка: короткий рукав, руки ниже открыты (цвет — shirtColor)
 //   sweater: true, sweaterStripeColor — вязаный свитер (цвет — shirtColor): полосы на груди и рукавах,
 //                         резинка по низу и на манжетах
 //   sneakers: true, sneakerStripeColor — белые кроссовки с толстой подошвой и цветной полосой сбоку
@@ -58,6 +59,7 @@ function createWalkingMan(options = {}) {
       coat: false,
       coatColor: 0x8a7350,
       tie: false,
+      tshirt: false,
       sweater: false,
       sweaterStripeColor: 0xd8d2c0,
       sneakers: false,
@@ -192,9 +194,15 @@ function createWalkingMan(options = {}) {
   function makeArm(sideX) {
     const arm = new THREE.Group();
     arm.position.set(sideX, 1.55, 0);
-    const limb = part(0.16, 0.62, 0.16, sleeveColor);
+    // В футболке короткий рукав, ниже — голая рука
+    const limb = part(0.16, 0.62, 0.16, o.tshirt ? o.skinColor : sleeveColor);
     limb.position.y = -0.31;
     arm.add(limb);
+    if (o.tshirt) {
+      const sleeve = part(0.18, 0.24, 0.18, o.shirtColor);
+      sleeve.position.y = -0.1;
+      arm.add(sleeve);
+    }
     const hand = part(0.17, 0.14, 0.17, o.skinColor);
     hand.position.y = -0.68;
     arm.add(hand);
@@ -394,7 +402,7 @@ function createWalkingMan(options = {}) {
 }
 
 // Готовые наборы людей. createPerson(тип, опции): опции перекрывают набор.
-//   'geek'      — игрок: свитер с полосами, джинсы, белые кроссовки, очки, темные волосы
+//   'geek'      — игрок: черная футболка, синие джинсы, красная кепка, белые кроссовки
 //   'coat'      — длинный плащ, шляпа, рубашка с галстуком (начальники, ученые)
 //   'police'    — полицейский: синяя форма, фуражка, жетон
 //   'elder'     — пожилой: седина, трость, сутулится
@@ -402,9 +410,10 @@ function createWalkingMan(options = {}) {
 //   'casual', 'office', 'student', 'worker' — обычные прохожие
 const PERSON_PRESETS = {
   geek: {
-    sweater: true, shirtColor: 0x3f5f7f, sweaterStripeColor: 0xd8d2c0, pantsColor: 0x3a4f6e,
-    sneakers: true, sneakerStripeColor: 0xd23c3c, glasses: true, hairColor: 0x2a1c12,
+    tshirt: true, shirtColor: 0x1c1c1e, pantsColor: 0x34558a, hat: 'cap', hatColor: 0xb03030,
+    sneakers: true, sneakerStripeColor: 0xd23c3c, hairColor: 0x2a1c12,
   },
+
   coat: { coat: true, coatColor: 0x9a8058, hat: 'fedora', hatColor: 0x4a3c2a, tie: true, pantsColor: 0x3a3428, shoeColor: 0x2a1a10 },
   police: { shirtColor: 0x2c4a7a, pantsColor: 0x1c2848, hat: 'police', hatColor: 0x1c2848, badge: true, dress: false },
   elder: { hairColor: 0xc8c8c0, cane: true, stoop: 0.18 },
