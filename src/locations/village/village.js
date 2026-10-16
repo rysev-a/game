@@ -197,6 +197,7 @@ for (const side of [-1, 1]) {
     addObstacle({ x: houseX, z: houseZ, hx: w / 2, hz: d / 2 });
     mapObjects.push({ x: houseX, z: houseZ, hx: w / 2, hz: d / 2, color: mine ? '#d9a066' : '#8a8a8a' });
     villageHouses.push({ x: houseX, z: houseZ, side, mine, w, d });
+    if (mine) mapIcons.push({ x: houseX, z: houseZ, icon: 'home' });
 
     // Дорожка от калитки к двери
     const pathLen = Math.abs(houseFront - frontEdge);

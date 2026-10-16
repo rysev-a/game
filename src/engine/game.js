@@ -49,6 +49,7 @@ function animate() {
   updateFade();
   updateSchedule();
   updateRain();
+  setStreetLampsNight(Math.min(1, (1 - daylight()) / 0.6)); // фонари зажигаются в сумерках
   updateSound();
 
   drawMinimap();

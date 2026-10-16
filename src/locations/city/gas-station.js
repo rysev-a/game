@@ -10,6 +10,7 @@ const gasPumps = [-4.5, 4.5].map((dx) => ({ x: gasX + dx, z: gasPumpZ }));
 // Площадка (бетон) и зона без леса
 flatRect(30, 13, 0x4a4a4e, 0.016, gasX, -9.5);
 mapObjects.push({ x: gasX, z: -9.5, hx: 15, hz: 6.5, color: '#4a4a4e', ground: true });
+mapIcons.push({ x: gasX, z: -9.5, icon: 'gas' });
 clearZones.push({ x1: gasX - 20, x2: gasX + 20, z1: -36, z2: 4 });
 
 // Навес: плоская крыша на четырех стойках; полупрозрачная, когда загораживает вид
