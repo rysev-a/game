@@ -69,6 +69,7 @@ function animate(now = performance.now()) {
   updateSound();
 
   drawMinimap();
+  drawMapFull(); // карта на весь экран, если открыта (src/engine/mapfull.js)
   updateTravelHud();
   updatePickHover(pickMouse); // вещь под мышью подсвечивается
   updateHoverInfo(pickMouse); // что под мышью — в панели справа
