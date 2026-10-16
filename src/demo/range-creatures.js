@@ -188,6 +188,62 @@ let penLab = null;
         { name: 'bullet', max: 22, charge: 16, shots: 6, every: 5, cd: 120, fire: (m, t, i) => shoot(m, i % 2 ? 'armR' : 'armL', { kind: 'bullet', speed: 0.75, life: 50, damage: 3, type: 'kinetic' }) },
       ],
     },
+    {
+      id: 'cyborg',
+      make: createCyborgOutcastModel,
+      name: 'Киборг-изгой',
+      kind: 'robot',
+      desc: 'Робот, когда-то бывший человеком: половина лица — металл с оранжевым глазом, левая рука — тяжелая пушка, за спиной рваный плащ. Ходит дозором, бьет издалека оранжевыми сгустками и очередями, а вблизи — живым кулаком. Ток и импульсный лазер ×2; огонь, плазма огнемета, пули и дробь его не берут.',
+      hp: 220, r: 0.7, height: 2.5, speed: 0.035, fightSpeed: 0.05, stride: 3.2,
+      behavior: 'patrol',
+      route: [[-10, -8], [-10, 8], [4, 8]],
+      wait: 120,
+      keep: [6, 14],
+      attacks: [
+        {
+          name: 'punch', max: 2.2, charge: 16, shots: 1, cd: 60,
+          fire: (m, t) => {
+            if (Math.hypot(playerWorldX - t.x, playerWorldZ - t.z) < t.r + 1.6) hitHero({ damage: 10, type: 'melee', x: t.x, z: t.z });
+          },
+        },
+        { name: 'blast', min: 3, max: 20, charge: 36, shots: 1, cd: 130, fire: (m) => shoot(m, 'cannon', { kind: 'plasma', color: 0xff8a3a, speed: 0.32, life: 110, damage: 13, area: 1.2, type: 'plasma' }) },
+        { name: 'burst', max: 18, charge: 14, shots: 4, every: 6, cd: 100, fire: (m) => shoot(m, 'cannon', { kind: 'bullet', color: 0xffa04a, speed: 0.7, life: 50, damage: 3, type: 'kinetic' }) },
+      ],
+    },
+    {
+      id: 'maw',
+      make: createMireMawModel,
+      name: 'Болотная пасть',
+      kind: 'bio',
+      desc: 'Биосущество из болота: круглое тело, почти целиком — пасть с кривыми зубами, три янтарных глаза и шипы на макушке. Ходит вперевалку, плюется едкой зеленой слизью (на земле остается жгучая лужа), а подобравшись — кусает. Огонь ×2; ток и импульс ее не берут.',
+      hp: 160, r: 1.0, height: 2.2, speed: 0.03, fightSpeed: 0.06, stride: 3.0,
+      behavior: 'wander',
+      keep: [2, 8],
+      attacks: [
+        {
+          name: 'bite', max: 2.6, charge: 22, shots: 1, cd: 70,
+          fire: (m, t) => {
+            if (Math.hypot(playerWorldX - t.x, playerWorldZ - t.z) < t.r + 1.7) hitHero({ damage: 14, type: 'melee', x: t.x, z: t.z });
+          },
+        },
+        { name: 'spit', min: 3, max: 12, charge: 30, shots: 3, every: 8, cd: 140, fire: (m) => shoot(m, 'mouth', { kind: 'spit', color: 0x9adc4a, speed: 0.28, life: 160, damage: 6, type: 'fire' }) },
+      ],
+    },
+    {
+      id: 'crawler',
+      make: createScrapCrawlerModel,
+      name: 'Ломовой краулер',
+      kind: 'robot',
+      desc: 'Робот-паук, собранный из лома: рыжий корпус на шести ногах и один огромный желтый глаз. Быстро семенит вокруг цели, стреляет из глаза короткими лазерными очередями и бьет разрядом с антенн. Ток и импульсный лазер ×2; огонь, плазма огнемета, пули и дробь его не берут.',
+      hp: 120, r: 1.1, height: 2.4, speed: 0.05, fightSpeed: 0.09, stride: 3.5,
+      behavior: 'wander',
+      keep: [5, 12],
+      strafe: true,
+      attacks: [
+        { name: 'laser', max: 20, charge: 24, shots: 5, every: 4, cd: 110, fire: (m) => shoot(m, 'eye', { kind: 'bullet', color: 0xffe07a, speed: 0.8, life: 45, damage: 2, type: 'energy' }) },
+        { name: 'zap', max: 14, charge: 28, shots: 1, cd: 100, fire: (m) => zapHero(fromMuzzle(m, Math.random() < 0.5 ? 'antL' : 'antR'), 7) },
+      ],
+    },
   ];
 
   const leash = { x1: penX - penHX - 20, x2: penX + penHX, z1: penZ - penHZ, z2: penZ + penHZ };

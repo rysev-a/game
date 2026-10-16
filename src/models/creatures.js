@@ -7,6 +7,9 @@
 //   createCainModel()                         // «Каин-02»: тяжелый боевой робот, кулак и пулемет
 //   createSporeHoundModel()                   // спорогончая: бледная гончая с горящими спорами на спине
 //   createStiltVanguardModel()                // ходульный авангард: высокий желтый робот на ходулях
+//   createCyborgOutcastModel()                // киборг-изгой: полулицо-металл, рука-пушка, рваный плащ
+//   createMireMawModel()                      // болотная пасть: круглое зеленое тело-пасть, три глаза, шипы
+//   createScrapCrawlerModel()                 // ломовой краулер: рыжий робот-паук с одним огромным глазом
 //   createDemoLabModel()                      // лаборатория ДЕМО: корпус с раздвижными воротами, из них выходят существа
 //
 // Все модели смотрят в -Z и стоят на y = 0. Анимация — m.userData.animate(a), раз в кадр:
@@ -602,6 +605,380 @@ function createStiltVanguardModel() {
     if (aimUp > 0.5) torso.rotation.y += (0 - torso.rotation.y) * 0.2;
     const blink = (idle > 40 && Math.sin(time * 5) > 0.2) || (attack === 'rocket' && charge > 0 && Math.sin(time * 30) > 0);
     for (const l of lamps) l.visible = !blink || l.position.x * Math.sin(time * 0.7) > 0;
+  };
+  return g;
+}
+
+// ---------- Киборг-изгой ----------
+// Человек наполовину: левая половина лица — металл с оранжевым глазом-щелью, правая рука живая,
+// левая — тяжелая рука-пушка с оранжевыми полосами. Шалфейный жилет с нагрудной пластиной, рваный
+// плащ за спиной и через правое плечо, серые штаны и тяжелые ботинки
+function createCyborgOutcastModel() {
+  const g = new THREE.Group();
+  const skin = 0xf0b48a;
+  const skinDark = 0xd8946c;
+  const metal = 0xb4c2c4;
+  const steel = 0x4a5e6c;
+  const sage = 0xa8b89a;
+  const cloak = 0x94a486;
+  const pants = 0x8a9a96;
+  const orange = 0xff8a3a;
+  const hipY = 1.02;
+  const legs = [];
+  for (const s of [-1, 1]) {
+    const leg = creatureLeg(g, s * 0.16, hipY, 0, 0.5, {
+      thigh: (p) => {
+        cCyl(p, 0.13, 0.1, 0.52, 4, pants, 0, -0.25, 0, { rot: [0, Math.PI / 4, 0] });
+        cGem(p, 0.09, 0x7a8a88, 0, -0.5, -0.02); // колено
+      },
+      shin: (p) => {
+        cCyl(p, 0.1, 0.12, 0.38, 4, 0x9aaba6, 0, -0.2, 0, { rot: [0, Math.PI / 4, 0] });
+        cCyl(p, 0.14, 0.17, 0.16, 5, steel, 0, -0.43, -0.02); // голенище
+        cBox(p, 0.22, 0.12, 0.4, 0x3e4e58, 0, -0.46, -0.08); // ботинок
+        cBox(p, 0.2, 0.06, 0.16, 0x5a6a74, 0, -0.38, -0.2, { rot: [0.5, 0, 0] }); // носок
+      },
+    });
+    leg.s = s;
+    legs.push(leg);
+  }
+  const torso = new THREE.Group();
+  torso.position.y = hipY;
+  g.add(torso);
+  cBox(torso, 0.46, 0.26, 0.3, 0x5a6a6e, 0, 0.04, 0); // таз
+  cCyl(torso, 0.46, 0.3, 0.68, 4, sage, 0, 0.48, 0, { rot: [0, Math.PI / 4, 0], scale: [1, 1, 0.62] }); // жилет
+  cBox(torso, 0.34, 0.3, 0.06, 0xc4d0b2, 0, 0.6, -0.2, { rot: [0.12, 0, 0] }); // нагрудная пластина
+  cBox(torso, 0.15, 0.07, 0.03, 0x3a4a52, 0, 0.64, -0.24);
+  cBox(torso, 0.1, 0.035, 0.03, orange, 0, 0.64, -0.255, { glow: true }); // огонек на груди
+  for (const s of [-1, 1]) cBox(torso, 0.12, 0.1, 0.06, 0x5a6a6e, s * 0.1, 0.3, -0.19); // подсумки
+  cCyl(torso, 0.15, 0.18, 0.1, 6, 0x4a5a5e, 0, 0.84, 0); // ворот
+  // Голова: человеческая половина справа (+X), металлическая слева, оранжевый глаз-щель
+  const head = new THREE.Group();
+  head.position.y = 0.84;
+  torso.add(head);
+  cCyl(head, 0.07, 0.08, 0.1, 5, skinDark, 0, 0.02, 0); // шея
+  cBox(head, 0.25, 0.3, 0.27, skin, 0.005, 0.2, 0);
+  cBox(head, 0.14, 0.31, 0.28, metal, -0.065, 0.2, 0); // металлическая половина
+  cBox(head, 0.13, 0.08, 0.2, 0x8a9a9e, -0.07, 0.07, -0.02); // стальная челюсть
+  cBox(head, 0.1, 0.055, 0.03, 0x2e3a42, -0.065, 0.24, -0.14);
+  const eye = cBox(head, 0.07, 0.03, 0.03, orange, -0.065, 0.24, -0.152, { glow: true });
+  cBox(head, 0.06, 0.02, 0.02, 0x2e3438, 0.065, 0.24, -0.14); // живой глаз
+  cBox(head, 0.07, 0.015, 0.02, 0x9a5a48, 0.04, 0.12, -0.14); // рот
+  cBox(head, 0.28, 0.09, 0.3, 0x2e3438, 0.01, 0.38, 0.01); // волосы
+  cBox(head, 0.16, 0.07, 0.08, 0x2e3438, 0.05, 0.37, -0.14, { rot: [0.3, 0, -0.15] }); // челка
+  // Правая рука (+X) — живая, кабель вдоль предплечья, кулак в серой перчатке
+  const armR = new THREE.Group();
+  armR.position.set(0.43, 0.74, 0);
+  torso.add(armR);
+  cCyl(armR, 0.13, 0.1, 0.36, 4, skin, 0, -0.18, 0, { rot: [0, Math.PI / 4, 0] });
+  const foreR = new THREE.Group();
+  foreR.position.y = -0.36;
+  armR.add(foreR);
+  cCyl(foreR, 0.1, 0.08, 0.32, 4, skinDark, 0, -0.16, 0, { rot: [0, Math.PI / 4, 0] });
+  cBox(foreR, 0.02, 0.16, 0.02, 0x5a8aa0, 0.075, -0.1, -0.04, { rot: [0, 0, 0.4] }); // кабель
+  cBox(foreR, 0.02, 0.12, 0.02, 0x5a8aa0, 0.085, -0.22, -0.04, { rot: [0, 0, -0.3] });
+  cGem(foreR, 0.11, 0x6a7a80, 0, -0.38, 0, { scale: [1, 1, 1.1] }); // кулак
+  armR.rotation.z = 0.12;
+  // Левая рука (-X) — рука-пушка: стальное плечо, оранжевый сустав, ствол вперед
+  const armL = new THREE.Group();
+  armL.position.set(-0.45, 0.74, 0);
+  torso.add(armL);
+  cBox(armL, 0.24, 0.16, 0.28, metal, -0.02, 0.02, 0); // наплечник
+  cCyl(armL, 0.11, 0.09, 0.34, 6, 0xc8d4d4, 0, -0.18, 0);
+  const elbow = new THREE.Group();
+  elbow.position.y = -0.38;
+  armL.add(elbow);
+  cCyl(elbow, 0.08, 0.08, 0.12, 6, 0x3a4a52, 0, 0, 0, { rot: [0, 0, Math.PI / 2] });
+  const joint = cCyl(elbow, 0.065, 0.065, 0.14, 6, orange, 0, 0, 0, { glow: true, rot: [0, 0, Math.PI / 2] });
+  const cannon = new THREE.Group();
+  elbow.add(cannon);
+  cBox(cannon, 0.24, 0.26, 0.56, steel, 0, -0.02, -0.3); // корпус пушки
+  cBox(cannon, 0.26, 0.07, 0.5, 0xc8d4d4, 0, 0.13, -0.28, { rot: [0.08, 0, 0] }); // светлая крышка
+  for (const z of [-0.22, -0.32]) cBox(cannon, 0.02, 0.14, 0.04, orange, -0.125, -0.02, z, { glow: true }); // полосы
+  cCyl(cannon, 0.08, 0.09, 0.1, 6, 0xa8b4b4, 0, -0.03, -0.62, { rot: [Math.PI / 2, 0, 0] }); // дуло
+  cCyl(cannon, 0.045, 0.045, 0.02, 6, 0x1a2228, 0, -0.03, -0.675, { rot: [Math.PI / 2, 0, 0] });
+  const ball = cGem(cannon, 0.07, orange, 0, -0.03, -0.7, { glow: true });
+  ball.visible = false;
+  // Плащ: рваное полотнище за спиной, висит от плеч; край через правое плечо спускается вперед
+  const cape = new THREE.Group();
+  cape.position.set(0, 0.8, 0.17);
+  torso.add(cape);
+  // Две половины под углом — складка посередине; снизу рваный край
+  for (const s of [-1, 1]) cBox(cape, 0.4, 1.1, 0.04, s < 0 ? cloak : 0x8a9a7c, s * 0.18, -0.55, 0.04, { rot: [0, s * 0.3, 0] });
+  for (let k = 0; k < 6; k++) {
+    const x = -0.32 + k * 0.128;
+    cCyl(cape, 0.07, 0, 0.14 + (k % 3) * 0.05, 3, cloak, x, -1.17 - (k % 3) * 0.025, 0.04 + 0.1 - Math.abs(x) * 0.3, { scale: [1, 1, 0.3] });
+  }
+  cBox(cape, 0.82, 0.09, 0.12, 0x7e8e72, 0, -0.02, -0.02); // складка у ворота
+  const drape = new THREE.Group();
+  drape.position.set(0.24, 0.8, -0.04);
+  torso.add(drape);
+  cBox(drape, 0.16, 0.95, 0.05, cloak, 0.02, -0.46, -0.1, { rot: [0.1, 0, -0.04] });
+  cCyl(drape, 0.07, 0, 0.16, 3, cloak, 0.04, -1.0, -0.14, { scale: [1, 1, 0.3] });
+  g.userData.muzzles = { cannon: creatureMarker(cannon, 0, -0.03, -0.75) };
+  // Идет ровным солдатским шагом, пушка у пояса смотрит вперед, плащ относит назад, живая рука
+  // машет. Стоит — переносит вес и поводит головой; железный глаз мигает. В бою вскидывает
+  // пушку на героя: замах — в дуле разгорается оранжевый сгусток; вблизи бьет живым кулаком
+  let aim = 0;
+  let capeSwing = 0;
+  let capeVel = 0;
+  g.userData.pace = (phase) => 0.75 + 0.25 * Math.abs(Math.sin(phase));
+  g.userData.animate = ({ phase, move, time, idle, alert, fight = 0, attack, charge: ch = 0, strike = 0 }) => {
+    aim += ((fight || alert > 0 ? 1 : 0) - aim) * 0.07;
+    for (const leg of legs) swingLeg(leg, phase + (leg.s < 0 ? 0 : Math.PI), move, 0.5, 0.75);
+    const sway = Math.sin(time * 0.9) * (1 - move);
+    torso.position.y = hipY + Math.abs(Math.cos(phase)) * 0.04 * move;
+    torso.rotation.z = Math.sin(phase) * 0.04 * move + sway * 0.02;
+    torso.rotation.y = Math.sin(phase) * 0.08 * move - aim * 0.25;
+    torso.rotation.x = 0.04 * move;
+    // Живая рука: машет на ходу, в ударе — вперед
+    const punch = attack === 'punch' ? (strike > 0 ? strike : -ch * 0.4) : 0;
+    armR.rotation.x = -Math.sin(phase) * 0.5 * move + punch * 1.5;
+    foreR.rotation.x = 0.3 + 0.25 * move - punch * 0.3;
+    // Пушка: опущена вперед у пояса; в бою — поднята на героя, отдача после выстрела
+    const shot = attack === 'blast' || attack === 'burst';
+    armL.rotation.x = 0.25 + Math.sin(phase) * 0.12 * move + aim * 0.95 - (shot ? strike * 0.35 : 0);
+    elbow.rotation.x = -armL.rotation.x * 0.92 + (shot ? strike * 0.3 : 0); // пушка держится ровно вперед
+    head.rotation.y = (idle > 60 ? Math.sin(time * 0.5) * 0.5 : 0) * (1 - aim) + aim * 0.22;
+    eye.visible = Math.sin(time * 2.3) > -0.9 || aim > 0.5;
+    const glow = attack === 'blast' ? ch : 0;
+    ball.visible = glow > 0.05;
+    ball.scale.setScalar(0.4 + glow * 1.2 + Math.random() * 0.15);
+    joint.scale.setScalar(1 + glow * 0.3);
+    // Плащ: относит назад на ходу, отстает от корпуса и колышется
+    capeVel += (move * 0.25 + aim * 0.08 + Math.sin(time * 2.6) * 0.03 - capeSwing) * 0.06;
+    capeVel *= 0.86;
+    capeSwing += capeVel;
+    cape.rotation.x = capeSwing;
+    cape.rotation.z = -torso.rotation.z * 1.5;
+    drape.rotation.x = -capeSwing * 0.3 - Math.sin(phase) * 0.1 * move;
+  };
+  return g;
+}
+
+// ---------- Болотная пасть ----------
+// Круглое зеленое биосущество: почти всё тело — огромная пасть с кривыми зубами, над ней три
+// янтарных глаза, на макушке три светлых шипа; короткие руки с загнутыми когтями, четыре
+// раскоряченные лапы. С губы тянется светящаяся слизь
+function createMireMawModel() {
+  const g = new THREE.Group();
+  const green = 0x8aa86a;
+  const greenDark = 0x5e7a4a;
+  const lime = 0xbcd474;
+  const pale = 0xd0d4a0;
+  const body = new THREE.Group();
+  body.position.y = 1.05;
+  g.add(body);
+  cGem(body, 0.78, green, 0, 0, 0.02, { detail: 1, scale: [1.08, 1, 0.95] }); // тело
+  cGem(body, 0.74, greenDark, 0, -0.04, 0.12, { detail: 1, scale: [1.06, 0.96, 0.92] }); // темная спина и бока
+  cGem(body, 0.55, 0xb4c48a, 0, 0.0, -0.36, { detail: 1, scale: [1, 1.15, 0.6] }); // светлая морда
+  // Пасть: темный восьмиугольник, внутри — нёбо и язык; зубы сверху и снизу
+  const mouth = new THREE.Group();
+  mouth.position.set(0, -0.12, -0.7);
+  body.add(mouth);
+  cCyl(mouth, 0.5, 0.5, 0.08, 8, 0x2e4a44, 0, 0, 0, { rot: [Math.PI / 2, Math.PI / 8, 0], scale: [1, 1, 0.8] });
+  cCyl(mouth, 0.42, 0.42, 0.06, 8, 0x55583a, 0, 0.01, -0.02, { rot: [Math.PI / 2, Math.PI / 8, 0], scale: [1, 1, 0.75] });
+  const tongue = cCyl(mouth, 0.28, 0.28, 0.05, 6, 0xb8b870, 0, -0.17, -0.04, { rot: [Math.PI / 2, 0, 0], scale: [1, 1, 0.35] });
+  for (let k = 0; k < 7; k++) {
+    const x = -0.33 + k * 0.11;
+    const h = 0.12 + (k % 2) * 0.06;
+    cCyl(mouth, 0.035, 0, h, 4, 0xe8e2b0, x, 0.28 - Math.abs(x) * 0.4 - h / 2, -0.06); // верхние
+  }
+  for (let k = 0; k < 5; k++) {
+    const x = -0.24 + k * 0.12;
+    cCyl(mouth, 0, 0.035, 0.12, 4, 0xe8e2b0, x, -0.24 + Math.abs(x) * 0.35, -0.06); // нижние
+  }
+  const drool = cBox(mouth, 0.03, 0.22, 0.03, 0xb4e060, 0.2, -0.44, -0.06, { glow: true });
+  g.userData.muzzles = { mouth: creatureMarker(mouth, 0, 0, -0.25) };
+  // Три глаза в темных шестигранных оправах, зрачки-щели
+  const eyes = [];
+  for (const [x, y, r] of [[0, 0.6, 0.11], [-0.34, 0.5, 0.09], [0.34, 0.5, 0.09]]) {
+    const e = new THREE.Group();
+    e.position.set(x, y, -0.66 + Math.abs(x) * 0.18);
+    e.rotation.y = -x * 0.6;
+    body.add(e);
+    cCyl(e, r * 1.35, r * 1.35, 0.06, 6, 0x3a4a3a, 0, 0, 0, { rot: [Math.PI / 2, 0, 0] });
+    cCyl(e, r, r, 0.07, 6, 0xe0c060, 0, 0, -0.01, { glow: true, rot: [Math.PI / 2, 0, 0] });
+    cBox(e, r * 0.25, r * 1.4, 0.03, 0x2e3a2a, 0, 0, -0.05);
+    eyes.push(e);
+  }
+  // Шипы на макушке: шестигранные столбики, светлые спереди
+  for (const [x, h, tilt] of [[0, 0.5, 0], [-0.4, 0.38, 0.35], [0.4, 0.38, -0.35]]) {
+    cCyl(body, 0.12, 0.15, h, 6, lime, x, 0.7 + h / 2 - Math.abs(x) * 0.35, -0.05, { rot: [-0.1, 0, tilt] });
+    cCyl(body, 0.09, 0.12, h * 0.9, 6, 0x6e9248, x * 1.04, 0.69 + h / 2 - Math.abs(x) * 0.35, 0.03, { rot: [-0.1, 0, tilt] });
+  }
+  // Короткие руки: локоть в сторону, коготь загнут вверх
+  const arms = [];
+  for (const s of [-1, 1]) {
+    const arm = new THREE.Group();
+    arm.position.set(s * 0.72, 0.05, -0.1);
+    body.add(arm);
+    cBox(arm, 0.32, 0.13, 0.15, 0x6e8a50, s * 0.15, -0.04, 0, { rot: [0, 0, -s * 0.5] });
+    cCyl(arm, 0.04, 0.08, 0.3, 4, lime, s * 0.32, 0.12, -0.02, { rot: [0, 0, -s * 0.25] });
+    arm.s = s;
+    arms.push(arm);
+  }
+  // Лапы: широко расставлены, бедро в сторону, голень вниз; светлые пальцы
+  const legs = [];
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+    const splay = sx * 0.95;
+    const unsplay = 0.75;
+    const kneeY = 0.72 - 0.55 * Math.cos(splay);
+    const shin = kneeY / Math.cos(splay * (1 - unsplay));
+    const fan = new THREE.Group();
+    fan.position.set(sx * 0.42, 0.72, sz * 0.25);
+    fan.rotation.y = sx * sz * -0.45;
+    g.add(fan);
+    const leg = creatureLeg(fan, 0, 0, 0, 0.55, {
+      thigh: (p) => cCyl(p, 0.13, 0.1, 0.6, 4, green, 0, -0.27, 0, { rot: [0, Math.PI / 4, 0] }),
+      shin: (p) => {
+        cCyl(p, 0.09, 0.07, shin, 4, 0x7a9a5a, 0, -shin / 2, 0, { rot: [0, Math.PI / 4, 0] });
+        for (const t of [-0.07, 0.07]) cBox(p, 0.08, 0.06, 0.2, pale, t, -shin + 0.03, -0.06, { rot: [0, t * 3, 0] });
+      },
+      unsplay,
+    }, splay);
+    leg.order = (sx < 0) === (sz < 0) ? 0 : Math.PI;
+    legs.push(leg);
+  }
+  // Ходит вперевалку, лапы парами накрест, тело качается с боку на бок. Стоит — дышит (пасть
+  // приоткрывается), глаза моргают по очереди, руки шевелятся. Укус — бросок вперед с распахнутой
+  // пастью; плевок — откидывается назад и выплевывает зеленую слизь
+  g.userData.pace = (phase) => 0.45 + 0.55 * Math.abs(Math.sin(phase));
+  g.userData.animate = ({ phase, move, time, idle, alert, attack, charge = 0, strike = 0 }) => {
+    for (const leg of legs) swingLeg(leg, phase + leg.order, move, 0.4, 0.6);
+    const bite = attack === 'bite' ? Math.max(charge, strike) : 0;
+    const spit = attack === 'spit' ? Math.max(charge, strike) : 0;
+    body.position.y = 1.05 + Math.abs(Math.sin(phase)) * 0.07 * move + Math.sin(time * 1.6) * 0.02 - bite * 0.1;
+    body.rotation.z = Math.sin(phase) * 0.12 * move;
+    body.rotation.x = 0.05 * move + (attack === 'bite' ? (strike > 0 ? 0.3 * strike : -0.15 * charge) : 0) - spit * 0.2 + strike * spit * 0.4;
+    body.position.z = attack === 'bite' ? -strike * 0.5 : 0;
+    const open = 0.75 + Math.sin(time * 1.6) * 0.06 * (1 - move) + Math.max(bite, spit) * 0.55 + alert * 0.2;
+    mouth.scale.set(1 + Math.max(bite, spit) * 0.1, open, 1);
+    tongue.position.y = -0.14 - spit * 0.06;
+    for (let i = 0; i < eyes.length; i++) {
+      const blink = Math.sin(time * 1.3 + i * 2.1) > 0.97 ? 0.15 : 1;
+      eyes[i].scale.y = blink;
+    }
+    for (const a of arms) a.rotation.z = a.s * (Math.sin(time * 2 + a.s) * 0.12 + move * Math.sin(phase) * 0.2 + Math.max(bite, alert) * 0.4);
+    drool.scale.y = 0.6 + ((time * 0.7) % 1) * 1.1;
+  };
+  return g;
+}
+
+// ---------- Ломовой краулер ----------
+// Робот-паук из лома: рыжий граненый корпус с серой пластиной спереди и темным брюхом, наверху
+// голова-восьмигранник с одним огромным желтым глазом и двумя антеннами с огоньками. Шесть ног:
+// передние и задние — серые, средние — рыжие, колени выше корпуса, темные ступни-копыта
+function createScrapCrawlerModel() {
+  const g = new THREE.Group();
+  const rust = 0xd88a4a;
+  const rustDark = 0x9a5a34;
+  const rustLight = 0xe6a66a;
+  const slate = 0x5e7276;
+  const dark = 0x34505a;
+  const gray = 0x9aa6a0;
+  const body = new THREE.Group();
+  body.position.y = 1.0;
+  g.add(body);
+  cCyl(body, 0.58, 0.52, 0.5, 6, rust, 0, 0.05, 0, { scale: [1, 1, 0.82] }); // корпус
+  cCyl(body, 0.5, 0.58, 0.08, 6, rustLight, 0, 0.32, 0, { scale: [1, 1, 0.82] }); // светлый верх
+  cCyl(body, 0.52, 0.22, 0.36, 6, dark, 0, -0.38, 0, { scale: [1, 1, 0.82] }); // брюхо
+  cBox(body, 0.46, 0.42, 0.06, slate, 0, 0.0, -0.44); // серая пластина
+  cBox(body, 0.12, 0.2, 0.5, rustDark, 0.5, 0.0, 0); // темный бок
+  for (const s of [-1, 1]) {
+    cBox(body, 0.14, 0.05, 0.08, dark, s * 0.18, 0.3, -0.38, { rot: [0, 0, s * 0.4] }); // прорези
+    cCyl(body, 0.05, 0.05, 0.03, 5, 0xf0b878, s * 0.36, 0.02, -0.42, { rot: [Math.PI / 2, 0, 0] }); // заклепки
+  }
+  // Голова: восьмигранник с огромным глазом, две антенны
+  const head = new THREE.Group();
+  head.position.set(0, 0.6, -0.12);
+  body.add(head);
+  cCyl(head, 0.14, 0.18, 0.18, 6, slate, 0, -0.18, 0.05); // шея
+  cCyl(head, 0.34, 0.34, 0.42, 8, 0xb0663a, 0, 0.12, 0, { rot: [Math.PI / 2, Math.PI / 8, 0] });
+  cCyl(head, 0.3, 0.34, 0.1, 8, 0xd89a62, 0, 0.36, 0, { rot: [0, Math.PI / 8, 0], scale: [1, 1, 1.15] }); // светлая макушка
+  cCyl(head, 0.24, 0.24, 0.05, 8, 0x3e5560, 0, 0.12, -0.21, { rot: [Math.PI / 2, Math.PI / 8, 0] }); // оправа
+  const iris = cCyl(head, 0.17, 0.17, 0.05, 8, 0xf2c868, 0, 0.12, -0.235, { glow: true, rot: [Math.PI / 2, Math.PI / 8, 0] });
+  const pupil = cCyl(head, 0.08, 0.08, 0.05, 6, 0x1e3a4a, 0, 0.12, -0.255, { rot: [Math.PI / 2, 0, 0] });
+  cBox(head, 0.05, 0.08, 0.02, 0xfff4d0, -0.08, 0.2, -0.26, { glow: true, rot: [0, 0, -0.5] }); // блик
+  const antennae = [];
+  for (const s of [-1, 1]) {
+    const a = new THREE.Group();
+    a.position.set(s * 0.14, 0.38, 0.02);
+    head.add(a);
+    cBox(a, 0.035, 0.42, 0.035, dark, 0, 0.2, 0);
+    a.tip = cGem(a, 0.05, 0xf2c868, 0, 0.43, 0, { glow: true });
+    a.rotation.z = -s * 0.28;
+    a.s = s;
+    antennae.push(a);
+  }
+  g.userData.muzzles = {
+    eye: creatureMarker(head, 0, 0.12, -0.35),
+    antL: creatureMarker(antennae[0], 0, 0.45, 0),
+    antR: creatureMarker(antennae[1], 0, 0.45, 0),
+  };
+  // Ноги: веером, колени выше корпуса, голень вниз чуть наружу
+  const legs = [];
+  const pairs = [
+    { z: -0.25, fan: 0.6, color: gray, splay: 2.1, thigh: 0.6 },
+    { z: 0.0, fan: 0, color: rust, splay: 1.9, thigh: 0.55 },
+    { z: 0.25, fan: -0.6, color: gray, splay: 2.0, thigh: 0.62 },
+  ];
+  pairs.forEach((pr, i) => {
+    for (const sx of [-1, 1]) {
+      const splay = sx * pr.splay;
+      const unsplay = 1 - 0.3 / pr.splay;
+      const hipY = 1.02;
+      const kneeY = hipY - pr.thigh * Math.cos(pr.splay);
+      const shin = kneeY / Math.cos(0.3);
+      const fan = new THREE.Group();
+      fan.position.set(sx * 0.4, hipY, pr.z);
+      fan.rotation.y = sx * pr.fan;
+      g.add(fan);
+      const leg = creatureLeg(fan, 0, 0, 0, pr.thigh, {
+        thigh: (p) => {
+          cBox(p, 0.13, pr.thigh, 0.14, pr.color, 0, -pr.thigh / 2, 0);
+          cBox(p, 0.04, pr.thigh * 0.8, 0.08, i === 1 ? rustDark : 0xc8ccb0, sx * 0.07, -pr.thigh / 2, 0);
+          cCyl(p, 0.09, 0.09, 0.16, 6, dark, 0, -pr.thigh, 0, { rot: [Math.PI / 2, 0, 0] }); // колено
+        },
+        shin: (p) => {
+          cCyl(p, 0.07, 0.05, shin * 0.85, 4, i === 1 ? rust : 0x7e8c88, 0, -shin * 0.43, 0, { rot: [0, Math.PI / 4, 0] });
+          cCyl(p, 0.06, 0.14, 0.14, 5, dark, 0, -shin + 0.07, 0); // ступня-копыто
+        },
+        unsplay,
+      }, splay);
+      leg.fan = fan;
+      leg.baseFan = fan.rotation.y;
+      leg.sx = sx;
+      leg.group = (i + (sx < 0 ? 0 : 1)) % 2; // тройки ног: ходят по очереди
+      legs.push(leg);
+    }
+  });
+  // Семенит тройками ног, корпус почти не качается, голова вертится. Стоит — дергает антеннами и
+  // водит глазом. Замах лазера — глаз разгорается и щурится; разряд — искрят антенны
+  let crouch = 0;
+  g.userData.pace = (phase) => 0.7 + 0.3 * Math.abs(Math.sin(phase * 2));
+  g.userData.animate = ({ phase, move, time, idle, alert, fight = 0, attack, charge = 0, strike = 0 }) => {
+    const zap = attack === 'zap' ? Math.max(charge, strike) : 0;
+    const laser = attack === 'laser' ? Math.max(charge, strike) : 0;
+    crouch += ((alert > 0 || charge > 0 ? 1 : 0) - crouch) * 0.1;
+    for (const leg of legs) {
+      const p = phase + leg.group * Math.PI;
+      const lift = Math.max(0, Math.sin(p));
+      leg.fan.rotation.y = leg.baseFan + Math.cos(p) * 0.28 * move * leg.sx;
+      leg.hip.rotation.z = leg.sx * (lift * 0.3 * move + crouch * 0.12);
+      leg.knee.rotation.z = -leg.sx * crouch * 0.1;
+    }
+    body.position.y = 1.0 + Math.abs(Math.sin(phase * 2)) * 0.03 * move - crouch * 0.1;
+    body.rotation.z = Math.sin(phase) * 0.03 * move;
+    body.rotation.x = -laser * 0.1 + strike * 0.08;
+    head.rotation.y = (idle > 30 ? Math.sin(time * 1.1) * 0.6 : Math.sin(time * 3) * 0.1 * move) * (1 - fight);
+    head.rotation.x = -fight * 0.1;
+    pupil.position.x = Math.sin(time * 0.8) * 0.05 * (1 - fight);
+    const k = 1 + laser * 0.35 + Math.sin(time * 20) * 0.05 * laser;
+    iris.scale.set(k, 1, k * (1 - laser * 0.35));
+    for (const a of antennae) {
+      a.rotation.z = -a.s * (0.28 + Math.sin(time * 7 + a.s) * 0.06 + zap * 0.25);
+      a.tip.scale.setScalar(1 + zap * (1 + Math.random()));
+    }
   };
   return g;
 }

@@ -20,19 +20,19 @@ let penWaveRunning = () => false;
   const STAGES = [
     {
       weapon: 'arc_discharger',
-      wave: ['drone', 'stilt', 'cain'],
+      wave: ['drone', 'crawler', 'stilt', 'cyborg', 'cain'],
       intro: 'Шаг 1 из 3 — роботы. Дуговой разрядник бьет их вдвое, импульсный лазер тоже. Огонь, плазма огнемета, пули и дробь роботов не берут.',
       done: 'Роботы побеждены! Подойдите к пульту за следующим оружием.',
     },
     {
       weapon: 'plasma_flamer',
-      wave: ['hound', 'strider', 'hound'],
+      wave: ['hound', 'maw', 'strider', 'hound'],
       intro: 'Шаг 2 из 3 — биосущества. Огонь жжет живую ткань вдвое, а ток и импульс по ней не проходят.',
       done: 'Биосущества побеждены! У пульта — последнее оружие.',
     },
     {
       weapon: 'plasma_gun',
-      wave: ['drone', 'hound', 'stilt', 'strider', 'cain'],
+      wave: ['drone', 'hound', 'crawler', 'maw', 'stilt', 'cyborg', 'strider', 'cain'],
       intro: 'Шаг 3 из 3 — все вместе. Плазмомет поражает всех: и роботов, и биосуществ.',
       done: 'Обучение пройдено! У пульта его можно пройти заново.',
     },
