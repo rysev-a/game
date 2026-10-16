@@ -190,12 +190,28 @@ const DEMO_CHARACTERS = [
   },
 ];
 
+// Помощники Барона (docs/story/characters/bosses.md, вид — docs/art/bosses.png): ряд позади персонажей
+const DEMO_BOSSES = [
+  ['Вспышка', 'flash', 'сверхскорость', 'Ты даже не заметишь, как я пробегу мимо. Дважды.', 'Накладные на «экологическое оборудование»? Я их только доставляю.'],
+  ['Эхо', 'echo', 'копии-иллюзии', 'Который из нас настоящий? Угадаешь — поговорим.', 'Ящики в подсобке ТЦ? Спроси у моих копий.'],
+  ['Сокол', 'falcon', 'летает', 'Сверху видно всё. Особенно реку в ту ночь.', 'Фото? Может, и сделал. Над мостом хорошо снимать.'],
+  ['Магнит', 'magnet', 'притягивает железо', 'Твоя машина — просто железо. Как и твой пистолет.', 'Фургон без номеров — не моя забота. Я только грузил.'],
+  ['Тень', 'shadow', 'невидимость', '...', 'Тайники в лесу. Ты их не найдешь без нужных очков.'],
+  ['Туча', 'cloud', 'погода', 'Чувствуешь? Скоро гроза.', 'Погодный модуль работает. Береговое уже это знает.'],
+  ['Искра', 'spark', 'электроника', 'Твой телефон на 3%. Был.', 'Переписка Штерна? Зашифрована. Мной.'],
+  ['Шепот', 'whisper', 'гипноз голосом', 'Тише... Послушай меня. Просто послушай.', 'В полиции тоже умеют слушать. Один особенно.'],
+  ['Глыба', 'block', 'сверхсила и броня', 'ПРОХОДА НЕТ.', 'Цех под лабораторией. Я его охраняю.'],
+  ['Гидра', 'hydra', 'регенерация', 'Ранишь — заживет. Снова ранишь — снова заживет.', 'Ключ-карту от лаборатории просто так не отдам.'],
+].map(([name, type, power, hello, knows]) => ({
+  name, type, gender: 'male', title: 'помощник Барона: ' + power, hello, knows,
+  help: 'Помогать тебе? Барон бы не одобрил.',
+}));
+
 const demoPeople = [];
-{
-  const rowZ = 18;
+function placeDemoRow(list, rowZ) {
   const step = 8;
-  const x0 = -((DEMO_CHARACTERS.length - 1) * step) / 2;
-  DEMO_CHARACTERS.forEach((c, i) => {
+  const x0 = -((list.length - 1) * step) / 2;
+  list.forEach((c, i) => {
     const preset = PERSON_PRESETS[c.type] || {};
     const opts = Object.assign({ gender: c.gender, hairColor: 0x3a2a1a, skinColor: 0xf0c8a0 }, c.opts || {});
     for (const key in preset) if (!(c.opts && key in c.opts)) delete opts[key];
@@ -212,6 +228,8 @@ const demoPeople = [];
     demoPeople.push(p);
   });
 }
+placeDemoRow(DEMO_CHARACTERS, 18);
+placeDemoRow(DEMO_BOSSES, 26);
 
 function demoDialogue(p) {
   const c = p.demo;

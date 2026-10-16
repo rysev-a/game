@@ -8,7 +8,7 @@
     </style>
   </head>
   <body>
-    <!-- Все 20 персонажей сюжета в том же порядке, что на листе docs/art/characters.png -->
+    <!-- Персонажи сюжета в том же порядке, что на листе docs/art/characters.png; ?set=bosses — боссы по docs/art/bosses.png -->
     <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
     <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://unpkg.com/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
@@ -16,12 +16,14 @@
     <script src="person.js"></script>
     <script src="person-models.js"></script>
     <script>
-      const CAST = [
+      const STORY = [
         'maxim', 'denis', 'anna', 'vera', 'stern',
         'baron', 'lyudmila', 'semyon', 'oleg', 'mihalych',
-        'rustam', 'nikolay', 'gromov', 'flash', 'echo',
-        'shadow', 'falcon', 'magnet', 'cloud', 'spark',
+        'rustam', 'nikolay', 'gromov',
       ];
+      // ?set=bosses — десять помощников Барона в порядке листа docs/art/bosses.png
+      const BOSSES = ['flash', 'echo', 'falcon', 'magnet', 'shadow', 'cloud', 'spark', 'whisper', 'block', 'hydra'];
+      const CAST = new URLSearchParams(location.search).get('set') === 'bosses' ? BOSSES : STORY;
       const scene = new THREE.Scene();
       scene.background = new THREE.Color(0xeceff2);
       scene.add(new THREE.HemisphereLight(0xffffff, 0xb0aa9e, 0.72));
@@ -41,15 +43,16 @@
       });
 
       const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
-      camera.position.set(0, 1 - 1.5 * rowH, -30);
-      camera.lookAt(0, 1 - 1.5 * rowH, 0);
+      const midY = 1 - ((Math.ceil(CAST.length / 5) - 1) / 2) * rowH;
+      camera.position.set(0, midY, -30);
+      camera.lookAt(0, midY, 0);
       const renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setPixelRatio(window.devicePixelRatio);
       document.body.appendChild(renderer.domElement);
       // Вся сетка 5 x 4 помещается в окно с полями
       function resize() {
         const w = window.innerWidth, h = window.innerHeight;
-        const gridW = 5 * colW, gridH = 4 * rowH;
+        const gridW = 5 * colW, gridH = Math.ceil(CAST.length / 5) * rowH;
         const k = Math.max(gridW / w, gridH / h);
         camera.left = (-w * k) / 2; camera.right = (w * k) / 2;
         camera.top = (h * k) / 2; camera.bottom = (-h * k) / 2;
