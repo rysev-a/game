@@ -81,6 +81,68 @@ function demoLabel(text, x, y, z, { size = 1, color = '#ffffff', bg = 'rgba(0,0,
   demoLabel('Дом и гараж героя', houseX + 4, 12, houseZ, { size: 1.4 });
 }
 
+// ---------- Дом бабушки Веры, тропинка в лес и домик на дереве ----------
+// Рядом с домом героя — дом Анны Петровны (полный: с ней во дворе), за ним извилистая тропинка уходит
+// в лес к огромному дереву; в кроне — очень большой домик, спрятанный в листве (src/content/buildings/treehouse.js)
+const demoScene = ['grandma_house', 'treehouse']; // эти заготовки стоят полными здесь, а не в ряду зданий
+{
+  const gx = 10;
+  const gz = -24;
+  flatRect(26, 22, 0x3a6b3d, 0.008, gx, gz - 1);
+  placeBuilding('grandma_house', { x: gx, z: gz, heading: 0, full: true });
+  demoLabel('Дом Анны Петровны', gx, 9, gz, { size: 1.2 });
+
+  // Тропинка: от задней стены дома на север, петляя, к дереву
+  const treeX = gx + 14;
+  const treeZ = -102;
+  const pts = [];
+  for (let i = 0; i <= 24; i++) {
+    const t = i / 24;
+    const z = gz - grandmaD / 2 - 1 + (treeZ + 6 - (gz - grandmaD / 2 - 1)) * t;
+    pts.push({ x: gx + (treeX - gx) * t + Math.sin(t * Math.PI * 3) * 9 * (1 - t * 0.6), z });
+  }
+  const pathMat = new THREE.MeshBasicMaterial({ color: 0x9a7a52, side: THREE.DoubleSide });
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i];
+    const b = pts[i + 1];
+    const len = Math.hypot(b.x - a.x, b.z - a.z);
+    const seg = new THREE.Mesh(new THREE.PlaneGeometry(1.8, len + 0.9), pathMat);
+    seg.rotation.x = -Math.PI / 2;
+    seg.rotation.z = Math.atan2(-(b.x - a.x), -(b.z - a.z));
+    seg.position.set((a.x + b.x) / 2, 0.011, (a.z + b.z) / 2);
+    cityGroup.add(seg);
+    mapObjects.push({ x: (a.x + b.x) / 2, z: (a.z + b.z) / 2, hx: 0.9, hz: 0.9, color: '#9a7a52', ground: true });
+  }
+
+  // Лес вокруг тропинки и дерева: деревья не встают на тропинку, к дому и к самому дереву
+  flatRect(80, 92, 0x2f5233, 0.007, gx + 12, -84);
+  const nearPath = (x, z) => pts.some((p) => Math.hypot(x - p.x, z - p.z) < 4.2);
+  for (let k = 0; k < 260; k++) {
+    const x = rand(gx - 26, gx + 52);
+    const z = rand(-128, gz - 12);
+    if (nearPath(x, z) || Math.hypot(x - treeX, z - treeZ) < 13) continue;
+    if (x < -6 && z > -42) continue; // за домом героя свободно
+    const tree = createLeafyTree(pick(leafyGreens));
+    const sc = rand(1.0, 1.6);
+    tree.position.set(x, 0, z);
+    tree.rotation.y = rand(0, Math.PI * 2);
+    tree.scale.setScalar(sc);
+    cityGroup.add(tree);
+    addTreeCollider(x, z, sc);
+  }
+  for (let k = 0; k < 40; k++) {
+    const p = pick(pts);
+    const side = Math.random() < 0.5 ? -1 : 1;
+    const bush = createBush(pick(leafyGreens));
+    bush.position.set(p.x + side * rand(1.6, 3), 0, p.z + rand(-1.5, 1.5));
+    cityGroup.add(bush);
+  }
+
+  // Огромное дерево: дупло с веревочной лестницей смотрит на тропинку (на юг)
+  placeBuilding('treehouse', { x: treeX, z: treeZ, heading: 0, full: true });
+  demoLabel('Домик на дереве\nлестница в дупле — E', treeX, 4.5, treeZ + 4, { size: 0.9 });
+}
+
 // ---------- Персонажи ----------
 // Рабочие имена и реплики — из docs/story/characters. Позже их заменит реестр src/content/characters.
 const DEMO_CHARACTERS = [
@@ -331,6 +393,7 @@ addInteractable({
     demoLabel(row.title, 0, 8, row.z - 16, { size: 1.3, color: '#ffe08a' });
     for (const id of ids) {
       const def = BUILDINGS[id];
+      if (row.full && demoScene.includes(id)) continue; // полные — в своей сцене у дома героя
       const cx = x + def.size.w / 2;
       flatRect(def.size.w + 4, def.size.d + 4, 0x3c3c3c, 0.012, cx, row.z);
       placeBuilding(id, { x: cx, z: row.z, heading: Math.PI, full: row.full });
@@ -344,4 +407,4 @@ demoLabel('ДЕМО-РЕЖИМ', 0, 9, -6, { size: 2.4, color: '#ffe08a' });
 
 // Старт на улице, за подставкой с приборами: впереди приборы, стол с предметами, персонажи, дорога и дом
 const demoStart = { x: 0, z: 48 };
-showToast('ДЕМО: впереди приборы, стол со всеми предметами и персонажи; дом с машиной — за дорогой, все здания — за спиной', 8000);
+showToast('ДЕМО: впереди приборы, стол со всеми предметами и персонажи; дом с машиной и дом бабушки Веры с тропинкой к домику на дереве — за дорогой, все здания — за спиной', 8000);
