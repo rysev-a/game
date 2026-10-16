@@ -172,7 +172,6 @@ function onSlotClick(i) {
       renderInventory(); // остаемся в режиме: можно очищать дальше
     }
   } else if (getSave(i)) {
-    setInventoryOpen(false);
     loadFromSlot(i);
   }
 }
@@ -191,13 +190,10 @@ function setInventoryOpen(open) {
   renderInventory();
 }
 
-// Свернутую панель раскрывает клик по любому месту; в раскрытой свернуть можно стрелкой
+// Свернутую панель раскрывает клик по любому месту. Раскрытая остается открытой,
+// пока ее не свернут вручную: стрелкой, клавишей I или Esc
 inventoryEl.addEventListener('click', () => {
   if (!inventoryOpen) setInventoryOpen(true);
-});
-// Клик мимо панели (в том числе по сцене) сворачивает ее
-document.addEventListener('mousedown', (e) => {
-  if (inventoryOpen && !inventoryEl.contains(e.target)) setInventoryOpen(false);
 });
 window.addEventListener('keydown', (e) => {
   if (e.repeat) return;
