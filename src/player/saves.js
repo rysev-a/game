@@ -3,7 +3,7 @@
 // В слот записывается:
 //   • положение игрока (и поворот вида), за рулем ли он был;
 //   • машина игрока: где стоит, сколько в ней бензина, открыта ли дверь гаража;
-//   • инвентарь и надетые приборы (браслет возврата);
+//   • инвентарь, надетые приборы (браслет возврата) и снаряжение в ячейках нижней панели;
 //   • погода: идет ли дождь, его силу;
 //   • игровое время и дата (time.gameMinutes — минут с начала истории, 18.09.2043; по ним идет и расписание дождей).
 // Сохраняться можно только с браслетом возврата на руке (hasDeviceTag('saves'), src/player/devices.js).
@@ -60,6 +60,7 @@ function captureGame() {
     car: { x: car.x, z: car.z, heading: car.heading, fuel: car.fuel, garageOpen: garage.open },
     inventory: [...inventory.items],
     devices: [...heroDevices.worn],
+    equip: captureEquip(), // броня, ботинки, оружие в ячейках (src/player/equipment.js)
     weather: { gameTime, rainOn, weather, rainManual, rainEndedAt },
     // Игровое время обязательно сохраняется: минуты от старта истории и то же в виде даты
     time: {
@@ -96,6 +97,7 @@ function applyGame(data) {
   inventory.items = data.inventory.map((id) => (id === 'badge' ? 'itpass' : id)).filter((id) => ITEMS[id]);
   // Приборы: возврат идет с памятью, поэтому надетое сейчас не снимается, а надетое тогда — надевается
   for (const id of data.devices || []) if (DEVICES[id]) wearDevice(id, true);
+  applyEquip(data.equip);
   renderInventory();
   syncHomePickups();
 
