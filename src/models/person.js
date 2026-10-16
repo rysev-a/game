@@ -110,12 +110,12 @@ function createWalkingMan(options = {}) {
     const shin = part(0.22, 0.85, 0.22, o.pantsColor);
     shin.position.y = -0.425;
     leg.add(shin);
-    const foot = part(0.24, 0.12, 0.34, o.sneakers ? 0xf2f0ea : o.shoeColor);
+    const foot = part(0.24, 0.12, 0.34, o.sneakers ? 0xcfcac0 : o.shoeColor);
     foot.position.set(0, -0.79, -0.06); // носок вперед — модель смотрит в -Z
     leg.add(foot);
     if (o.sneakers) {
       // Кроссовок: толстая светлая подошва и цветная полоса по внешнему боку
-      const sole = flat(0.26, 0.05, 0.36, 0xb8b4aa);
+      const sole = flat(0.26, 0.05, 0.36, 0x6a6660);
       sole.position.set(0, -0.86, -0.06);
       leg.add(sole);
       const stripe = flat(0.01, 0.05, 0.2, o.sneakerStripeColor);
@@ -233,51 +233,68 @@ function createWalkingMan(options = {}) {
     armR.add(cane);
   }
 
-  const head = part(0.3, 0.32, 0.3, o.skinColor);
-  head.position.y = 1.81;
+  // Голова — низкополигональный шар (центр headY, радиус headR); волосы — шапочка из того же шара
+  const headR = 0.175;
+  const headY = 1.82;
+  function ball(r, color, thetaLength = Math.PI) {
+    const geo = new THREE.SphereGeometry(r, 14, 10, 0, Math.PI * 2, 0, thetaLength);
+    return new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide }));
+  }
+  const head = ball(headR, o.skinColor);
+  head.position.y = headY;
   body.add(head);
+  // Точка на лице: z передней поверхности шара на высоте y и смещении x (чуть снаружи)
+  const faceZ = (x, y) => -Math.sqrt(Math.max(0, headR * headR - x * x - (y - headY) ** 2)) - 0.004;
 
-  // Лицо: глаза и брови на передней грани головы (z = -0.15)
-  const faceZ = -0.153;
   if (o.face) {
     [-0.07, 0.07].forEach((x) => {
       const eye = flat(0.05, 0.05, 0.01, 0x15151a);
-      eye.position.set(x, 1.83, faceZ);
+      eye.position.set(x, 1.83, faceZ(x, 1.83));
       body.add(eye);
       const brow = flat(0.08, 0.02, 0.01, o.hairColor !== null ? o.hairColor : 0x5a4030);
-      brow.position.set(x, 1.885, faceZ);
+      brow.position.set(x, 1.885, faceZ(x, 1.885));
       body.add(brow);
     });
     const mouth = flat(0.09, 0.02, 0.01, 0x7a3a2a);
-    mouth.position.set(0, 1.73, faceZ);
+    mouth.position.set(0, 1.74, faceZ(0, 1.74));
     body.add(mouth);
   }
   if (o.glasses) {
     const frame = flat(0.27, 0.07, 0.01, 0x202020);
-    frame.position.set(0, 1.83, faceZ - 0.006);
+    frame.position.set(0, 1.83, faceZ(0.07, 1.83) - 0.006);
     body.add(frame);
     [-0.07, 0.07].forEach((x) => {
       const lens = flat(0.08, 0.05, 0.01, 0x9fc4d8);
-      lens.position.set(x, 1.83, faceZ - 0.012);
+      lens.position.set(x, 1.83, faceZ(0.07, 1.83) - 0.012);
       body.add(lens);
     });
   }
   if (o.beard) {
-    const beard = part(0.3, 0.14, 0.06, o.hairColor !== null ? o.hairColor : 0x3a2a1a);
-    beard.position.set(0, 1.7, -0.14);
+    // Борода — нижняя половина шара чуть больше головы, сдвинутая вперед
+    const beard = ball(headR + 0.012, o.hairColor !== null ? o.hairColor : 0x3a2a1a, Math.PI * 0.42);
+    beard.rotation.x = Math.PI * 0.75; // «шапочка» перевернута вниз и вперед, к подбородку
+    beard.position.set(0, headY - 0.01, -0.01);
     body.add(beard);
   }
 
-  // Прическа: шапка сверху и сзади (модель смотрит в -Z, затылок — в +Z). Под шляпой — только затылок
+  // Прическа: шапочка, сдвинутая к затылку (модель смотрит в -Z, затылок — в +Z). Под шляпой — только затылок
   if (o.hairColor !== null) {
     if (!o.hat) {
-      const cap = part(0.32, 0.1, 0.32, o.hairColor);
-      cap.position.y = 1.97;
+      const cap = ball(headR + 0.012, o.hairColor, Math.PI * 0.4);
+      cap.rotation.x = 0.45; // макушка и затылок закрыты, лоб открыт
+      cap.position.y = headY;
       body.add(cap);
     }
-    const back = female ? part(0.34, 0.55, 0.1, o.hairColor) : part(0.32, 0.22, 0.06, o.hairColor);
-    back.position.set(0, female ? 1.7 : 1.88, 0.17);
-    body.add(back);
+    if (female) {
+      const back = part(0.32, 0.5, 0.1, o.hairColor);
+      back.position.set(0, 1.72, 0.14);
+      body.add(back);
+    } else {
+      const back = ball(headR + 0.01, o.hairColor, Math.PI * 0.35);
+      back.rotation.x = 1.4; // затылок
+      back.position.y = headY;
+      body.add(back);
+    }
   }
 
   // Головные уборы
@@ -292,11 +309,12 @@ function createWalkingMan(options = {}) {
     band.position.y = 2.02;
     body.add(band);
   } else if (o.hat === 'cap') {
-    const crown = part(0.33, 0.1, 0.33, o.hatColor);
-    crown.position.y = 2.0;
+    // Кепка по форме головы: купол и козырек
+    const crown = ball(headR + 0.02, o.hatColor, Math.PI * 0.42);
+    crown.position.y = headY + 0.02;
     body.add(crown);
-    const visor = part(0.28, 0.03, 0.16, o.hatColor);
-    visor.position.set(0, 1.97, -0.23);
+    const visor = part(0.26, 0.025, 0.16, o.hatColor);
+    visor.position.set(0, headY + 0.08, -0.22);
     body.add(visor);
   } else if (o.hat === 'police') {
     const crown = part(0.38, 0.12, 0.38, o.hatColor);
@@ -312,8 +330,8 @@ function createWalkingMan(options = {}) {
     cockade.position.set(0, 2.03, -0.195);
     body.add(cockade);
   } else if (o.hat === 'beanie') {
-    const beanie = part(0.33, 0.16, 0.33, o.hatColor);
-    beanie.position.y = 2.01;
+    const beanie = ball(headR + 0.022, o.hatColor, Math.PI * 0.45);
+    beanie.position.y = headY + 0.03;
     body.add(beanie);
   }
 
