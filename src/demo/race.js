@@ -22,6 +22,8 @@
 //   10. «Гран-при» — длинная трасса как настоящий автодром, пологие подъемы
 //   11–17. «Змейки 1–7» — дрифт-полигон к западу от гоночного комплекса: широкая дорога (44 → 28) волнами туда и обратно
 //   18–20. «Змейки 8–10» — самые узкие (26 → 22) и длинные, южнее «Гран-при»
+//   21–30. «Фигуры» — к востоку от ДЕМО-площадки, по дороге на восток: скидпад, треугольник, ромб, буква L, зигзаг, подкова, гантель,
+//           звезда, боб и цветок (разной формы и ширины 16–26)
 // Все трассы — внутри круга мира (забор, src/engine/layout.js).
 //
 // Каждая трасса — замкнутая осевая линия (точки через ~2 юнита); полотно, поребрики и стенки из покрышек
@@ -147,36 +149,54 @@ let onRaceTrack = () => false;
   const driftRoadN = -790;
   const driftParks = [
     {
-      roadX: driftRoadN, span: 440, z0: -470, z1: 470, gapZ: 9,
+      roadX: driftRoadN, span: 480, maxSpan: 620, z0: -470, z1: 470, gapZ: 9,
       specs: [
-        { id: 'snake1', name: 'Змейка 1 · Простор', w: 44, theta: 20, n: 4, shape: 'sine', desc: 'Самая широкая и самая пологая — для первого дрифта.' },
-        { id: 'snake2', name: 'Змейка 2 · Широкая', w: 40, theta: 24, n: 5, shape: 'sine', desc: 'Широкая дорога и мягкие волны.' },
-        { id: 'snake3', name: 'Змейка 3 · Ровная', w: 36, theta: 28, n: 5, shape: 'sine', desc: 'Ровная синусоида.' },
-        { id: 'snake4', name: 'Змейка 4 · Плавная', w: 34, theta: 32, n: 6, shape: 'sine', desc: 'Плавные волны средней ширины.' },
-        { id: 'snake5', name: 'Змейка 5 · Средняя', w: 32, theta: 36, n: 6, shape: 'sine', desc: 'Золотая середина: углы уже заметные.' },
-        { id: 'snake6', name: 'Змейка 6 · Резкая', w: 30, theta: 40, n: 6, shape: 'zig', desc: 'Зигзаг: между поворотами — прямые куски.' },
-        { id: 'snake7', name: 'Змейка 7 · Острая', w: 28, theta: 44, n: 7, shape: 'zig', desc: 'Острый зигзаг.' },
+        { id: 'snake1', name: 'Змейка 1 · Простор', w: 44, theta: 20, n: 6, shape: 'sine', desc: 'Самая широкая и самая пологая — для первого дрифта.' },
+        { id: 'snake2', name: 'Змейка 2 · Широкая', w: 40, theta: 24, n: 7, shape: 'sine', desc: 'Широкая дорога и мягкие волны.' },
+        { id: 'snake3', name: 'Змейка 3 · Ровная', w: 36, theta: 28, n: 7, shape: 'sine', desc: 'Ровная синусоида.' },
+        { id: 'snake4', name: 'Змейка 4 · Плавная', w: 34, theta: 32, n: 8, shape: 'sine', desc: 'Плавные волны средней ширины.' },
+        { id: 'snake5', name: 'Змейка 5 · Средняя', w: 32, theta: 36, n: 8, shape: 'sine', desc: 'Золотая середина: углы уже заметные.' },
+        { id: 'snake6', name: 'Змейка 6 · Резкая', w: 30, theta: 40, n: 8, shape: 'zig', desc: 'Зигзаг: между поворотами — прямые куски.' },
+        { id: 'snake7', name: 'Змейка 7 · Острая', w: 28, theta: 44, n: 9, shape: 'zig', desc: 'Острый зигзаг.' },
       ],
     },
     {
-      roadX: -148, span: 600, z0: 592, z1: 1000, gapZ: 12,
+      roadX: -148, span: 640, maxSpan: 860, z0: 592, z1: 1000, gapZ: 12,
       specs: [
-        { id: 'snake8', name: 'Змейка 8 · Крутая', w: 26, theta: 50, n: 9, shape: 'zig', desc: 'Длинный крутой зигзаг.' },
-        { id: 'snake9', name: 'Змейка 9 · Шпильки', w: 24, theta: 55, n: 10, shape: 'zig', desc: 'Узкий зигзаг со шпильками.' },
-        { id: 'snake10', name: 'Змейка 10 · Экстрим', w: 22, theta: 60, n: 12, shape: 'zig', desc: 'Самая узкая и самая крутая.' },
+        { id: 'snake8', name: 'Змейка 8 · Крутая', w: 26, theta: 50, n: 12, shape: 'zig', desc: 'Длинный крутой зигзаг.' },
+        { id: 'snake9', name: 'Змейка 9 · Шпильки', w: 24, theta: 55, n: 13, shape: 'zig', desc: 'Узкий зигзаг со шпильками.' },
+        { id: 'snake10', name: 'Змейка 10 · Экстрим', w: 22, theta: 60, n: 15, shape: 'zig', desc: 'Самая узкая и самая крутая.' },
       ],
     },
   ];
+  // Самый западный x, куда еще можно ставить змейку на высоте z: внутри круга мира с запасом 35 на забор и покрышки
+  const westLimit = (z) => worldCenter.x - Math.sqrt(Math.max(0, (worldRadius - 35) ** 2 - z * z));
   const driftTracks = [];
   const driftSpurs = [];
   const driftRoads = [];
   for (const park of driftParks) {
-    const built = park.specs.map((spec) => ({ spec, sn: snakePts({ ...spec, span: park.span }) }));
-    const total = built.reduce((acc, b) => acc + b.sn.height, 0) + park.gapZ * (built.length - 1);
-    let zTop = (park.z0 + park.z1) / 2 - total / 2; // змейки — друг под другом, стопка по центру площадки
-    for (const { spec, sn } of built) {
-      const zc = zTop + sn.height / 2;
-      zTop += sn.height + park.gapZ;
+    // Змейки — друг под другом, стопка по центру площадки. Длина (span) у каждой своя: чем дальше от середины по z, тем
+    // ближе к забору ее западный край, поэтому длину подбираем по ряду, а ряды зависят от длин — несколько проходов
+    const spans = park.specs.map(() => park.span);
+    let built = [];
+    let tops = [];
+    for (let pass = 0; pass < 4; pass++) {
+      built = park.specs.map((spec, i) => ({ spec, span: spans[i], sn: snakePts({ ...spec, span: spans[i] }) }));
+      const total = built.reduce((acc, b) => acc + b.sn.height, 0) + park.gapZ * (built.length - 1);
+      let zTop = (park.z0 + park.z1) / 2 - total / 2;
+      tops = built.map((b) => {
+        const top = zTop;
+        zTop += b.sn.height + park.gapZ;
+        return top;
+      });
+      built.forEach((b, i) => {
+        const zFar = Math.max(Math.abs(tops[i]), Math.abs(tops[i] + b.sn.height));
+        const avail = park.roadX - 20 - westLimit(zFar);
+        spans[i] = Math.max(park.span * 0.8, Math.min(park.maxSpan, avail));
+      });
+    }
+    built.forEach(({ spec, sn }, i) => {
+      const zc = tops[i] + sn.height / 2;
       // Восточный край полотна — в 14 юнитах от края дороги (ее полуширина 6)
       const x0 = park.roadX - 6 - 14 - spec.w / 2 - sn.gap / 2 - sn.L;
       const pts = closedCurve((u) => {
@@ -186,13 +206,127 @@ let onRaceTrack = () => false;
       driftTracks.push({
         id: spec.id, name: spec.name, start: 0.04, w: spec.w,
         desc: spec.desc + ' Ширина ' + spec.w + ', ' + sn.n + ' ' + (sn.n === 1 ? 'изгиб' : sn.n < 5 ? 'изгиба' : 'изгибов') + ' на полосе, наибольший угол пути ' + Math.round(sn.theta) + '°, самый тесный поворот — радиус ' + Math.round(sn.minR) + '.',
-        pts, snake: sn, zc,
+        pts, snake: sn, zc, x0,
       });
       // Подъезд — от дороги к крайней точке ближнего (восточного) разворота, по центру между полосами
       driftSpurs.push({ pts: line(park.roadX, zc, x0 + sn.L + sn.gap / 2, zc), w: 12 });
-    }
+    });
     driftRoads.push({ pts: line(park.roadX, park.z0 - 10, park.roadX, park.z1 + 10), w: 12 });
   }
+
+  // ---------- Дрифт-полигон «Фигуры»: десять трасс разной формы ----------
+  // К востоку от ДЕМО-площадки (x от 160), по обе стороны дороги, что идет на восток от дороги площадки (z = 0), и вдоль продольной
+  // дороги x = 360: слева — шесть фигур, справа — четыре. Форма — ломаная с закругленными углами (roundedPolygon), кривая по формуле
+  // или сплайн; в каждую фигуру укладывается квадрат около 180 × 180. Подъезд — от дороги x = 360 к ближайшей к ней точке полотна.
+  // Радиус поворота оси везде не меньше половины ширины + 2,5 (иначе стенка из покрышек окажется на самой дороге)
+  const roundedPolygon = (verts, r) => {
+    const n = verts.length;
+    const out = [];
+    const unit = (a, b) => {
+      const l = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      return [(b[0] - a[0]) / l, (b[1] - a[1]) / l, l];
+    };
+    const arcs = verts.map((cur, i) => {
+      const prev = verts[(i - 1 + n) % n];
+      const next = verts[(i + 1) % n];
+      const [ax, az, al] = unit(cur, prev);
+      const [bx, bz, bl] = unit(cur, next);
+      const A = Math.acos(Math.max(-1, Math.min(1, ax * bx + az * bz)));
+      const d = Math.min(r / Math.tan(A / 2), (al / 2) * 0.999, (bl / 2) * 0.999);
+      const rr = d * Math.tan(A / 2);
+      const bis = unit([0, 0], [ax + bx, az + bz]);
+      const c = [cur[0] + bis[0] * (rr / Math.sin(A / 2)), cur[1] + bis[1] * (rr / Math.sin(A / 2))];
+      const t1 = [cur[0] + ax * d, cur[1] + az * d];
+      const t2 = [cur[0] + bx * d, cur[1] + bz * d];
+      return { c, rr, a1: Math.atan2(t1[1] - c[1], t1[0] - c[0]), a2: Math.atan2(t2[1] - c[1], t2[0] - c[0]) };
+    });
+    arcs.forEach((a, i) => {
+      let d = a.a2 - a.a1;
+      d = Math.atan2(Math.sin(d), Math.cos(d)); // короткая дуга
+      const steps = Math.max(2, Math.ceil((Math.abs(d) * a.rr) / 0.5));
+      for (let k = 0; k <= steps; k++) out.push([a.c[0] + a.rr * Math.cos(a.a1 + (d * k) / steps), a.c[1] + a.rr * Math.sin(a.a1 + (d * k) / steps)]);
+    });
+    // Между дугами — прямые куски: добавляем промежуточные точки, чтобы линия была плотной (шаг 0,5)
+    const dense = [];
+    for (let i = 0; i < out.length; i++) {
+      const a = out[i];
+      const b = out[(i + 1) % out.length];
+      const steps = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.5));
+      for (let k = 0; k < steps; k++) dense.push([a[0] + ((b[0] - a[0]) * k) / steps, a[1] + ((b[1] - a[1]) * k) / steps]);
+    }
+    return dense;
+  };
+  const polar = (f) => {
+    const raw = [];
+    for (let i = 0; i < 4000; i++) {
+      const a = (TAU * i) / 4000;
+      const r = f(a);
+      raw.push([r * Math.cos(a), r * Math.sin(a)]);
+    }
+    return raw;
+  };
+  const splineRaw = (ctrl) => {
+    const f = spline(ctrl);
+    const raw = [];
+    for (let i = 0; i < 4000; i++) raw.push(f(i / 4000));
+    return raw;
+  };
+  const SHAPES = [
+    // [колонка (1 — слева от дороги x = 360, -1 — справа), ряд по z, id, название, ширина, описание, точки]
+    [1, -543, 'shape_circle', 'Скидпад', 26, 'Кольцо для «бубликов»: можно кружить в дрифте бесконечно.', () => polar(() => 72)],
+    [1, -327, 'shape_triangle', 'Треугольник', 20, 'Три закругленных угла: после каждого — прямая, на которой можно разогнаться.', () => roundedPolygon([[-78, 62], [78, 62], [0, -70]], 30)],
+    [1, -111, 'shape_diamond', 'Ромб', 22, 'Четыре одинаковых поворота по 90°: хорошо отрабатывать вход в занос.', () => roundedPolygon([[0, -80], [80, 0], [0, 80], [-80, 0]], 26)],
+    [1, 111, 'shape_l', 'Буква L', 20, 'Г-образная трасса: длинная прямая, поворот и вогнутый угол внутри.', () => roundedPolygon([[-78, -78], [0, -78], [0, 10], [78, 10], [78, 78], [-78, 78]], 24)],
+    [1, 327, 'shape_s', 'Зигзаг', 18, 'Уступами: чередуются левые и правые повороты.', () => roundedPolygon([[-78, -78], [30, -78], [30, -20], [78, -20], [78, 78], [-30, 78], [-30, 20], [-78, 20]], 22)],
+    [1, 543, 'shape_u', 'Подкова', 20, 'Кольцо вокруг П-образной вставки: две длинные параллельные прямые.', () => roundedPolygon([[-78, -78], [-28, -78], [-28, 28], [28, 28], [28, -78], [78, -78], [78, 78], [-78, 78]], 20)],
+    [-1, -327, 'shape_dumbbell', 'Гантель', 18, 'Две площадки по краям и узкая перемычка посередине: два поворота подряд, потом проход в узкое место.', () => roundedPolygon([[-78, -56], [-32, -56], [-32, -20], [32, -20], [32, -56], [78, -56], [78, 56], [32, 56], [32, 20], [-32, 20], [-32, 56], [-78, 56]], 18)],
+    [-1, -111, 'shape_star', 'Звезда', 16, 'Пять лепестков: поворот за поворотом, без передышки.', () => polar((a) => 66 + 8 * Math.cos(5 * a))],
+    [-1, 111, 'shape_bean', 'Боб', 22, 'Сердцевидная форма: двойная вогнутая дуга сверху и острая нижняя часть.', () => roundedPolygon([[-78, -24], [-40, -62], [0, -34], [40, -62], [78, -24], [56, 62], [-56, 62]], 26)],
+    [-1, 327, 'shape_flower', 'Цветок', 18, 'Четыре лепестка: длинные плавные дуги и впадины между ними.', () => polar((a) => 62 + 8 * Math.cos(4 * a))],
+  ];
+  const shapeRoadX = 360;
+  const shapeTracks = [];
+  const shapeSpurs = [];
+  for (const [col, zc, id, name, w, desc, build] of SHAPES) {
+    const raw = build();
+    const hw = w / 2;
+    let minx = Infinity;
+    let maxx = -Infinity;
+    let minz = Infinity;
+    let maxz = -Infinity;
+    for (const p of raw) {
+      minx = Math.min(minx, p[0]);
+      maxx = Math.max(maxx, p[0]);
+      minz = Math.min(minz, p[1]);
+      maxz = Math.max(maxz, p[1]);
+    }
+    // Колонка слева: внешний край полотна в 20 юнитах от дороги (ее полуширина 6, поребрик, покрышки); справа — зеркально
+    const dx = col > 0 ? shapeRoadX - 6 - 14 - hw - maxx : shapeRoadX + 6 + 14 + hw - minx;
+    const dz = zc - (minz + maxz) / 2;
+    const pts = closedCurve((u) => {
+      const p = raw[Math.min(raw.length - 1, Math.floor(u * raw.length))];
+      return [p[0] + dx, p[1] + dz];
+    });
+    // Подъезд — от дороги к точке полотна, ближайшей к ней, ближе всего к середине фигуры по z
+    let best = null;
+    for (const p of raw) {
+      const x = p[0] + dx;
+      const z = p[1] + dz;
+      const edge = col > 0 ? x : -x;
+      if (!best || edge > best.edge + 0.5 || (Math.abs(edge - best.edge) <= 0.5 && Math.abs(z - zc) < Math.abs(best.z - zc))) best = { edge, x, z };
+    }
+    shapeSpurs.push({ pts: line(shapeRoadX, best.z, best.x, best.z), w: 12 });
+    shapeTracks.push({
+      id, name, start: 0, w,
+      desc: desc + ' Ширина ' + w + ', длина круга около ' + Math.round(pts.length * 2) + '.',
+      pts, rawShape: raw,
+    });
+  }
+  const shapeRoads = [
+    { pts: line(119, 0, shapeRoadX, 0), w: 12 }, // от дороги площадки на восток
+    { pts: line(shapeRoadX, -580, shapeRoadX, 580), w: 12 }, // продольная дорога фигур
+    ...shapeSpurs,
+  ];
 
   // ---------- Трассы ----------
   const asphaltColor = 0x404044;
@@ -298,6 +432,7 @@ let onRaceTrack = () => false;
       ])),
     },
     ...driftTracks,
+    ...shapeTracks,
   ];
 
   // Линия старта — в начале осевой линии: сдвигаем начало на прямую, подальше от перекрестков и подъездов
@@ -330,6 +465,8 @@ let onRaceTrack = () => false;
     { pts: line(spineX, 385, spineX, 1010), w: 12 },
     ...driftRoads,
     ...driftSpurs,
+    // «Фигуры»: дорога на восток от площадки, продольная дорога и подъезды
+    ...shapeRoads,
   ];
 
   // Все полотна — один список: осевая линия, полуширина, замкнута ли
@@ -439,7 +576,8 @@ let onRaceTrack = () => false;
   registerZone('autodrome', 'Автодром', area, { birds: 0.3 });
   const area4 = { x1: -1300, x2: -785, z1: -495, z2: 495 }; // дрифт-полигон, север
   const area5 = { x1: -830, x2: -120, z1: 575, z2: 1005 }; // дрифт-полигон, юг
-  for (const [ar, id, name] of [[area4, 'driftpark', 'Дрифт-полигон'], [area5, 'driftpark_south', 'Дрифт-полигон: длинные змейки']]) {
+  const area6 = { x1: 150, x2: 600, z1: -650, z2: 650 }; // дрифт-полигон «Фигуры»
+  for (const [ar, id, name] of [[area4, 'driftpark', 'Дрифт-полигон'], [area5, 'driftpark_south', 'Дрифт-полигон: длинные змейки'], [area6, 'driftshapes', 'Дрифт-полигон: фигуры']]) {
     flatRect(ar.x2 - ar.x1, ar.z2 - ar.z1, 0x46703e, 0.005, (ar.x1 + ar.x2) / 2, (ar.z1 + ar.z2) / 2);
     mapObjects.push({ x: (ar.x1 + ar.x2) / 2, z: (ar.z1 + ar.z2) / 2, hx: (ar.x2 - ar.x1) / 2, hz: (ar.z2 - ar.z1) / 2, color: '#35583a', ground: true });
     registerZone(id, name, ar, { birds: 0.3 });
