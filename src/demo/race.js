@@ -20,8 +20,8 @@
 //   8. «Горки» — кольцо с тремя горбами: на скорости машина взлетает
 //   9. «Трамплин» — быстрая трасса с трамплином на прямой
 //   10. «Гран-при» — длинная трасса как настоящий автодром, пологие подъемы
-//   11–17. «Змейки 1–7» — дрифт-полигон к западу от гоночного комплекса: широкая дорога (44 → 28) волнами туда и обратно
-//   18–20. «Змейки 8–10» — самые узкие (26 → 22) и длинные, южнее «Гран-при»
+//   11. «Складки» — десять змеек (дрифт-полигон к западу от гоночного комплекса) в одной трассе: широкая дорога (44) волнами туда и обратно
+//       плавно перетекает в следующую змейку, все уже и круче, до 22; змейки — волны разной формы и ширины
 //   21–30. «Фигуры» — севернее гоночного комплекса, по продолжению продольной дороги: скидпад, треугольник, ромб, буква L, зигзаг,
 //           подкова, гантель, звезда, боб и цветок (разной формы и ширины 16–26)
 //   31–90. «Кольца» — полигон радиусов севернее «Фигур» (z от −1450 до −3000): 50 кругов, 10 радиусов (20…96) × 5 ширин (12…34), к западу
@@ -45,9 +45,10 @@ let demoTreeBlocked = () => false;
   const TAU = Math.PI * 2;
 
   // Замкнутая кривая по функции f(u) → [x, z] или [x, z, высота] (u от 0 до 1): точки через равные ~2 юнита пути
-  const closedCurve = (f, step = 2) => {
+  // Четвертая координата точки (если есть) — полуширина полотна в этой точке: так дорога плавно сужается и расширяется
+  const closedCurve = (f, step = 2, samples = 2000) => {
     const raw = [];
-    for (let i = 0; i < 2000; i++) raw.push(f(i / 2000));
+    for (let i = 0; i < samples; i++) raw.push(f(i / samples));
     let len = 0;
     const acc = [0];
     for (let i = 1; i <= raw.length; i++) {
@@ -66,7 +67,8 @@ let demoTreeBlocked = () => false;
       const b = raw[(j + 1) % raw.length];
       const t = (s - acc[j]) / (acc[j + 1] - acc[j] || 1);
       const y = a.length > 2 ? Math.max(0, a[2] + (b[2] - a[2]) * t) : 0;
-      pts.push({ x: a[0] + (b[0] - a[0]) * t, z: a[1] + (b[1] - a[1]) * t, y });
+      const hw = a.length > 3 ? a[3] + (b[3] - a[3]) * t : undefined;
+      pts.push({ x: a[0] + (b[0] - a[0]) * t, z: a[1] + (b[1] - a[1]) * t, y, hw });
     }
     return pts;
   };
@@ -135,8 +137,9 @@ let demoTreeBlocked = () => false;
     const lane = raw.slice();
     for (let a = -Math.PI / 2; a < Math.PI / 2; a += 0.01) raw.push([L + R * Math.cos(a), R * Math.sin(a)]);
     for (let s = L; s >= 0; s -= 0.5) raw.push([s, R + amp * wave1(s)]);
+    const cut = raw.length; // до сюда — прямая полоса, восточный разворот и обратная полоса; дальше — западный разворот (в «Складках» его нет)
     for (let a = Math.PI / 2; a < (3 * Math.PI) / 2; a += 0.01) raw.push([R * Math.cos(a), R * Math.sin(a)]);
-    return { raw, gap, L, amp, theta, n, minR: minRadius(lane), height: 2 * amp + gap + w + 4 };
+    return { raw, cut, gap, L, amp, theta, n, minR: minRadius(lane), height: 2 * amp + gap + w + 4 };
   };
   // Змейка с наибольшим числом волн (не больше n) при заданном угле; не получается — угол убавляем
   const snakePts = (spec) => {
@@ -154,7 +157,9 @@ let demoTreeBlocked = () => false;
   const driftRoadN = -790;
   const driftParks = [
     {
-      roadX: driftRoadN, span: 480, maxSpan: 620, z0: -470, z1: 470, gapZ: 9,
+      // Все десять змеек — одна трасса «Складки»: каждая змейка перетекает в следующую на западной стороне плавным разворотом, ширина
+      // меняется плавно (merge); друг под другом, дорога подъезда — x = −790, к каждой змейке свой подъезд
+      merge: true, roadX: driftRoadN, span: 560, maxSpan: 720, z0: -700, z1: 700, gapZ: 9,
       specs: [
         { id: 'snake1', name: 'Змейка 1 · Простор', w: 44, theta: 20, n: 6, shape: 'sine', desc: 'Самая широкая и самая пологая — для первого дрифта.' },
         { id: 'snake2', name: 'Змейка 2 · Широкая', w: 40, theta: 24, n: 7, shape: 'sine', desc: 'Широкая дорога и мягкие волны.' },
@@ -163,11 +168,6 @@ let demoTreeBlocked = () => false;
         { id: 'snake5', name: 'Змейка 5 · Средняя', w: 32, theta: 36, n: 8, shape: 'sine', desc: 'Золотая середина: углы уже заметные.' },
         { id: 'snake6', name: 'Змейка 6 · Резкая', w: 30, theta: 40, n: 8, shape: 'zig', desc: 'Зигзаг: между поворотами — прямые куски.' },
         { id: 'snake7', name: 'Змейка 7 · Острая', w: 28, theta: 44, n: 9, shape: 'zig', desc: 'Острый зигзаг.' },
-      ],
-    },
-    {
-      roadX: -148, span: 640, maxSpan: 860, z0: 592, z1: 1000, gapZ: 12,
-      specs: [
         { id: 'snake8', name: 'Змейка 8 · Крутая', w: 26, theta: 50, n: 12, shape: 'zig', desc: 'Длинный крутой зигзаг.' },
         { id: 'snake9', name: 'Змейка 9 · Шпильки', w: 24, theta: 55, n: 13, shape: 'zig', desc: 'Узкий зигзаг со шпильками.' },
         { id: 'snake10', name: 'Змейка 10 · Экстрим', w: 22, theta: 60, n: 15, shape: 'zig', desc: 'Самая узкая и самая крутая.' },
@@ -177,6 +177,7 @@ let demoTreeBlocked = () => false;
   // Самый западный x, куда еще можно ставить змейку на высоте z: внутри круга мира с запасом 35 на забор и покрышки
   const westLimit = (z) => worldCenter.x - Math.sqrt(Math.max(0, (worldRadius - 35) ** 2 - z * z));
   const driftTracks = [];
+  let driftBounds = { x1: -1300, x2: -785, z1: -495, z2: 495 }; // земля под змейками («Складками»)
   const driftSpurs = [];
   const driftRoads = [];
   for (const park of driftParks) {
@@ -200,22 +201,92 @@ let demoTreeBlocked = () => false;
         spans[i] = Math.max(park.span * 0.8, Math.min(park.maxSpan, avail));
       });
     }
-    built.forEach(({ spec, sn }, i) => {
+    const placed = built.map(({ spec, sn }, i) => {
       const zc = tops[i] + sn.height / 2;
       // Восточный край полотна — в 14 юнитах от края дороги (ее полуширина 6)
-      const x0 = park.roadX - 6 - 14 - spec.w / 2 - sn.gap / 2 - sn.L;
-      const pts = closedCurve((u) => {
-        const p = sn.raw[Math.min(sn.raw.length - 1, Math.floor(u * sn.raw.length))];
-        return [x0 + p[0], zc + p[1]];
-      });
-      driftTracks.push({
-        id: spec.id, name: spec.name, start: 0.04, w: spec.w,
-        desc: spec.desc + ' Ширина ' + spec.w + ', ' + sn.n + ' ' + (sn.n === 1 ? 'изгиб' : sn.n < 5 ? 'изгиба' : 'изгибов') + ' на полосе, наибольший угол пути ' + Math.round(sn.theta) + '°, самый тесный поворот — радиус ' + Math.round(sn.minR) + '.',
-        pts, snake: sn, zc, x0,
-      });
+      return { spec, sn, zc, x0: park.roadX - 6 - 14 - spec.w / 2 - sn.gap / 2 - sn.L };
+    });
+    for (const { spec, sn, zc, x0 } of placed) {
       // Подъезд — от дороги к крайней точке ближнего (восточного) разворота, по центру между полосами
       driftSpurs.push({ pts: line(park.roadX, zc, x0 + sn.L + sn.gap / 2, zc), w: 12 });
-    });
+    }
+    if (park.merge) {
+      // ---- «Складки»: змейки одна за другой в одной трассе ----
+      // Змейка = прямая полоса на восток, восточный разворот и обратная полоса на запад; на западном конце обратной полосы дорога плавным
+      // разворотом (кубическая кривая Безье) перетекает в начало прямой полосы следующей змейки. Последняя змейка замыкается с первой
+      // дугой далеко на западе. Полуширина полотна — четвертая координата точки: на разворотах она плавно меняется от одной змейки к другой.
+      const dense = []; // [x, z, 0, hw]
+      const push = (x, z, hw) => dense.push([x, z, 0, hw]);
+      const smooth = (t) => t * t * (3 - 2 * t);
+      const bezier = (p0, p1, p2, p3, hw0, hw1) => {
+        const len = Math.hypot(p3[0] - p0[0], p3[1] - p0[1]) * 1.4 + 20;
+        const n = Math.max(12, Math.ceil(len / 1));
+        for (let i = 0; i < n; i++) {
+          const t = i / n;
+          const u = 1 - t;
+          const x = u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0];
+          const z = u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1];
+          push(x, z, hw0 + (hw1 - hw0) * smooth(t));
+        }
+      };
+      const starts = [];
+      const ends = [];
+      for (const { spec, sn, zc, x0 } of placed) {
+        const hw = spec.w / 2;
+        starts.push([x0 + sn.raw[0][0], zc + sn.raw[0][1], hw]);
+        ends.push([x0 + sn.raw[sn.cut - 1][0], zc + sn.raw[sn.cut - 1][1], hw]);
+      }
+      // Соседние змейки: разворот на западе из конца обратной полосы в начало прямой следующей
+      const joined = [];
+      for (let k = 0; k < placed.length - 1; k++) {
+        const e = ends[k];
+        const st = starts[k + 1];
+        const d = 0.75 * Math.abs(st[1] - e[1]) + 10;
+        joined.push([e, st, d]);
+      }
+      // Полный путь: змейка 1, разворот, змейка 2, ... змейка 10, замыкание на запад и на север к началу змейки 1
+      for (let k = 0; k < placed.length; k++) {
+        const { spec, sn, zc, x0 } = placed[k];
+        const hw = spec.w / 2;
+        for (let i = 0; i < sn.cut; i++) push(x0 + sn.raw[i][0], zc + sn.raw[i][1], hw);
+        if (k < placed.length - 1) {
+          const [e, st, d] = joined[k];
+          bezier([e[0], e[1]], [e[0] - d, e[1]], [st[0] - d, st[1]], [st[0], st[1]], e[2], st[2]);
+        }
+      }
+      const eLast = ends[ends.length - 1];
+      const sFirst = starts[0];
+      const xFar = Math.min(...placed.map((p) => p.x0)) - 150;
+      const aPt = [xFar, eLast[1] - 100];
+      const bPt = [xFar, sFirst[1] + 100];
+      const d1 = 0.55 * (eLast[0] - xFar);
+      bezier([eLast[0], eLast[1]], [eLast[0] - d1, eLast[1]], [aPt[0], aPt[1] + d1], aPt, eLast[2], (eLast[2] + sFirst[2]) / 2);
+      // Прямая на север вдоль западного края
+      const nLine = Math.ceil((aPt[1] - bPt[1]) / 1);
+      for (let i = 0; i < nLine; i++) push(xFar, aPt[1] - ((aPt[1] - bPt[1]) * i) / nLine, (eLast[2] + sFirst[2]) / 2);
+      const d2 = 0.55 * (sFirst[0] - xFar);
+      bezier(bPt, [bPt[0], bPt[1] - d2], [sFirst[0] - d2, sFirst[1]], [sFirst[0], sFirst[1]], (eLast[2] + sFirst[2]) / 2, sFirst[2]);
+      const maxW = Math.max(...placed.map((p) => p.spec.w));
+      driftBounds = { x1: xFar - 40, x2: park.roadX + 20, z1: Math.min(...placed.map((p) => p.zc - p.sn.height / 2)) - 30, z2: Math.max(...placed.map((p) => p.zc + p.sn.height / 2)) + 30 };
+      driftTracks.push({
+        id: 'folds', name: 'Складки', start: 0.0, w: maxW, mapStep: 3,
+        desc: 'Десять змеек в одной трассе: каждая плавно перетекает в следующую, как складки. Ширина меняется от 44 (простор, пологие волны) до 22 (узкий зигзаг со шпильками), на разворотах — плавно. Один круг — очень длинный: можно ехать часами, проверяя дрифт на всех ширинах и углах. Подъезды — с дороги слева.',
+        pts: closedCurve((u) => dense[Math.min(dense.length - 1, Math.floor(u * dense.length))], 2, Math.max(2000, dense.length)),
+        merged: placed.map((p) => p.spec.id),
+      });
+    } else {
+      for (const { spec, sn, zc, x0 } of placed) {
+        const pts = closedCurve((u) => {
+          const p = sn.raw[Math.min(sn.raw.length - 1, Math.floor(u * sn.raw.length))];
+          return [x0 + p[0], zc + p[1]];
+        });
+        driftTracks.push({
+          id: spec.id, name: spec.name, start: 0.04, w: spec.w,
+          desc: spec.desc + ' Ширина ' + spec.w + ', ' + sn.n + ' ' + (sn.n === 1 ? 'изгиб' : sn.n < 5 ? 'изгиба' : 'изгибов') + ' на полосе, наибольший угол пути ' + Math.round(sn.theta) + '°, самый тесный поворот — радиус ' + Math.round(sn.minR) + '.',
+          pts, snake: sn, zc, x0,
+        });
+      }
+    }
     driftRoads.push({ pts: line(park.roadX, park.z0 - 10, park.roadX, park.z1 + 10), w: 12 });
   }
 
@@ -671,6 +742,12 @@ let demoTreeBlocked = () => false;
     ...ROADS.map((r) => ({ pts: r.pts, hw: r.w / 2, closed: false, color: r.color || asphaltColor })),
   ];
 
+  // Полуширина полотна в точке i: у трасс с переменной шириной («Складки») — своя у каждой точки, иначе общая у полотна
+  const hwAt = (sf, i) => {
+    const h = sf.pts[i % sf.pts.length].hw;
+    return h === undefined ? sf.hw : h;
+  };
+
   // Сетка отрезков (ячейка 12): где какие полотна — для стенок, поребриков, «на трассе ли» и секундомера
   const cell = 12;
   const grid = new Map();
@@ -681,7 +758,7 @@ let demoTreeBlocked = () => false;
     for (let i = 0; i < m; i++) {
       const a = sf.pts[i];
       const b = sf.pts[(i + 1) % n];
-      const seg = { a, b, hw: sf.hw, si, i };
+      const seg = { a, b, hw: Math.max(a.hw === undefined ? sf.hw : a.hw, b.hw === undefined ? sf.hw : b.hw), si, i };
       const i1 = Math.floor(Math.min(a.x, b.x) / cell);
       const i2 = Math.floor(Math.max(a.x, b.x) / cell);
       const j1 = Math.floor(Math.min(a.z, b.z) / cell);
@@ -783,10 +860,9 @@ let demoTreeBlocked = () => false;
   flatRect(area.x2 - area.x1, area.z2 - area.z1, 0x46703e, 0.005, (area.x1 + area.x2) / 2, (area.z1 + area.z2) / 2);
   mapObjects.push({ x: (area.x1 + area.x2) / 2, z: (area.z1 + area.z2) / 2, hx: (area.x2 - area.x1) / 2, hz: (area.z2 - area.z1) / 2, color: '#35583a', ground: true });
   registerZone('autodrome', 'Автодром', area, { birds: 0.3 });
-  const area4 = { x1: -1300, x2: -785, z1: -495, z2: 495 }; // дрифт-полигон, север
-  const area5 = { x1: -830, x2: -120, z1: 575, z2: 1005 }; // дрифт-полигон, юг
+  const area4 = driftBounds; // дрифт-полигон «Складки»
   const area6 = { x1: -1260, x2: -110, z1: -1375, z2: -925 }; // дрифт-полигон «Фигуры»
-  for (const [ar, id, name] of [[radArea, 'driftrings', 'Дрифт-полигон: кольца'], [eightArea, 'drifteights', 'Дрифт-полигон: восьмерки'], [area4, 'driftpark', 'Дрифт-полигон'], [area5, 'driftpark_south', 'Дрифт-полигон: длинные змейки'], [area6, 'driftshapes', 'Дрифт-полигон: фигуры']]) {
+  for (const [ar, id, name] of [[radArea, 'driftrings', 'Дрифт-полигон: кольца'], [eightArea, 'drifteights', 'Дрифт-полигон: восьмерки'], [area4, 'driftpark', 'Дрифт-полигон'], [area6, 'driftshapes', 'Дрифт-полигон: фигуры']]) {
     flatRect(ar.x2 - ar.x1, ar.z2 - ar.z1, 0x46703e, 0.005, (ar.x1 + ar.x2) / 2, (ar.z1 + ar.z2) / 2);
     mapObjects.push({ x: (ar.x1 + ar.x2) / 2, z: (ar.z1 + ar.z2) / 2, hx: (ar.x2 - ar.x1) / 2, hz: (ar.z2 - ar.z1) / 2, color: '#35583a', ground: true });
     registerZone(id, name, ar, { birds: 0.3 });
@@ -811,7 +887,8 @@ let demoTreeBlocked = () => false;
       const p = sf.pts[i];
       const { nx, nz } = normalAt(sf, i);
       const y = p.y + (sf.track ? (k > n / 2 ? 0.02 : 0.016) : 0.012);
-      pos.push(p.x + nx * sf.hw, y, p.z + nz * sf.hw, p.x - nx * sf.hw, y, p.z - nz * sf.hw);
+      const hw = hwAt(sf, i);
+      pos.push(p.x + nx * hw, y, p.z + nz * hw, p.x - nx * hw, y, p.z - nz * hw);
     }
     const idx = [];
     for (let k = 0; k < m - 1; k++) {
@@ -829,7 +906,7 @@ let demoTreeBlocked = () => false;
     } else addHoverInfo(mesh, { kind: 'Автодром', name: 'Подъезд', desc: 'Дорога между трассами автодрома и площадкой.' });
     const mapColor = sf.color === asphaltColor ? '#56565c' : '#8a6a48';
     for (let i = 0; i < n; i += (sf.track && sf.track.mapStep) || 2) {
-      mapObjects.push({ x: sf.pts[i].x, z: sf.pts[i].z, hx: sf.hw, hz: sf.hw, color: mapColor, ground: true });
+      mapObjects.push({ x: sf.pts[i].x, z: sf.pts[i].z, hx: hwAt(sf, i), hz: hwAt(sf, i), color: mapColor, ground: true });
     }
   });
 
@@ -893,13 +970,13 @@ let demoTreeBlocked = () => false;
       for (const side of [-1, 1]) {
         // Поребрик — у края полотна, полоска вдоль трассы
         if (sf.track.curbs !== false) {
-          const cx = p.x + nx * side * (sf.hw - 0.45);
-          const cz = p.z + nz * side * (sf.hw - 0.45);
+          const cx = p.x + nx * side * (hwAt(sf, i) - 0.45);
+          const cz = p.z + nz * side * (hwAt(sf, i) - 0.45);
           if (!onOtherSurface(cx, cz, si, i, 0.3)) curbs.push({ x: cx, z: cz, y: p.y, a: Math.atan2(tx, tz), red: i % 2 === 0 });
         }
         // Покрышки — сразу за краем, через одну точку (каждые ~2,2 юнита на прямой)
-        const x = p.x + nx * side * (sf.hw + 0.9);
-        const z = p.z + nz * side * (sf.hw + 0.9);
+        const x = p.x + nx * side * (hwAt(sf, i) + 0.9);
+        const z = p.z + nz * side * (hwAt(sf, i) + 0.9);
         if (!onOtherSurface(x, z, si, i, 1.2)) tires.push({ x, z, y: p.y, red: (i >> 1) % 2 === 0 });
       }
     }
@@ -918,7 +995,7 @@ let demoTreeBlocked = () => false;
     }
     const tex = new THREE.CanvasTexture(cv);
     tex.magFilter = THREE.NearestFilter;
-    const startLine = new THREE.Mesh(new THREE.PlaneGeometry(sf.hw * 2, 1.8), new LitMaterial({ map: tex, side: THREE.DoubleSide }));
+    const startLine = new THREE.Mesh(new THREE.PlaneGeometry(hwAt(sf, 0) * 2, 1.8), new LitMaterial({ map: tex, side: THREE.DoubleSide }));
     startLine.rotation.order = 'YXZ';
     startLine.rotation.y = Math.atan2(tx, tz);
     startLine.rotation.x = -Math.PI / 2;
