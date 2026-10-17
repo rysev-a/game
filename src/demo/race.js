@@ -24,7 +24,8 @@
 //   18–20. «Змейки 8–10» — самые узкие (26 → 22) и длинные, южнее «Гран-при»
 //   21–30. «Фигуры» — севернее гоночного комплекса, по продолжению продольной дороги: скидпад, треугольник, ромб, буква L, зигзаг,
 //           подкова, гантель, звезда, боб и цветок (разной формы и ширины 16–26)
-//   31–80. «Кольца» — полигон радиусов севернее «Фигур» (z от −1450 до −2780): 50 кругов, 10 радиусов (20…96) × 5 ширин (12…34), для дрифта
+//   31–90. «Кольца» — полигон радиусов севернее «Фигур» (z от −1450 до −3000): 50 кругов, 10 радиусов (20…96) × 5 ширин (12…34), к западу
+//           от продольной дороги, и еще 10 крупных и широких (радиус 110…170, ширина 44 и 56), к востоку от нее — для дрифта
 // Все трассы — внутри круга мира (забор, src/engine/layout.js; в ДЕМО он шире — demoWorldRadius в demo/index.html).
 //
 // Каждая трасса — замкнутая осевая линия (точки через ~2 юнита); полотно, поребрики и стенки из покрышек
@@ -380,8 +381,50 @@ let onRaceTrack = () => false;
     radTop = roadZ - 14 - row.h - 12;
     radCursor = radTop - 6;
   }
-  const radSpine = { pts: line(-148, shapeRoadZ, -148, radTop + 20), w: 12 }; // продольная дорога дальше на север
-  const radArea = { x1: ringEast - ringRowW - 40, x2: -110, z1: radTop - 20, z2: -1440 };
+  // Еще десять колец — шире и крупнее (радиус 110…170, ширина 44 и 56): по другую сторону продольной дороги, к востоку от нее. Тот же порядок:
+  // полки, у каждой своя дорога от продольной (теперь на восток) и подъезды к южным точкам колец
+  const RING_RADII_BIG = [110, 125, 140, 155, 170];
+  const RING_WIDTHS_BIG = [44, 56];
+  const bigItems = [];
+  for (const R of RING_RADII_BIG) for (const w of RING_WIDTHS_BIG) bigItems.push({ R, w, d: 2 * R + w });
+  bigItems.sort((a, b) => b.d - a.d || a.R - b.R);
+  const bigRows = [];
+  {
+    let cur = { w: 0, h: 0, items: [] };
+    for (const it of bigItems) {
+      if (cur.w + it.d + ringGap > 1100 && cur.items.length) {
+        bigRows.push(cur);
+        cur = { w: 0, h: 0, items: [] };
+      }
+      cur.items.push(it);
+      cur.w += it.d + ringGap;
+      cur.h = Math.max(cur.h, it.d);
+    }
+    bigRows.push(cur);
+  }
+  let bigCursor = -1450;
+  let bigTop = bigCursor;
+  for (const row of bigRows) {
+    const roadZ = bigCursor - 8;
+    let x = -60; // западный край блока — в 88 юнитах к востоку от продольной дороги (-148)
+    for (const it of row.items) {
+      const hw = it.w / 2;
+      const cx = x + it.R + hw;
+      const cz = roadZ - 14 - it.R - hw;
+      radTracks.push({
+        id: 'ring_r' + it.R + '_w' + it.w, name: 'Кольцо R' + it.R + ' · ширина ' + it.w, start: 0.5, w: it.w, mapStep: 4,
+        desc: 'Круг радиусом ' + it.R + ' по оси полотна, ширина ' + it.w + ' (внутренний край — радиус ' + (it.R - hw) + ', внешний — ' + (it.R + hw) + '): широкий вираж для дрифта.',
+        pts: closedCurve((u) => [cx + it.R * Math.cos(TAU * u), cz + it.R * Math.sin(TAU * u)], 2),
+      });
+      radSpurs.push({ pts: line(cx, roadZ, cx, cz + it.R), w: 12 });
+      x += it.d + ringGap;
+    }
+    radRoads.push({ pts: line(-148, roadZ, x - ringGap, roadZ), w: 12 });
+    bigTop = roadZ - 14 - row.h - 12;
+    bigCursor = bigTop - 6;
+  }
+  const radSpine = { pts: line(-148, shapeRoadZ, -148, Math.min(radTop, bigTop) + 20), w: 12 }; // продольная дорога дальше на север
+  const radArea = { x1: ringEast - ringRowW - 40, x2: 1100, z1: Math.min(radTop, bigTop) - 20, z2: -1440 };
 
   // ---------- Трассы ----------
   const asphaltColor = 0x404044;
