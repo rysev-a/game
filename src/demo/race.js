@@ -26,6 +26,7 @@
 //           подкова, гантель, звезда, боб и цветок (разной формы и ширины 16–26)
 //   31–90. «Кольца» — полигон радиусов севернее «Фигур» (z от −1450 до −3000): 50 кругов, 10 радиусов (20…96) × 5 ширин (12…34), к западу
 //           от продольной дороги, и еще 10 крупных и широких (радиус 110…170, ширина 44 и 56), к востоку от нее — для дрифта
+//   91–150. «Восьмерки» — полигон южнее змеек (z от 1060): те же 60 радиусов и ширин, но восьмеркой (две окружности и скрещенные касательные)
 // Все трассы — внутри круга мира (забор, src/engine/layout.js; в ДЕМО он шире — demoWorldRadius в demo/index.html).
 //
 // Каждая трасса — замкнутая осевая линия (точки через ~2 юнита); полотно, поребрики и стенки из покрышек
@@ -426,6 +427,93 @@ let onRaceTrack = () => false;
   const radSpine = { pts: line(-148, shapeRoadZ, -148, Math.min(radTop, bigTop) + 20), w: 12 }; // продольная дорога дальше на север
   const radArea = { x1: ringEast - ringRowW - 40, x2: 1100, z1: Math.min(radTop, bigTop) - 20, z2: -1440 };
 
+  // ---------- Полигон восьмерок: 60 восьмерок (те же радиусы и ширины, что у колец) ----------
+  // Южнее змеек (z от 1060): продолжение продольной дороги x = −148 идет на юг, от нее — дороги рядов (на запад и на восток),
+  // от них — подъезды к верхним точкам лепестков. Восьмерка — две окружности радиуса R с центрами в (±1,5·R, 0): трасса обходит каждую
+  // по дальней стороне и пересекает сама себя в центре по внутренним касательным под углом ~84° (радиус закругления везде R).
+  // Размер: 5·R + w по X и 2·R + w по Z; w — ширина полотна.
+  const eightItems = (radii, widths) => {
+    const list = [];
+    for (const R of radii) for (const w of widths) list.push({ R, w, d: 5 * R + w, h: 2 * R + w });
+    return list.sort((a, b) => b.d - a.d || a.R - b.R);
+  };
+  const eightRaw = (R) => {
+    const c = 1.5 * R;
+    const phi = Math.asin(R / c);
+    const L = Math.sqrt(c * c - R * R); // длина касательной от центра восьмерки до окружности
+    const raw = [];
+    const arc = (cx, a1, a2) => {
+      const n = Math.max(8, Math.ceil((Math.abs(a2 - a1) * R) / 0.5));
+      for (let i = 0; i < n; i++) {
+        const a = a1 + ((a2 - a1) * i) / n;
+        raw.push([cx + R * Math.cos(a), R * Math.sin(a)]);
+      }
+    };
+    const seg = (x1, z1, x2, z2) => {
+      const n = Math.max(2, Math.ceil(Math.hypot(x2 - x1, z2 - z1) / 0.5));
+      for (let i = 0; i < n; i++) raw.push([x1 + ((x2 - x1) * i) / n, z1 + ((z2 - z1) * i) / n]);
+    };
+    const th = Math.atan2(-L * Math.sin(phi), L * Math.cos(phi) - c); // правая окружность: от верхней точки касания по дальней стороне вниз
+    arc(c, th, -th);
+    seg(L * Math.cos(phi), L * Math.sin(phi), -L * Math.cos(phi), -L * Math.sin(phi)); // через центр к левой окружности
+    const al = Math.atan2(-L * Math.sin(phi), c - L * Math.cos(phi)); // левая: от верхней точки касания по дальней стороне вниз
+    arc(-c, al, -al - 2 * Math.PI);
+    seg(-L * Math.cos(phi), L * Math.sin(phi), L * Math.cos(phi), -L * Math.sin(phi)); // через центр обратно к правой
+    return { raw, c };
+  };
+  const packRows = (items, width) => {
+    const rows = [];
+    let cur = { w: 0, h: 0, items: [] };
+    for (const it of items) {
+      if (cur.w + it.d + ringGap > width && cur.items.length) {
+        rows.push(cur);
+        cur = { w: 0, h: 0, items: [] };
+      }
+      cur.items.push(it);
+      cur.w += it.d + ringGap;
+      cur.h = Math.max(cur.h, it.h);
+    }
+    rows.push(cur);
+    return rows;
+  };
+  const eightTracks = [];
+  const eightSpurs = [];
+  const eightRoads = [];
+  let eightBottom = 1060;
+  // dir = −1: ряд идет на запад от продольной дороги, +1 — на восток; ряды растут к югу
+  // Крупные и мелкие идут вперемешку по убыванию размера: через одну — на запад и на восток, чтобы блок получился не таким длинным
+  const eightAll = eightItems(RING_RADII, RING_WIDTHS).concat(eightItems(RING_RADII_BIG, RING_WIDTHS_BIG)).sort((a, b) => b.d - a.d || a.R - b.R);
+  for (const [items, dir, x0, width] of [[eightAll.filter((_, i) => i % 2 === 0), -1, -230, 1700], [eightAll.filter((_, i) => i % 2 === 1), 1, -60, 1700]]) {
+    let cursor = 1060;
+    for (const row of packRows(items, width)) {
+      const roadZ = cursor + 8; // дорога ряда — у его северной границы
+      let x = x0;
+      for (const it of row.items) {
+        const hw = it.w / 2;
+        const { raw, c } = eightRaw(it.R);
+        const cx = x + dir * (it.d / 2);
+        const cz = roadZ + 14 + it.R + hw; // верхний край полотна — в 14 юнитах к югу от дороги
+        eightTracks.push({
+          id: 'eight_r' + it.R + '_w' + it.w, name: 'Восьмерка R' + it.R + ' · ширина ' + it.w, start: 0.1, w: it.w, mapStep: 4,
+          desc: 'Восьмерка: два круга радиуса ' + it.R + ' по оси полотна, ширина ' + it.w + '; трасса пересекает сама себя в центре под углом около 84°: для дрифта «восьмеркой».',
+          pts: closedCurve((u) => {
+            const p = raw[Math.min(raw.length - 1, Math.floor(u * raw.length))];
+            return [cx + p[0], cz + p[1]];
+          }, 2),
+        });
+        // Подъезд — к верхней точке лепестка, ближнего к продольной дороге
+        const sx = cx - dir * c;
+        eightSpurs.push({ pts: line(sx, roadZ, sx, cz - it.R), w: 12 });
+        x += dir * (it.d + ringGap);
+      }
+      eightRoads.push({ pts: line(-148, roadZ, x - dir * ringGap, roadZ), w: 12 });
+      cursor += row.h + 14 + 12 + 6 + 8;
+    }
+    eightBottom = Math.max(eightBottom, cursor);
+  }
+  const eightSpine = { pts: line(-148, 1010, -148, eightBottom), w: 12 }; // продольная дорога на юг
+  const eightArea = { x1: -230 - 1700 - 40, x2: -60 + 1700 + 40, z1: 1050, z2: eightBottom };
+
   // ---------- Трассы ----------
   const asphaltColor = 0x404044;
   const TRACKS = [
@@ -532,6 +620,7 @@ let onRaceTrack = () => false;
     ...driftTracks,
     ...shapeTracks,
     ...radTracks,
+    ...eightTracks,
   ];
 
   // Линия старта — в начале осевой линии: сдвигаем начало на прямую, подальше от перекрестков и подъездов
@@ -569,6 +658,10 @@ let onRaceTrack = () => false;
     radSpine,
     ...radRoads,
     ...radSpurs,
+    // «Полигон восьмерок»: продолжение продольной дороги на юг, дороги рядов и подъезды
+    eightSpine,
+    ...eightRoads,
+    ...eightSpurs,
   ];
 
   // Все полотна — один список: осевая линия, полуширина, замкнута ли
@@ -679,7 +772,7 @@ let onRaceTrack = () => false;
   const area4 = { x1: -1300, x2: -785, z1: -495, z2: 495 }; // дрифт-полигон, север
   const area5 = { x1: -830, x2: -120, z1: 575, z2: 1005 }; // дрифт-полигон, юг
   const area6 = { x1: -1260, x2: -110, z1: -1375, z2: -925 }; // дрифт-полигон «Фигуры»
-  for (const [ar, id, name] of [[radArea, 'driftrings', 'Дрифт-полигон: кольца'], [area4, 'driftpark', 'Дрифт-полигон'], [area5, 'driftpark_south', 'Дрифт-полигон: длинные змейки'], [area6, 'driftshapes', 'Дрифт-полигон: фигуры']]) {
+  for (const [ar, id, name] of [[radArea, 'driftrings', 'Дрифт-полигон: кольца'], [eightArea, 'drifteights', 'Дрифт-полигон: восьмерки'], [area4, 'driftpark', 'Дрифт-полигон'], [area5, 'driftpark_south', 'Дрифт-полигон: длинные змейки'], [area6, 'driftshapes', 'Дрифт-полигон: фигуры']]) {
     flatRect(ar.x2 - ar.x1, ar.z2 - ar.z1, 0x46703e, 0.005, (ar.x1 + ar.x2) / 2, (ar.z1 + ar.z2) / 2);
     mapObjects.push({ x: (ar.x1 + ar.x2) / 2, z: (ar.z1 + ar.z2) / 2, hx: (ar.x2 - ar.x1) / 2, hz: (ar.z2 - ar.z1) / 2, color: '#35583a', ground: true });
     registerZone(id, name, ar, { birds: 0.3 });
