@@ -43,8 +43,8 @@ let penWaveRunning = () => false;
   const spawnEvery = 3500; // мс между выходами из ворот
 
   // Пульт: тумба со светящимся экраном у северного конца линии огня вольера
-  const consoleX = 76;
-  const consoleZ = 76;
+  const consoleX = 76 + combatShift.x; // боевая зона на востоке (combatShift — src/demo/demo.js)
+  const consoleZ = 76 + combatShift.z;
   const stand = boxWithEdges(1.2, 1.1, 0.8, 0x4a5058);
   stand.position.set(consoleX, 0.55, consoleZ);
   cityGroup.add(stand);

@@ -25,8 +25,8 @@ const PEN_CREATURES = {};
 let spawnPenCreature = null;
 let penLab = null;
 {
-  const penX = 101; // центр вольера
-  const penZ = 87;
+  const penX = 101 + combatShift.x; // центр вольера (боевая зона на востоке, combatShift — src/demo/demo.js)
+  const penZ = 87 + combatShift.z;
   const penHX = 16; // полуширина по X (на восток от линии огня)
   const penHZ = 13;
   flatRect(penHX * 2, penHZ * 2, 0x5a5a44, 0.012, penX, penZ); // вытоптанная земля
@@ -77,7 +77,7 @@ let penLab = null;
   flatRect(6, labDoor.z - (penZ + penHZ) + 2, 0x5a5a44, 0.013, labX, (labDoor.z + penZ + penHZ) / 2); // тропа к калитке
 
   // Где герой приходит в себя, если существа его свалили: у стойки с оружием, вне их досягаемости
-  heroWakePoint = { x: 74, z: 38 };
+  heroWakePoint = { x: 74 + combatShift.x, z: 38 + combatShift.z };
 
   // Выстрел из точки модели (дуло, пасть) в героя. Снаряд летит туда, где герой сейчас, — от него
   // можно уйти шагом в сторону

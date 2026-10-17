@@ -9,7 +9,8 @@ const riverHalf = 16; // половина ширины русла по верх�
 
 // Граница мира — круг, по нему идет сетчатый забор, дальше выйти нельзя
 const worldCenter = { x: -375, z: 0 };
-const worldRadius = 1100;
+// В ДЕМО мир шире (demoWorldRadius задает demo/index.html): там десятки трасс, зоны обучения, сборки и общения
+const worldRadius = typeof demoWorldRadius === 'number' ? demoWorldRadius : 1100;
 // Описанный квадрат (для земли, леса и миникарты): карта получается квадратной
 const worldBounds = {
   minX: worldCenter.x - worldRadius,
