@@ -7,9 +7,11 @@
 // с игроком. Пока зажато колесо мыши, движение мыши вращает камеру и наклоняет горизонт; отпустили —
 // после паузы камера сама встает за игрока (как после стрелок, cameraHoldFrames в src/player/player.js).
 let viewDragging = false;
-// За рулем двойное нажатие колеса мыши на сцене включает ручник (как Space), еще двойное — выключает (src/player/driving.js);
-// одиночное нажатие, как и пешком, — вид мышью
-let wheelHandbrake = false;
+// За рулем двойное нажатие колеса мыши на сцене включает «режим ручника колесом» (wheelBrakeMode), еще двойное — выключает. В режиме
+// колесо, пока зажато, — ручник (wheelHandbrake, как Space; src/player/driving.js), а вид мышью не крутится; без режима, как и пешком, —
+// зажатое колесо вращает вид
+let wheelBrakeMode = false;
+let wheelHandbrake = false; // колесо зажато в режиме ручника
 let wheelLastDown = 0;
 const wheelDoubleMs = 350; // два нажатия колеса не дольше этого друг от друга — двойное
 
@@ -65,23 +67,26 @@ document.addEventListener('webkitfullscreenchange', onFullscreenChange);
 renderer.domElement.addEventListener('mousedown', (e) => {
   if (e.button === 1) {
     e.preventDefault(); // без «автопрокрутки» браузера
+    let toggled = false;
     if (drivingCar) {
       const now = performance.now();
       if (now - wheelLastDown < wheelDoubleMs) {
-        wheelHandbrake = !wheelHandbrake;
+        wheelBrakeMode = !wheelBrakeMode;
         wheelLastDown = 0;
-        showToast(wheelHandbrake ? 'Ручник включен (двойной клик колесом — выключить)' : 'Ручник выключен', 1500);
+        toggled = true;
+        showToast(wheelBrakeMode ? 'Режим ручника колесом: зажмите колесо — ручник (двойной клик — выключить)' : 'Колесо снова крутит камеру', 2200);
       } else wheelLastDown = now;
     }
-    viewDragging = true; // одиночное нажатие — вид мышью, как всегда
+    if (drivingCar && wheelBrakeMode) wheelHandbrake = !toggled;
+    else viewDragging = true;
   } else if (e.button === 0 && !settingsOpen && !dialogueOpen) {
     pickHovered(); // клик по подсвеченной вещи — в инвентарь
   }
 });
 document.addEventListener('mouseup', (e) => {
-  if (e.button === 1) viewDragging = false;
+  if (e.button === 1) viewDragging = wheelHandbrake = false;
 });
-window.addEventListener('blur', () => (viewDragging = false));
+window.addEventListener('blur', () => (viewDragging = wheelHandbrake = false));
 
 // Где курсор над сценой (-1..1) — по нему ищем вещь под мышью (updatePickHover в src/engine/interact.js)
 let pickMouse = null;
