@@ -326,12 +326,13 @@ function updateCarHeight(car) {
   if (next > ground + 0.02) {
     car.y = next;
     car.vy -= airGravity;
-    car.airborne = true;
+    car.flying = true;
+    car.airborne = car.y - ground > 0.12; // подскок на стыке склона — еще не полет: руль и газ работают
   } else {
-    if (car.airborne && car.vy < -0.15) car.speed *= 0.93; // жесткая посадка
-    car.vy = car.airborne ? 0 : ground - car.y;
+    if (car.flying && car.vy < -0.15) car.speed *= 0.93; // жесткая посадка
+    car.vy = car.flying ? 0 : ground - car.y;
     car.y = ground;
-    car.airborne = false;
+    car.flying = car.airborne = false;
   }
   // Нос по склону, в полете — по траектории
   const pitch = car.airborne ? Math.atan2(car.vy, Math.abs(car.speed) + 0.01) * Math.sign(car.speed || 1) : Math.atan(slopeAt(car));
