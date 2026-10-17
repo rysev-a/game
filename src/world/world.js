@@ -5,8 +5,11 @@
 
 // ТРАССА соединяет поселок, торговый центр и оба города. Поселок далеко на западе,
 // поэтому на машине до города ехать долго, а пешком — очень долго
-roadH(villageX + villageHalfW, highwayEnd, 0, 'asphalt', cityCrossXs);
-clearZones.push({ x1: worldBounds.minX, x2: worldBounds.maxX, z1: -9, z2: 9 }); // вдоль трассы лес не растет
+// Участок между Сосновкой и торговым центром извилистый и холмистый (src/world/highway.js), остальное — прямая z = 0
+buildHighway(villageX + villageHalfW, highwayEnd);
+// Вдоль трассы лес не растет (у кривой — своя полоса по насыпи, highway.js)
+clearZones.push({ x1: worldBounds.minX, x2: highwayCurve.x1, z1: -9, z2: 9 });
+clearZones.push({ x1: highwayCurve.x2, x2: worldBounds.maxX, z1: -9, z2: 9 });
 
 buildRoadMeshes();
 

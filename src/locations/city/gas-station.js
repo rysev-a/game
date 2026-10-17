@@ -12,6 +12,7 @@ const gasX = -140; // центр первой заправки по X (двор 
 const gasPumpZ = -11; // колонки стоят здесь, машина — между ними и дорогой
 const gasPumps = []; // колонки всех заправок: { x, z }
 const gasKiosks = []; // двери будок: { x, z, name }
+const gasStations = []; // все заправки: { x, z, rot } (кусты вдоль трассы обходят их, src/world/highway.js)
 const canisterPrice = 60; // цена канистры с бензином
 const pumpInfo = { kind: 'Устройство', name: 'Топливная колонка', desc: 'Подъезжайте, останавливайтесь и жмите E — бак наполнится.' };
 
@@ -19,6 +20,7 @@ function buildGasStation({ x: ox, z: oz, rot = 0, name = 'Заправка', yar
   const c = Math.cos(rot);
   const s = Math.sin(rot);
   const toWorld = (lx, lz) => ({ x: ox + lx * c + lz * s, z: oz - lx * s + lz * c });
+  gasStations.push({ x: ox, z: oz, rot });
   const turned = Math.abs(Math.sin(rot)) > 0.5; // вдоль Z: стороны площадки меняются местами
   const gasInfo = {
     kind: 'Здание',

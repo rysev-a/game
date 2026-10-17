@@ -87,6 +87,8 @@ function applyGame(data) {
   car.z = data.car.z;
   car.heading = data.car.heading;
   car.speed = 0;
+  car.y = groundHeightAt(car.x, car.z, 9); // машина на холме трассы стоит на полотне (src/world/highway.js)
+  car.vy = 0;
   car.fuel = data.car.fuel;
   car.trunk = { canisters: Math.max(0, Math.min(trunkMax, data.car.trunk || 0)) }; // багажник (в старых сохранениях пуст)
   car.refuelling = false;

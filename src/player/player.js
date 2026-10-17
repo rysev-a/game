@@ -167,13 +167,25 @@ function updateWalking(c) {
 // ВРАЩЕНИЕ ГОРОДА ВОКРУГ ИГРОКА (Pivot Point). Город преобразуется как v -> R(θ)·(v − p):
 // сначала точка под игроком переносится в центр экрана, затем поворот вокруг нее.
 // Поэтому при вращении город крутится строго вокруг игрока, а сам он остается на месте.
+// Пешком по холмам: в основном мире трасса идет по холмам (src/world/highway.js), поэтому мир опускается и под пешеходом.
+// walkOnHills включает трасса; walkY — высота земли под героем (плавно, телепорт — сразу)
+let walkOnHills = false;
+let walkY = 0;
+function updateWalkHeight() {
+  if (!walkOnHills || (typeof drivingCar !== 'undefined' && drivingCar)) return;
+  const target = groundHeightAt(playerWorldX, playerWorldZ, walkY);
+  const diff = target - walkY;
+  walkY = Math.abs(diff) > 1.5 ? target : walkY + Math.max(-0.4, Math.min(0.4, diff));
+}
+
 function applyWorldTransform() {
   const cos = Math.cos(worldRotation);
   const sin = Math.sin(worldRotation);
+  updateWalkHeight();
   cityGroup.rotation.y = worldRotation;
   cityGroup.position.set(
     -playerWorldX * cos - playerWorldZ * sin,
-    typeof drivingCar !== 'undefined' && drivingCar ? -(drivingCar.y || 0) : 0, // машина на горке — мир опускается
+    typeof drivingCar !== 'undefined' && drivingCar ? -(drivingCar.y || 0) : -walkY, // машина на горке — мир опускается
     playerWorldX * sin - playerWorldZ * cos,
   );
 }

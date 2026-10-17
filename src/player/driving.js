@@ -197,7 +197,7 @@ function enterCar(car) {
 // Выйти: только когда машина почти стоит (force — выбраться сразу: подбитый БТР)
 function exitCar(force = false) {
   if (Math.abs(drivingCar.speed) > exitMaxSpeed && !force) return;
-  if ((drivingCar.y || 0) > 0.3 && !force) {
+  if ((drivingCar.y || 0) > 0.3 && !force && !walkOnHills) {
     showToast('Здесь не выйти: машина на насыпи. Спуститесь с горки', 2500);
     return;
   }
@@ -221,6 +221,7 @@ function exitCar(force = false) {
   drivingCar.coast = 0;
   drivingCar.steerInput = 0;
   wheelBrakeMode = wheelHandbrake = rightHandbrake = nitroActive = false;
+  walkY = drivingCar.y || 0; // вышли на холме — мир уже опущен на высоту машины, ходить продолжаем на ней
   drivingCar = null;
   player.visible = true;
 }
