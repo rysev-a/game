@@ -154,18 +154,18 @@ if (touchUI) {
     } else if (g === 'D') {
       if (gas) car.speed = s < 0 ? s + k.brake : Math.min(s + k.accel, k.maxSpeed);
       else if (hasFuel && s < touchDriveCreep) toward(touchDriveCreep, k.accel * 0.3); // ползет сама
-      else slow(k.drag);
+      else slow(k.coast);
     } else if (g === 'R') {
       if (gas) car.speed = s > 0 ? s - k.brake : Math.max(s - k.accel * 0.7 * (k.revMul || 1), k.maxReverse);
       else if (hasFuel && s > -touchDriveCreepBack) toward(-touchDriveCreepBack, k.accel * 0.2);
-      else slow(k.drag);
+      else slow(k.coast);
     } else {
       // M: у передачи n предел скорости n/6 от полной; низкие передачи тянут сильнее
       const n = touchDrive.n;
       const top = (k.maxSpeed * n) / touchDriveGears;
       if (s > top) slow(Math.min(s - top, k.drag * 3)); // торможение двигателем после понижения
       else if (gas) car.speed = s < 0 ? s + k.brake : Math.min(s + k.accel * (1.5 - n * 0.15), top);
-      else slow(k.drag);
+      else slow(k.coast);
     }
     return true;
   };

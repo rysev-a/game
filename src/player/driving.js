@@ -193,6 +193,9 @@ function updateDriving(c) {
     driftAccel: base.accel * settings.accelSharp * launchFactor(base, car.speed) * (car.airborne ? 0 : 1),
     brake: base.brake * settings.brakeSharp,
     turnRate: base.turnRate * settings.steerSens,
+    // Накат: без газа и тормоза машина катится и теряет скорость плавно — качение плюс сопротивление воздуха (растет с квадратом скорости),
+    // а не «встает» за секунды. Базу берем от drag машины, множитель — настройка «Накат» (coastInertia)
+    coast: coastDecel(base, car.speed),
     // Задний ход гоночных быстрее: предел и ускорение — на множитель настройки «Скорость заднего хода» (reverseSpeed)
     revMul: base.powerDrift ? settings.reverseSpeed : 1,
     maxReverse: base.maxReverse * (base.powerDrift ? settings.reverseSpeed : 1),
@@ -215,7 +218,7 @@ function updateDriving(c) {
     // Мотор почти держит скорость; потерю на боковом скольжении восполняет газ
     const top = k.maxSpeed * 0.8;
     if (car.speed < top) car.speed = Math.min(top, car.speed + k.driftAccel * 0.9);
-    else car.speed -= k.drag;
+    else car.speed -= k.coast;
   } else if (powerDrift) {
     // Задом: так же, но к пределу заднего хода
     const top = k.maxReverse * 0.9;
@@ -225,7 +228,7 @@ function updateDriving(c) {
     // скорость уже посчитана
   } else if (c.up && hasFuel && (!handbrake || engineOn)) car.speed += car.speed < 0 ? k.brake : k.accel; // на ручнике газ не тянет (кроме гоночных)
   else if (c.down && hasFuel) car.speed -= car.speed > 0 ? k.brake : k.accel * 0.7 * k.revMul;
-  else car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.drag);
+  else car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.coast);
   // Ручник тормозит; у гоночных с газом — нет: с места это старт с пробуксовкой, на скорости — дрифт
   if ((keys['Space'] || handLever) && !(engineOn && handLever)) car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.brake * (handbrake ? handbrakeBrake : 1));
   // Склон тянет вниз — и вперед, и задним ходом. Тянет настолько же, насколько мощна машина: у слабой по разгону (легковушка,
@@ -352,6 +355,14 @@ function applyBouncePush(car) {
   p.x *= p.decay;
   p.z *= p.decay;
   if (Math.hypot(p.x, p.z) < 0.01) car.push = null;
+}
+
+// Потеря скорости за кадр при накате (без газа и тормоза): 0,2·drag·(0,4 + 1,6·v²) — качение плюс сопротивление воздуха (~ v², v в
+// единицах 167 км/ч — у гиперкара на 300 км/ч оно сильно тормозит, на низкой скорости катится долго); настройка «Накат» делит ее: больше накат — меньше потеря. Легковушка со 100 км/ч
+// катится до 50 км/ч около 7 с, до остановки — около 15 с (раньше — за 3 с)
+function coastDecel(base, speed) {
+  const s = Math.min(2.5, Math.abs(speed)); // скорость за кадр: 1 — это 167 км/ч
+  return (base.drag * 0.2 * (0.4 + 1.6 * s * s)) / settings.coastInertia;
 }
 
 // Игрок тормозит по-настоящему: S на ходу вперед (или W при заднем ходе), на телефоне — педаль тормоза
