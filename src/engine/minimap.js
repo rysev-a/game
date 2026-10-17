@@ -155,8 +155,14 @@ function drawMapView(ctx, W, H, cx, cz, mmScale, rot, ci, highlight) {
     ctx.fillRect(b.x - b.hx - cx, b.z - b.hz - cz, b.hx * 2, b.hz * 2);
   };
 
-  // Граница мира (забор): круг
+  // Граница мира (забор): круг. В ДЕМО (один круглый город) весь круг залит зеленью — на карте нет пустых черных полей
   if (!ci) {
+    if (typeof demoWorldRadius === 'number') {
+      ctx.fillStyle = '#26442c';
+      ctx.beginPath();
+      ctx.arc(worldCenter.x - cx, worldCenter.z - cz, worldRadius, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
     ctx.lineWidth = 1.5 * px;
     ctx.beginPath();

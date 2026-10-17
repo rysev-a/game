@@ -2,12 +2,16 @@
 // ЛЕС. Внутри забора деревья растут вокруг локаций (стволы — препятствия, их ищут по
 // сетке treeGrid), снаружи забора — декоративные. Все деревья — три InstancedMesh.
 
-const inClearZone = (x, z) => clearZones.some((c) => x > c.x1 && x < c.x2 && z > c.z1 && z < c.z2);
+// В ДЕМО (demoWorldRadius, demo/index.html) мир большой и круглый: сетка деревьев реже, а деревья не растут на трассах и дорогах автодрома
+// (demoTreeBlocked, src/demo/race.js) и в зонах площадки (clearZones)
+const isDemoWorld = typeof demoWorldRadius === 'number';
+const inClearZone = (x, z) =>
+  clearZones.some((c) => x > c.x1 && x < c.x2 && z > c.z1 && z < c.z2) || (isDemoWorld && typeof demoTreeBlocked === 'function' && demoTreeBlocked(x, z));
 
 const trees = []; // деревья внутри забора: { x, z, s }
 const outerTrees = []; // снаружи, только для вида
 const wb = worldBounds;
-const treeSpacing = 12; // мир большой: сетка реже, чтобы деревьев было не слишком много
+const treeSpacing = isDemoWorld ? 30 : 12; // мир большой: сетка реже, чтобы деревьев было не слишком много
 for (let gx = wb.minX - 56; gx < wb.maxX + 56; gx += treeSpacing) {
   for (let gz = wb.minZ - 56; gz < wb.maxZ + 56; gz += treeSpacing) {
     if (Math.random() < 0.15) continue;
@@ -15,7 +19,7 @@ for (let gx = wb.minX - 56; gx < wb.maxX + 56; gx += treeSpacing) {
     const z = gz + rand(-4, 4);
     const dist = Math.hypot(x - worldCenter.x, z - worldCenter.z);
     if (dist > worldRadius + 56) continue; // за кольцом леса вокруг забора ничего не растет
-    if (Math.abs(x - riverX) < 18) continue;
+    if (!isDemoWorld && Math.abs(x - riverX) < 18) continue;
     if (dist < worldRadius - 3) {
       if (inClearZone(x, z)) continue;
       const tree = { x, z, s: rand(0.8, 1.5), leafy: Math.random() < 0.3 };
@@ -78,7 +82,7 @@ for (let gx = wb.minX - 56; gx < wb.maxX + 56; gx += treeSpacing) {
       const a = rand(0, Math.PI * 2);
       const x = t.x + Math.cos(a) * rand(2.5, 4.5);
       const z = t.z + Math.sin(a) * rand(2.5, 4.5);
-      if (!inClearZone(x, z) && Math.abs(x - riverX) >= 18) bushes.push({ x, z, s: rand(0.7, 1.3), r: rand(0, 6.3) });
+      if (!inClearZone(x, z) && (isDemoWorld || Math.abs(x - riverX) >= 18)) bushes.push({ x, z, s: rand(0.7, 1.3), r: rand(0, 6.3) });
     }
   }
   plant(bushes, [[bushGeo, white(), true]], [0x3f7a35, 0x4f8a3a, 0x356b30]);

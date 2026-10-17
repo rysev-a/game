@@ -39,6 +39,7 @@
 // а за ними роботы, которые быстро подбивают БТР. Подключается после src/demo/tutorial.js.
 
 let onRaceTrack = () => false;
+let demoTreeBlocked = () => false;
 {
   const trackW = 18; // ширина полотна трасс
   const TAU = Math.PI * 2;
@@ -712,6 +713,19 @@ let onRaceTrack = () => false;
       }
     }
     return out;
+  };
+  // Мешает ли точка дереву: рядом с любым полотном трасс и дорог (на полуширину и 9 юнитов запаса) и на стоянках — деревья там не растут (src/world/forest.js)
+  demoTreeBlocked = (x, z) => {
+    if (x > -152 && x < -118 && z > -118 && z < -14) return true; // стоянки машин
+    const ci = Math.floor(x / cell);
+    const cj = Math.floor(z / cell);
+    for (let i = ci - 3; i <= ci + 3; i++) {
+      for (let j = cj - 3; j <= cj + 3; j++) {
+        const g = grid.get(segKey(i, j));
+        if (g) for (const s of g) if (segDist(x, z, s) < s.hw + 9) return true;
+      }
+    }
+    return false;
   };
   // Лежит ли точка на чужом полотне (своя трасса рядом с индексом own — не в счет): там проезд, стенок нет
   const onOtherSurface = (x, z, si, own, margin) => {

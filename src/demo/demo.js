@@ -18,6 +18,16 @@ function updateMallPeople() {
   for (const f of demoUpdates) f();
 }
 
+// ---------- Земля и забор ----------
+// ДЕМО — один круглый город: вся земля внутри забора зеленая (никаких пустых темных полей между зонами), по границе мира — сетчатый забор
+// (src/world/fence.js), за ним — лес для вида (src/world/forest.js). Зоны и трассы лежат на этой земле плоскими пятнами чуть светлее
+{
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(worldRadius + 450, 160), new LitMaterial({ color: 0x356b3a, side: THREE.DoubleSide }));
+  disc.rotation.x = -Math.PI / 2;
+  disc.position.set(worldCenter.x, 0.003, worldCenter.z);
+  cityGroup.add(disc);
+}
+
 // ---------- Площадка ----------
 const demoHalf = 125; // площадка 250 × 250 с центром в (0, 0)
 const demoRect = { x1: -demoHalf, x2: demoHalf, z1: -demoHalf, z2: demoHalf };

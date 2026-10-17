@@ -2,7 +2,7 @@
 // Земля: две плоскости с провалом между ними под русло реки (ее ровно riverX ± riverHalf).
 // Плоскости квадратные (описанный квадрат круглого мира с запасом): за забором все равно лес и туман.
 
-const floorMat = new LitMaterial({ color: 0x222222 });
+const floorMat = new LitMaterial({ color: typeof demoWorldRadius === 'number' ? 0x1f3a26 : 0x222222 }); // в ДЕМО за забором — темная зелень, а не черные поля
 const floorDepth = worldBounds.maxZ - worldBounds.minZ + 920;
 // В ДЕМО реки нет — земля одной плоскостью
 const floorParts = typeof demoWorldRadius === 'number'
