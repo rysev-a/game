@@ -26,6 +26,7 @@
   applyGame = function (data) {
     origApplyGame(data);
     g.restore(data.story);
+    if (g.state.playerCar) questSwapPlayerCar(g.state.playerCar); // подаренная машина после загрузки сохранения
   };
 
   // ---------- Разговоры с именованными персонажами ----------

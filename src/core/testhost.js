@@ -5,7 +5,7 @@
 (function (root) {
   const Core = (root.Core = root.Core || {});
 
-  Core.createTestHost = function createTestHost() {
+  Core.createTestHost = function createTestHost(registry) {
     const h = {
       time: 0, // игровых минут с начала истории
       items: {},
@@ -27,8 +27,16 @@
     h.teleport = (id, opts) => {
       h.teleported = id;
       h.teleportOpts = opts;
+      const place = registry && registry.places[id];
+      if (place) h.pos = { x: place.x, z: place.z }; // герой действительно оказывается на месте
     };
     h.startHeli = (opts) => (h.heli = opts);
+    h.driving = () => h.isDriving;
+    h.setCarLimp = (v) => (h.limp = v);
+    h.swapPlayerCar = (kind) => (h.playerCarKind = kind);
+    h.killHero = () => (h.killed = (h.killed || 0) + 1);
+    h.startPractice = (opts) => (h.practice = opts);
+    h.endPractice = () => (h.practice = null);
     h.heal = (n) => (h.healed = (h.healed || 0) + n);
     h.openPuzzle = (session) => h.dialogs.push(session);
     h.toast = (text) => h.toasts.push(text);

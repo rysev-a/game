@@ -85,6 +85,8 @@
           } catch (err) {
             bad(where, 'wait: ' + err.message);
           }
+        } else if (key === 'practice' && (!registry.places[arg.at] || !(arg.cars || []).length)) {
+          bad(where, 'practice: нужны at (место) и cars');
         } else if (key === 'rewind' && !stepRefOk(arg)) {
           bad(where, 'rewind: нет шага «' + arg + '»');
         } else if (key === 'heli') {
@@ -166,6 +168,16 @@
         lintCond(q.timer.until, where + ', таймер');
         lintEffects(q.timer.onExpire, where + ', таймер');
         for (const list of Object.values(q.timer.warn || {})) lintEffects(list, where + ', таймер');
+      }
+      if (q.checkpoints) {
+        for (const id of q.checkpoints.order || []) if (!registry.places[id]) bad(where, 'checkpoints: нет места «' + id + '»');
+        if (!q.checkpoints.counter) bad(where, 'checkpoints: нужен counter');
+        lintCond(q.checkpoints.when, where + ', checkpoints');
+      }
+      for (const a of q.actions || []) {
+        if (!a.id || !a.text) bad(where, 'actions: у кнопки нужны id и text');
+        lintCond(a.if, where + ', кнопка ' + a.id);
+        lintEffects(a.do, where + ', кнопка ' + a.id);
       }
       lintCond(q.autoStart, where);
       lintCond(q.requires, where);

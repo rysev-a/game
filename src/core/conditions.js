@@ -13,6 +13,7 @@
 //   puzzle:2.05.elixir             головоломка решена
 //   fight:2.11.flash               бой выигран
 //   elixir:>=20                    на шкале эликсира герою достаточно
+//   dayssince:deal>=1              прошло столько суток (по полуночи) с отметки { markDay: 'deal' }
 //   at:bridge.scene  near:place    игрок в месте (или в зоне) / в радиусе места
 //   inside  driving                игрок в здании / за рулем
 //   time:22:00-06:00  night  day   игровое время (через полночь тоже)
@@ -71,6 +72,13 @@
     return i < 0 ? [ref, ''] : [ref.slice(0, i), ref.slice(i + 1)];
   };
 
+  // Номер суток по полуночи: игра начинается в 09:00, поэтому сутки считаем со сдвигом (по часу host.hour или по умолчанию 09:00)
+  Core.dayIndex = (game) => {
+    const now = game.now();
+    const startMin = (((hourOf(game) * 60 - now) % 1440) + 1440) % 1440;
+    return Math.floor((startMin + now) / 1440);
+  };
+
   const kinds = {
     has: (arg, g) => {
       const c = Core.parseCompare(arg);
@@ -93,6 +101,11 @@
     inspected: (arg, g) => !!g.state.inspected[arg],
     puzzle: (arg, g) => !!g.state.puzzles[arg],
     fight: (arg, g) => !!g.state.fights[arg],
+    dayssince: (arg, g) => {
+      const c = Core.parseCompare(arg);
+      const marked = g.state.counters['day.' + c.name];
+      return marked !== undefined && Core.compare(Core.dayIndex(g) - marked, c.op, c.value);
+    },
     elixir: (arg, g) => {
       const c = Core.parseCompare('e' + arg);
       return Core.compare(g.host.elixir ? g.host.elixir() : 0, c.op, c.value);

@@ -196,7 +196,7 @@ function updateDriving(c) {
   const nitroTop = 1 + 0.12 * nitroLevel;
   const k = {
     ...base,
-    maxSpeed: base.maxSpeed * (nitro ? nitroTop : 1) * Math.max(0.45, 1 - 2 * Math.max(0, slope) + 1.5 * Math.max(0, -slope)),
+    maxSpeed: base.maxSpeed * (nitro ? nitroTop : 1) * (car.limp ? 0.3 : 1) * Math.max(0.45, 1 - 2 * Math.max(0, slope) + 1.5 * Math.max(0, -slope)),
     // Обычная езда — кривая разгона машины (accelAt); дрифт и спецслучаи — прежнее ровное ускорение (driftAccel)
     accel: (base.acc ? accelScale(base) * accelShapeAt(nitro ? { maxSpeed: base.maxSpeed * nitroTop, accShape: base.accShape } : base, car.speed) : base.accel * launchFactor(base, car.speed)) *
       settings.accelSharp * nitroMul * (car.airborne ? 0 : 1),

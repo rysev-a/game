@@ -38,6 +38,7 @@
     once: {},
     messages: [],
     tracked: null,
+    playerCar: null, // вид машины, которую герою подарили вместо своей (id из VEHICLE_KINDS): она встает на место при загрузке
   });
 
   Core.createGame = function createGame(opts = {}) {
@@ -281,8 +282,41 @@
       game.bump();
     };
 
+    // Контрольные точки: quest.checkpoints = { counter, order: [места], when, r, driving } — пока when истинно, герой (за рулем, если
+    // driving) проезжает точки по порядку: у каждой проезд прибавляет счетчик counter, и он показывает, сколько точек пройдено
+    function checkpoints() {
+      for (const q of Object.values(registry.quests)) {
+        const def = q.checkpoints;
+        if (!def || !game.isActive(q.id) || !game.check(def.when)) continue;
+        if (def.driving && !(host.driving && host.driving())) continue;
+        const idx = game.state.counters[def.counter] || 0;
+        const id = def.order[idx];
+        if (id === undefined) continue;
+        const d = game.placeDistance(id);
+        if (d === null || d > (def.r || registry.places[id].r || 12)) continue;
+        game.state.counters[def.counter] = idx + 1;
+        game.bump();
+        if (host.toast) host.toast('Контрольная точка ' + (idx + 1) + ' из ' + def.order.length);
+        again = true;
+      }
+    }
+
+    // Кнопки квеста в журнале: quest.actions = [{ id, text, if, do }] — действия, которые игрок запускает сам, когда они доступны
+    game.actionsOf = (qid) => {
+      const q = registry.quests[qid];
+      return q && game.isActive(qid) ? (q.actions || []).filter((a) => game.check(a.if)).map((a) => ({ id: a.id, text: a.text })) : [];
+    };
+    game.doAction = (qid, id) => {
+      const q = registry.quests[qid];
+      const a = q && game.isActive(qid) && (q.actions || []).find((x) => x.id === id);
+      if (!a || !game.check(a.if)) return false;
+      game.run(a.do);
+      return true;
+    };
+
     function progress() {
       timers();
+      checkpoints();
       for (const q of Object.values(registry.quests)) {
         if (record(q.id) || !q.autoStart) continue;
         if (game.check(q.autoStart) && game.check(q.requires)) {

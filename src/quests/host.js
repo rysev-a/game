@@ -46,6 +46,19 @@ const questHost = {
   },
   openDialog: (node) => startDialogue(questNarrator, node),
   openPuzzle: (session) => session && openPuzzleUi(session), // окно головоломки: src/quests/puzzle-ui.js
+  setCarLimp: (on) => {
+    if (!garage.car) return;
+    garage.car.limp = !!on;
+    showToast(on ? 'Мотор троит и дымит: машина еле едет. Нужен ремонт.' : 'Машина починена: едет как новая.', 4000);
+  },
+  swapPlayerCar: (kindId) => questSwapPlayerCar(kindId),
+  killHero: () => {
+    questFade();
+    if (drivingCar) exitCar(true);
+    heroStats.hp = heroStats.maxHp; // герой приходит в себя: прежнее поражение игры (src/engine/enemy-attacks.js) — wake
+    renderEquipHud();
+    showToast('Люди в черном догнали вас. Темнота... и снова старт.', 4500);
+  },
   paused: () => dialogueOpen || settingsOpen, // в разговоре, журнале, головоломке и меню таймеры стоят
   elixir: () => heroStats.elixir,
   advanceTime: (min) => {
@@ -85,5 +98,27 @@ const questHost = {
     renderEquipHud();
   },
 };
+
+// Подарить герою другую машину вместо его: старая убирается, новая встает на ее место (герой остается за рулем, если сидел)
+function questSwapPlayerCar(kindId) {
+  const old = garage.car;
+  if (!old || !VEHICLE_KINDS[kindId] || (old.kind && old.kind.id === kindId)) return;
+  const wasDriving = drivingCar === old;
+  const { x, z, heading } = old;
+  if (wasDriving) drivingCar = null;
+  cityGroup.remove(old.mesh);
+  cars.splice(cars.indexOf(old), 1);
+  const car = addVehicle(kindId, x, z, heading, { fuel: 1, keyId: 'keys' });
+  if (!car) {
+    cars.push(old); // нет места: оставляем старую
+    cityGroup.add(old.mesh);
+    if (wasDriving) drivingCar = old;
+    return;
+  }
+  car.isPlayerCar = true;
+  markPlayerCar(car);
+  garage.car = car;
+  if (wasDriving) enterCar(car);
+}
 
 const questGame = Core.createGame({ registry: Core.registry, host: questHost });

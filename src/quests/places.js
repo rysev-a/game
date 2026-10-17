@@ -59,3 +59,14 @@ definePlace('tower.base', { x: towerX, z: towerZ, r: 40, name: 'Башня' });
 definePlace('tower.door', { x: towerX, z: towerZ - 14, r: 8, name: 'Вход в башню' });
 definePlace('tower.pad', { x: towerX + 20, z: towerZ - 16, r: 8, name: 'Площадка вертолетика' });
 for (let i = 1; i <= 9; i++) definePlace('tower.f' + i, { x: towerFloorX(i), z: towerFloorZ, r: 16, name: i + ' этаж башни' });
+
+// Гоночный трек (src/locations/track/track.js): старт и финиш, восемь контрольных точек по кольцу по часовой стрелке (квест 3.05)
+definePlace('track.start', { x: trackX, z: trackZ - trackHalfD, r: 16, name: 'Старт и финиш трека' });
+{
+  const x1 = trackX - trackHalfW;
+  const x2 = trackX + trackHalfW;
+  const z1 = trackZ - trackHalfD;
+  const z2 = trackZ + trackHalfD;
+  const points = [[x1 + 100, z1], [x2, z1 + 40], [x2, z2 - 40], [x2 - 50, z2], [trackX, z2], [x1 + 50, z2], [x1, z2 - 40], [x1, z1 + 40]];
+  points.forEach(([x, z], i) => definePlace('track.cp' + (i + 1), { x, z, r: 16, name: 'Контрольная точка ' + (i + 1) }));
+}

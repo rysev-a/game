@@ -32,6 +32,7 @@
       giver: q.giver || '',
       tracked: game.state.tracked === q.id,
       steps: visibleSteps(q, rec),
+      actions: rec.state === 'active' ? game.actionsOf(q.id) : [],
     });
 
     game.journal = () => {

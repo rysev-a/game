@@ -33,6 +33,8 @@ definePlace('tower.base', { x: 70, z: 70, r: 40, name: 'Башня' });
 definePlace('tower.door', { x: 70, z: 56, r: 8, name: 'Вход в башню' });
 definePlace('tower.pad', { x: 90, z: 54, r: 8, name: 'Площадка' });
 for (let i = 1; i <= 9; i++) definePlace('tower.f' + i, { x: -130 + (i - 1) * 38, z: 250, r: 16, name: i + ' этаж' });
+definePlace('track.start', { x: -620, z: 190, r: 16, name: 'Старт' });
+for (let i = 1; i <= 8; i++) definePlace('track.cp' + i, { x: -770 + i * 20, z: 200 + i, r: 16, name: 'КП ' + i });
 require('./scenarios/1-03-bridge.js');
 require('./scenarios/1-06-treehouse.js');
 require('./scenarios/2-05-elixir.js');
@@ -40,6 +42,7 @@ require('./scenarios/2-act2.js');
 require('./scenarios/act-3-5.js');
 require('./scenarios/act-2b.js');
 require('./scenarios/4-12-tower.js');
+require('./scenarios/3-05-car.js');
 
 const reg = Core.registry;
 

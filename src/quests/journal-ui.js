@@ -106,6 +106,17 @@
       if (s.hint) row.appendChild(el('span', 'hint', s.hint));
       c.appendChild(row);
     }
+    // Кнопки квеста (quest.actions): тренировка, ожидание утра и т. п.; нажали — журнал закрывается и действие выполняется
+    for (const a of t.actions || []) {
+      const b = el('button', 'track', a.text);
+      b.style.marginTop = '6px';
+      b.style.display = 'block';
+      b.addEventListener('click', () => {
+        setOpen(false);
+        g.doAction(t.id, a.id);
+      });
+      c.appendChild(b);
+    }
     if (t.giver) c.appendChild(el('div', 'meta', 'Выдал: ' + t.giver));
     return c;
   }

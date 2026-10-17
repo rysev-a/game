@@ -100,8 +100,13 @@
 
   function sync() {
     const wanted = new Map();
+    // Запись quest.world.people с replace: true на время своего if убирает персонажа с обычного места (он «перебрался» сюда)
+    const moved = new Set();
+    for (const q of Object.values(reg.quests)) {
+      for (const e of (q.world && q.world.people) || []) if (e.replace && g.check(e.if)) moved.add(e.who);
+    }
     for (const ch of Object.values(reg.characters)) {
-      if (ch.at && placeOf(ch.at)) wanted.set('p:' + ch.id, () => spawnPerson(ch.id, ch.at, ch.dx || 0, ch.dz || 0, ch.yaw || 0));
+      if (ch.at && placeOf(ch.at) && !moved.has(ch.id)) wanted.set('p:' + ch.id, () => spawnPerson(ch.id, ch.at, ch.dx || 0, ch.dz || 0, ch.yaw || 0));
     }
     for (const q of Object.values(reg.quests)) {
       for (const e of (q.world && q.world.people) || []) {

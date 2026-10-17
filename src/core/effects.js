@@ -17,6 +17,11 @@
 //   { waitUntil: '22:00' }                            промотать время до этого часа (ближайшего)
 //   { teleport: 'lab.basement' }                      перенести героя в место (с затемнением); { teleport: 'место', car: true } — вместе с его машиной, за рулем
 //   { heal: 40 }                                      вылечить героя
+//   { markDay: 'deal' }                               запомнить сегодняшние сутки (условие dayssince:deal>=1 — прошла полночь)
+//   { breakCar: true } { repairCar: true }            машина героя хромает (еле едет) / починена
+//   { playerCar: 'hyper' }                            подарить герою машину этого вида вместо его (и запомнить в сохранении)
+//   { kill: true }                                    героя убили: затемнение, он выбирается из машины и приходит в себя
+//   { practice: { at, cars } }                        тренировка: выбрать машину и оказаться на месте at; { practiceEnd: true } — браслетом назад
 //   { rewind: '4.12.f1' }                             вернуть квест к шагу (шаги, таймеры, бои и головоломки квеста — заново)
 //   { heli: { from, goal, goalY, goalR, onGoal } }    управлять радиоуправляемым вертолетом (src/quests/heli.js)
 //   { emit: 'name' } { emit: { name, ...данные } }    событие
@@ -83,6 +88,20 @@
     },
     teleport: (arg, g) => g.host.teleport && (typeof arg === 'string' ? g.host.teleport(arg, {}) : g.host.teleport(arg.to, arg)),
     rewind: (arg, g) => g.rewind(arg),
+    markDay: (arg, g) => {
+      g.state.counters['day.' + arg] = Core.dayIndex(g);
+      g.bump();
+    },
+    breakCar: (arg, g) => g.host.setCarLimp && g.host.setCarLimp(true),
+    repairCar: (arg, g) => g.host.setCarLimp && g.host.setCarLimp(false),
+    playerCar: (arg, g) => {
+      g.state.playerCar = arg;
+      g.bump();
+      if (g.host.swapPlayerCar) g.host.swapPlayerCar(arg);
+    },
+    kill: (arg, g) => g.host.killHero && g.host.killHero(),
+    practice: (arg, g) => g.host.startPractice && g.host.startPractice(arg),
+    practiceEnd: (arg, g) => g.host.endPractice && g.host.endPractice(),
     heli: (arg, g) => g.host.startHeli && g.host.startHeli(arg),
     heal: (arg, g) => g.host.heal && g.host.heal(arg),
     emit: (arg, g) => (typeof arg === 'string' ? g.emit(arg, {}) : g.emit(arg.name, arg)),

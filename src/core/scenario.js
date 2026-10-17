@@ -15,6 +15,8 @@
 //       { puzzle: '2.05.elixir', picks: ['water', …] }, // головоломка: выбрать части по порядку (expect — после)
 //       { fight: '2.11.flash' },                        // бой выигран (если он идет: when истинно)
 //       { heli: 'goal' },                               // вертолетик долетел до цели и игрок нажал E: выполняются onGoal
+//       { action: 'practice' },                         // нажата кнопка квеста в журнале
+//       { drive: true },                                // игрок за рулем (нужно для контрольных точек)
 //       { do: [{ give: 'copper' }] },                   // любые действия
 //       { wait: '8h' },                                 // потратить игровое время (минуты, '90m', '8h')
 //       { emit: 'name' },                               // событие
@@ -34,7 +36,7 @@
   };
 
   Core.runScenario = function runScenario(registry, scenario, opts = {}) {
-    const host = Core.createTestHost();
+    const host = Core.createTestHost(registry);
     if (opts.setup) opts.setup(host);
     const game = Core.createGame({ registry, host });
     const failures = [];
@@ -71,6 +73,8 @@
             host.heli = null;
           }
         }
+        if (step.drive !== undefined) host.isDriving = step.drive;
+        if (step.action && !game.doAction(step.action.split('/')[0] || '', step.action.split('/')[1])) fail('кнопка «' + step.action + '» недоступна (формат: id квеста/кнопки)');
         if (step.wait) host.time += Core.parseDuration(step.wait);
         if (step.inspect) game.emit('inspect', { id: step.inspect });
         if (step.emit) game.emit(step.emit, {});
