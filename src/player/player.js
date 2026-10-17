@@ -173,7 +173,7 @@ function applyWorldTransform() {
   cityGroup.rotation.y = worldRotation;
   cityGroup.position.set(
     -playerWorldX * cos - playerWorldZ * sin,
-    0,
+    typeof drivingCar !== 'undefined' && drivingCar ? -(drivingCar.y || 0) : 0, // машина на горке — мир опускается
     playerWorldX * sin - playerWorldZ * cos,
   );
 }

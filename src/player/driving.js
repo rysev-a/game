@@ -49,6 +49,14 @@ const coastMinSpeed = 0.15; // из заноса медленнее — план
 // теряет скорость мало. Остальные стены гасят скорость как раньше
 const bounceBase = 0.15;
 const bounceGain = 0.3;
+// ПОДЪЕМЫ И СПУСКИ. Высоту земли под машиной дает groundHeightAt(x, z, y) — на трассах гоночного комплекса ДЕМО
+// (src/demo/race.js) полотно поднимается на холмы, насыпи и мост, везде остальное — 0. Машина едет по полотну
+// (car.y), в гору тянет хуже и медленнее, под гору сама набирает скорость (slopeGravity). Если земля уходит
+// вниз быстрее, чем машина падает (вершина горба, край трамплина), — машина летит: car.vy, гравитация airGravity;
+// в полете руль и газ почти не действуют. Нос машины наклоняется по склону (car.pitch, updateCarMeshes)
+let groundHeightAt = () => 0;
+const slopeGravity = 0.02; // ускорение вдоль склона на единицу уклона (юнитов за кадр²)
+const airGravity = 0.012; // падение в полете (юнитов за кадр²)
 const cameraFollowEase = 0.04; // как быстро камера возвращается за машину (0..1 за кадр)
 let carTime = 0;
 
@@ -134,6 +142,10 @@ function enterCar(car) {
 // Выйти: только когда машина почти стоит (force — выбраться сразу: подбитый БТР)
 function exitCar(force = false) {
   if (Math.abs(drivingCar.speed) > exitMaxSpeed && !force) return;
+  if ((drivingCar.y || 0) > 0.3 && !force) {
+    showToast('Здесь не выйти: машина на насыпи. Спуститесь с горки', 2500);
+    return;
+  }
   const h = drivingCar.heading;
   const side = drivingCar.half.w + 1.4;
   const end = drivingCar.half.l + 1.1;
@@ -164,9 +176,13 @@ function updateDriving(c) {
   const car = drivingCar;
   const base = car.kind || carDrive;
   // Резкость разгона, торможения и руля — множители из настроек (src/engine/settings.js)
+  // Уклон под машиной вдоль носа: плюс — в гору. В гору предел скорости ниже, под гору — выше
+  car.y = car.y || 0;
+  const slope = car.airborne ? 0 : slopeAt(car);
   const k = {
     ...base,
-    accel: base.accel * settings.accelSharp * launchFactor(base, car.speed),
+    maxSpeed: base.maxSpeed * Math.max(0.45, 1 - 2 * Math.max(0, slope) + 1.5 * Math.max(0, -slope)),
+    accel: base.accel * settings.accelSharp * launchFactor(base, car.speed) * (car.airborne ? 0 : 1),
     brake: base.brake * settings.brakeSharp,
     turnRate: base.turnRate * settings.steerSens,
   };
@@ -200,8 +216,10 @@ function updateDriving(c) {
   else car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.drag);
   // Ручник тормозит; у гоночных с газом — нет: с места это старт с пробуксовкой, на скорости — дрифт
   if ((keys['Space'] || handLever) && !(engineOn && handLever)) car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.brake * (handbrake ? handbrakeBrake : 1));
+  car.speed -= slope * slopeGravity; // склон тянет вниз — и вперед, и задним ходом
   // Отскок быстрее заднего хода: пока гаснет, предел заднего хода не режет скорость (car.recoil)
-  car.speed = Math.min(Math.max(car.speed, Math.min(k.maxReverse, car.recoil || 0)), k.maxSpeed);
+  car.speed = Math.min(Math.max(car.speed, Math.min(k.maxReverse, car.recoil || 0)), Math.max(k.maxSpeed, base.maxSpeed));
+  if (car.speed > k.maxSpeed) car.speed -= Math.min(car.speed - k.maxSpeed, k.accel + k.drag * 2); // в гору быстро не едет
   if (car.recoil) car.recoil = car.recoil > k.maxReverse || car.speed >= 0 ? 0 : Math.max(car.recoil, car.speed);
 
   // Поворачивать можно только в движении; задним ходом руль работает наоборот.
@@ -209,7 +227,7 @@ function updateDriving(c) {
   let steer = (c.left ? 1 : 0) - (c.right ? 1 : 0);
   if (!steer && typeof touchDriveSteer === 'function') steer = touchDriveSteer();
   if (!steer && typeof gyroSteer === 'function') steer = gyroSteer(car) || 0;
-  let turn = steer * k.turnRate * Math.min(1, Math.abs(car.speed) / 0.15) * Math.sign(car.speed);
+  let turn = steer * k.turnRate * Math.min(1, Math.abs(car.speed) / 0.15) * Math.sign(car.speed) * (car.airborne ? 0.15 : 1);
   // На ручнике кузов поворачивает резче, а шины держат слабо — заносит тем сильнее, чем больше глубина заноса.
   // Без ручника шины цепляются почти сразу (у гоночной на большой глубине — чуть скользит и в обычных поворотах)
   if (handbrake) turn *= 1 + 1.3 * depth;
@@ -227,7 +245,8 @@ function updateDriving(c) {
   car.speed *= 1 - slideFriction * (powerDrift ? 0.6 : 1) * Math.abs(Math.sin(car.slip)); // боком машина быстро теряет скорость
   car.drifting = powerDrift;
   applyDriftCoast(car, base, powerDrift, brakingHard(c, car, onTouch, powerDrift));
-  updateTireMarks(car, handbrake || powerDrift);
+  updateCarHeight(car);
+  updateTireMarks(car, (handbrake || powerDrift) && !car.airborne);
   // Бензин расходуется на пройденный путь
   const travelled = Math.hypot(vx, vz);
   car.fuel = Math.max(0, car.fuel - travelled / fuelRange);
@@ -290,6 +309,36 @@ function applyDriftCoast(car, base, drifting, braking) {
   else car.speed = Math.min(car.speed, car.coast);
 }
 
+// Уклон вдоль носа машины: высота земли на метр впереди минус на метр сзади, пополам
+function slopeAt(car) {
+  const fx = -Math.sin(car.heading);
+  const fz = -Math.cos(car.heading);
+  const ahead = groundHeightAt(car.x + fx, car.z + fz, car.y);
+  const behind = groundHeightAt(car.x - fx, car.z - fz, car.y);
+  return (ahead - behind) / 2;
+}
+
+// Высота машины: едет по земле или летит. Приземлилась — чуть теряет скорость
+function updateCarHeight(car) {
+  const ground = groundHeightAt(car.x, car.z, car.y);
+  car.vy = car.vy || 0;
+  const next = car.y + car.vy - airGravity;
+  if (next > ground + 0.02) {
+    car.y = next;
+    car.vy -= airGravity;
+    car.flying = true;
+    car.airborne = car.y - ground > 0.12; // подскок на стыке склона — еще не полет: руль и газ работают
+  } else {
+    if (car.flying && car.vy < -0.15) car.speed *= 0.93; // жесткая посадка
+    car.vy = car.flying ? 0 : ground - car.y;
+    car.y = ground;
+    car.flying = car.airborne = false;
+  }
+  // Нос по склону, в полете — по траектории
+  const pitch = car.airborne ? Math.atan2(car.vy, Math.abs(car.speed) + 0.01) * Math.sign(car.speed || 1) : Math.atan(slopeAt(car));
+  car.pitch = (car.pitch || 0) + (pitch - (car.pitch || 0)) * 0.3;
+}
+
 // Плавный старт: доля разгона на скорости speed (1 — полный). launch — доля с места, launchUntil — к какой доле
 // максимальной скорости разгон уже полный
 function launchFactor(kind, speed) {
@@ -318,10 +367,10 @@ const tireMarkQuat = new THREE.Quaternion();
 const tireMarkScale = new THREE.Vector3();
 const tireMarkUp = new THREE.Vector3(0, 1, 0);
 
-function addTireMark(x1, z1, x2, z2) {
+function addTireMark(x1, z1, x2, z2, y = 0) {
   const len = Math.hypot(x2 - x1, z2 - z1);
   if (len < 0.01) return;
-  tireMarkPos.set((x1 + x2) / 2, 0.06, (z1 + z2) / 2);
+  tireMarkPos.set((x1 + x2) / 2, y + 0.06, (z1 + z2) / 2);
   tireMarkQuat.setFromAxisAngle(tireMarkUp, Math.atan2(x2 - x1, z2 - z1));
   tireMarkScale.set(tireMarkWidth, 1, len + 0.05); // чуть внахлест, чтобы полоса была сплошной
   tireMarks.setMatrixAt(tireMarkNext, tireMarkMatrix.compose(tireMarkPos, tireMarkQuat, tireMarkScale));
@@ -344,7 +393,7 @@ function updateTireMarks(car, handbrake) {
     [bx - Math.cos(h) * side, bz + Math.sin(h) * side],
   ];
   if (sliding && car.lastWheels) {
-    for (let i = 0; i < 2; i++) addTireMark(car.lastWheels[i][0], car.lastWheels[i][1], wheels[i][0], wheels[i][1]);
+    for (let i = 0; i < 2; i++) addTireMark(car.lastWheels[i][0], car.lastWheels[i][1], wheels[i][0], wheels[i][1], car.y || 0);
   }
   car.lastWheels = sliding ? wheels : null;
 }
@@ -505,8 +554,10 @@ function updateCarMeshes() {
     playerCarMarker.rotation.y = carTime * 1.5;
   }
   for (const c of cars) {
-    c.mesh.position.set(c.x, 0, c.z);
+    c.mesh.position.set(c.x, c.y || 0, c.z);
+    c.mesh.rotation.order = 'YXZ';
     c.mesh.rotation.y = c.heading;
+    c.mesh.rotation.x = c.pitch || 0;
     c.mesh.spinWheels(c.speed);
     c.mesh.updateCar(carTime, Math.abs(c.speed) / (c.kind || carDrive).maxSpeed);
     if (c.update) c.update(c); // дым подбитого БТР и т. п. (src/world/vehicles.js)
