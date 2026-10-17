@@ -165,8 +165,10 @@ function buildCity(city) {
     roadH(cx - cityEdge, cx + cityEdge, cz, 'asphalt', crossXs);
     // Дорога от города к трассе: продолжение поперечной улицы cx + 18 до z = 0
     const linkX = cx + cityStep / 2;
-    const [z1, z2] = cz < 0 ? [cz + cityHalfZ, -roadWidth / 2] : [roadWidth / 2, cz - cityHalfZ];
-    roadV(z1, z2, linkX, 'asphalt', [0]);
+    // Трасса в этом месте может идти не по z = 0 (кривой участок, src/world/highway-path.js): дорога входит в нее по оси
+    const hz = typeof highwayZ === 'function' ? highwayZ(linkX) : 0;
+    const [z1, z2] = cz < 0 ? [cz + cityHalfZ, hz - roadWidth / 2] : [hz + roadWidth / 2, cz - cityHalfZ];
+    roadV(z1, z2, linkX, 'asphalt', [hz]);
     clearZones.push({ x1: linkX - 8, x2: linkX + 8, z1, z2 }); // вдоль дороги лес не растет
     cityCrossXs.push(linkX); // на трассе перекресток без разметки
   } else {

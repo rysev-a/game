@@ -1,48 +1,165 @@
 // src/world/highway-path.js
 // ОСЬ ТРАССЫ. Трасса идет вдоль оси X (z = 0), и почти вся геометрия мира привязана к этой прямой: заправки, съезды на трек и в
-// лабораторию, торговый центр, заграждения погони, города. Единственный участок, где она уходит с прямой — «сельский» между
-// Сосновкой и торговым центром: S-образные повороты (радиус не меньше highwayMinRadius) и два холма (уклон до ~0,1), дорога уже обычной.
+// лабораторию, торговый центр, города. Между ними трасса «сельская»: на двух участках (highwaySections) она вьется S-образными
+// поворотами и идет по холмам, дорога уже обычной. Остальное — прямая z = 0 на высоте 0.
 // Здесь только математика (без сцены), чтобы ее проверял тест (tests/highway.test.js); меши, кусты и высота земли — src/world/highway.js.
 //
-//   highwayZ(x)          — z оси трассы при данном x (0 на прямых участках)
-//   highwayY(x)          — высота полотна
-//   highwayHalfWidth(x)  — половина ширины полотна
+//   highwayZ(x)           — z оси трассы при данном x (0 на прямых участках); x всегда растет вдоль пути, трасса — график z(x)
+//   highwayY(x)           — высота полотна
+//   highwayHalfWidth(x)   — половина ширины полотна
 //   highwayLength(xa, xb) — длина пути по оси между x = xa и x = xb (по горизонтали)
+//   highwaySection(x)     — участок-кривая, на котором лежит x, или null
+//   highwayChaseXs        — x пяти заграждений погони (места chase.b1…5, src/quests/places.js): стоят там, где дорога параллельна оси X и на земле
 //
-// Закреплены прямые ровные участки (z = 0, высота 0): заправки −1110, −700, −290, −140 (±32), торговый центр (±45), съезды на
-// трек (−620) и в лабораторию (−330), заграждения погони −600…−320, город 1 (x ≥ 130). Кривая лежит между x = −1076 и −736.
+// Участок собирается из дуг радиуса highwayMinRadius: курс (угол пути к оси X, градусов) поочередно достигает набора крайних значений
+// heads (до ±70°), между ними дорога идет по дуге, на стыках дуг кривизна сглажена. Набор подобран перебором так, чтобы путь был как
+// можно длиннее при данном x1…x2. Холмы: между «нулями» (zeros и местами заграждений) высота — синус в квадрате, уклон не круче highwaySlopeMax.
+// Закреплены прямые ровные участки: заправки −1110, −700, −290, −140 (±32), торговый центр (±45), съезды на трек (−620) и в
+// лабораторию (−330), город 1 (x ≥ 112); дорога от трассы к городам 3–6 входит в трассу под углом (city.js берет z у highwayZ).
 
-const highwayCurve = {
-  x1: -1076, // начало кривой (к востоку от заправки «Сосновка»)
-  x2: -736, // конец (к западу от заправки «Лесная»)
-  amp: 15.3, // размах поворотов, юнитов: при нем радиус на самых крутых дугах ≈ highwayMinRadius
-  waves: 2, // полных S-образных волн на участке
-  hills: [
-    { x1: -1076, x2: -906, h: 5.8 },
-    { x1: -906, x2: -736, h: 4.4 },
-  ],
-  halfWidth: 3.5, // у входа и выхода: обычная ширина дороги (roadWidth / 2)
-  narrow: 0.5, // посередине дорога уже на столько с каждой стороны
-};
-const highwayMinRadius = 45; // меньше радиус дуги быть не должен
+const highwayMinRadius = 35; // радиус дуг, юнитов
+const highwaySlopeMax = 0.115; // наибольший уклон холма
+const highwaySections = [
+  // x1…x2 — от заправки «Сосновка» до заправки «Лесная»; zeros: высота 0 (здесь стыкуется дорога к городам 3 и 5, x = −882)
+  { x1: -1076, x2: -736, heads: [-39.8, 59.7, -59.2, 69.7, -69.3, 38.4], hillMax: 6.5, zeros: [-882] },
+  // между съездом на трек и съездом в лабораторию; zeros: дорога к городам 4 и 6 (x = −432); chase: на трех переходах курса через ноль стоят заграждения
+  { x1: -590, x2: -342, heads: [56.9, -70, 69.3, -56.1], hillMax: 6.5, zeros: [-432], chase: true },
+];
+const highwayHalf = 3.5; // половина обычной ширины дороги на прямых
+const highwayNarrow = 0.4; // посередине участка полотно уже на столько с каждой стороны
 
-// Доля пути по кривой: 0 в начале, 1 в конце; вне кривой — null
-function highwayU(x) {
-  const c = highwayCurve;
-  if (x <= c.x1 || x >= c.x2) return null;
-  return (x - c.x1) / (c.x2 - c.x1);
+// Сглаженная кривизна и интегрирование курса: точки пути через каждые 0,5 юнита длины
+function highwayIntegrate(heads) {
+  const R = highwayMinRadius;
+  const step = 0.5;
+  const rad = (d) => (d * Math.PI) / 180;
+  const arcs = [];
+  let th = 0;
+  for (const h of [...heads, 0]) {
+    const d = rad(h) - th;
+    arcs.push({ len: Math.abs(d) * R, k: Math.sign(d) / R });
+    th = rad(h);
+  }
+  const total = arcs.reduce((a, b) => a + b.len, 0);
+  const n = Math.ceil(total / step);
+  const ds = total / n;
+  // кривизна по дугам, потом скользящее среднее (окно 14 юнитов) — на стыках дуг руль меняется плавно
+  // средняя кривизна каждой ячейки: дуги режутся по границам ячеек, поэтому курс в конце ровно ноль
+  const k = new Array(n).fill(0);
+  let from = 0;
+  for (const arc of arcs) {
+    const to = from + arc.len;
+    for (let i = Math.floor(from / ds); i < n && i * ds < to; i++) {
+      const overlap = Math.min(to, (i + 1) * ds) - Math.max(from, i * ds);
+      if (overlap > 0) k[i] += (arc.k * overlap) / ds;
+    }
+    from = to;
+  }
+  const half = Math.round(7 / ds);
+  const smooth = k.map((_, i) => {
+    const w = Math.min(half, i, n - 1 - i); // у краев окно уже: кривизна не «вытекает» за концы участка
+    let sum = 0;
+    for (let j = i - w; j <= i + w; j++) sum += k[j];
+    return sum / (2 * w + 1);
+  });
+  // курс в конце ровно ноль: остаток размазываем по всему участку (меньше процента кривизны)
+  const rest = smooth.reduce((a, b) => a + b, 0) / n;
+  for (let i = 0; i < n; i++) smooth[i] -= rest;
+  let heading = 0;
+  let x = 0;
+  let z = 0;
+  const raw = [{ x: 0, z: 0, s: 0, th: 0 }];
+  for (let i = 0; i < n; i++) {
+    const th2 = heading + smooth[i] * ds;
+    const tm = (heading + th2) / 2;
+    x += Math.cos(tm) * ds;
+    z += Math.sin(tm) * ds;
+    heading = th2;
+    raw.push({ x, z, s: (i + 1) * ds, th: heading });
+  }
+  return raw;
+}
+
+function highwayBuildSection(sec) {
+  // Сглаживание сдвигает конец пути по z: подбираем один из крайних курсов (средний) так, чтобы путь вернулся на ось (деление пополам)
+  const j = sec.heads.length >> 1;
+  const endZ = (delta) => {
+    const heads = sec.heads.slice();
+    heads[j] += delta;
+    return highwayIntegrate(heads);
+  };
+  let lo = -8;
+  let hi = 8;
+  const zLo = endZ(lo);
+  const sign = Math.sign(zLo[zLo.length - 1].z);
+  for (let it = 0; it < 24; it++) {
+    const mid = (lo + hi) / 2;
+    const r = endZ(mid);
+    if (Math.sign(r[r.length - 1].z) === sign) lo = mid;
+    else hi = mid;
+  }
+  const raw = endZ((lo + hi) / 2);
+  // Замыкание: растянуть по X до x2 − x1 и стянуть z к нулю на конце (поправка меньше градуса)
+  const end = raw[raw.length - 1];
+  const fx = (sec.x2 - sec.x1) / end.x;
+  sec.pts = raw.map((p) => ({ x: sec.x1 + p.x * fx, z: p.z - (end.z * p.x) / end.x, s: 0, th: p.th }));
+  sec.pts.forEach((p, i) => {
+    p.s = i ? sec.pts[i - 1].s + Math.hypot(p.x - sec.pts[i - 1].x, p.z - sec.pts[i - 1].z) : 0;
+  });
+  sec.length = sec.pts[sec.pts.length - 1].s;
+  // x переходов курса через ноль (там дорога параллельна оси X)
+  sec.crossXs = [];
+  for (let i = 1; i < raw.length; i++) {
+    if (raw[i - 1].th * raw[i].th < 0 && sec.pts[i].x > sec.x1 + 10 && sec.pts[i].x < sec.x2 - 10) sec.crossXs.push(sec.pts[i].x);
+  }
+  // Холмы: «нули» — концы участка, zeros и (если chase) места заграждений, не ближе 14 друг к другу
+  const zeroXs = [sec.x1, ...sec.zeros, ...(sec.chase ? sec.crossXs : []), sec.x2].sort((a, b) => a - b);
+  const bounds = [zeroXs[0]];
+  for (const v of zeroXs.slice(1)) {
+    if (v - bounds[bounds.length - 1] >= 14) bounds.push(v);
+    else if (v === sec.x2) bounds[bounds.length - 1] = v;
+  }
+  sec.hills = [];
+  for (let i = 0; i + 1 < bounds.length; i++) {
+    const len = bounds[i + 1] - bounds[i];
+    sec.hills.push({ x1: bounds[i], x2: bounds[i + 1], h: Math.min(sec.hillMax, (highwaySlopeMax * len) / Math.PI) });
+  }
+}
+highwaySections.forEach(highwayBuildSection);
+
+// Места заграждений погони: первое и последнее — на прямых по краям, остальные — на переходах курса через ноль второго участка
+const highwayChaseXs = [-600, ...highwaySections[1].crossXs, -320];
+
+function highwaySection(x) {
+  for (const sec of highwaySections) if (x > sec.x1 && x < sec.x2) return sec;
+  return null;
+}
+
+// Индекс точки участка, левее которой лежит x (по x точки растут)
+function highwayIndex(pts, x) {
+  let lo = 0;
+  let hi = pts.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (pts[mid].x <= x) lo = mid;
+    else hi = mid;
+  }
+  return lo;
 }
 
 function highwayZ(x) {
-  const u = highwayU(x);
-  if (u === null) return 0;
-  const c = highwayCurve;
-  const s = Math.sin(Math.PI * u);
-  return c.amp * s * s * Math.sin(2 * Math.PI * c.waves * u);
+  const sec = highwaySection(x);
+  if (!sec) return 0;
+  const i = highwayIndex(sec.pts, x);
+  const p = sec.pts[i];
+  const q = sec.pts[i + 1];
+  return p.z + ((q.z - p.z) * (x - p.x)) / (q.x - p.x);
 }
 
 function highwayY(x) {
-  for (const hill of highwayCurve.hills) {
+  const sec = highwaySection(x);
+  if (!sec) return 0;
+  for (const hill of sec.hills) {
     if (x > hill.x1 && x < hill.x2) {
       const s = Math.sin((Math.PI * (x - hill.x1)) / (hill.x2 - hill.x1));
       return hill.h * s * s;
@@ -52,20 +169,24 @@ function highwayY(x) {
 }
 
 function highwayHalfWidth(x) {
-  const u = highwayU(x);
-  const c = highwayCurve;
-  if (u === null) return c.halfWidth;
-  const s = Math.sin(Math.PI * u);
-  return c.halfWidth - c.narrow * s * s;
+  const sec = highwaySection(x);
+  if (!sec) return highwayHalf;
+  const s = Math.sin((Math.PI * (x - sec.x1)) / (sec.x2 - sec.x1));
+  return highwayHalf - highwayNarrow * s * s;
 }
 
-// Длина пути по оси между x = xa и x = xb: интеграл по маленьким шагам
-function highwayLength(xa, xb) {
-  const step = 0.5;
-  let len = 0;
-  for (let x = xa; x < xb; x += step) {
-    const x2 = Math.min(xb, x + step);
-    len += Math.hypot(x2 - x, highwayZ(x2) - highwayZ(x));
+// Длина пути по оси между x = xa и x = xb: прямая плюс добавка кривых (путь минус проекция на X)
+function highwayExtra(x) {
+  let extra = 0;
+  for (const sec of highwaySections) {
+    if (x >= sec.x2) extra += sec.length - (sec.x2 - sec.x1);
+    else if (x > sec.x1) {
+      const i = highwayIndex(sec.pts, x);
+      extra += sec.pts[i].s - (sec.pts[i].x - sec.x1);
+    }
   }
-  return len;
+  return extra;
+}
+function highwayLength(xa, xb) {
+  return xb - xa + highwayExtra(xb) - highwayExtra(xa);
 }

@@ -50,7 +50,8 @@ definePlace('village.server', { x: villageX + 42, z: 9, r: 8, name: 'Домаш�
 
 // Погоня (квест 2.12): старт на трассе западнее заправки и пять заграждений-шикан, которые не проехать без заноса
 definePlace('chase.start', { x: -700, z: 3, r: 10, name: 'Старт погони' });
-for (let i = 0; i < 5; i++) definePlace('chase.b' + (i + 1), { x: -600 + i * 70, z: 0, r: 6, name: 'Заграждение' });
+// Заграждения стоят на трассе там, где дорога параллельна оси X и на земле (highwayChaseXs, src/world/highway-path.js)
+highwayChaseXs.forEach((x, i) => definePlace('chase.b' + (i + 1), { x, z: highwayZ(x), r: 6, name: 'Заграждение' }));
 
 // Прилавки у торгового центра (квест 2.13): справа от парковки
 definePlace('mall.stalls', { x: 40, z: -18, r: 12, name: 'Прилавки у торгового центра' });
