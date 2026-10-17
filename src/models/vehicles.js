@@ -5,6 +5,7 @@
 //
 //   const m = createRaceCar({ bodyColor: 0xd8282a });   // createJeep, createTractor, createApc
 //   m.spinWheels(dist);    // прокрутка колес на пройденную дистанцию (у каждого колеса свой радиус)
+//   m.steerWheels(angle);  // поворот передних колес рулем, рад (плюс — налево)
 //   m.updateCar(t, amp);   // вибрация корпуса: t — секунды, amp 0..1
 //   m.setDoor(open);       // дверей нет: ничего не делает (нужно для совместимости)
 //   m.userData.exhaust     // точка выхлопа (Object3D): отсюда идет дым подбитой машины
@@ -42,16 +43,19 @@ function vehicleKit(options) {
 
   // Колесо: шина и диск, ось вдоль X. Крутится группа-ступица
   function wheel(x, z, r, width, tireColor = 0x151515, hubColor = 0x8a8f96) {
+    // pivot — поворот колеса рулем вокруг вертикали (передние, z < 0), hub внутри него — вращение вперед-назад
+    const pivot = new THREE.Group();
+    pivot.position.set(x, r, z);
     const hub = new THREE.Group();
-    hub.position.set(x, r, z);
+    pivot.add(hub);
     const tire = new THREE.Mesh(new THREE.CylinderGeometry(r, r, width, 14), new LitMaterial({ color: tireColor }));
     tire.rotation.z = Math.PI / 2;
     hub.add(tire);
     const disc = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.55, r * 0.55, width + 0.04, 8), new LitMaterial({ color: hubColor }));
     disc.rotation.z = Math.PI / 2;
     hub.add(disc);
-    root.add(hub);
-    wheels.push({ hub, r });
+    root.add(pivot);
+    wheels.push({ hub, pivot, r, front: z < 0 });
     return hub;
   }
 
@@ -67,6 +71,10 @@ function vehicleKit(options) {
   root.spinWheels = (distance) => {
     wheelTravel += distance;
     for (const w of wheels) w.hub.rotation.x = -wheelTravel / w.r; // катим вперед (в -Z)
+  };
+  // Передние колеса поворачиваются рулем: angle — рад, плюс — налево (updateCarMeshes, src/player/driving.js)
+  root.steerWheels = (angle) => {
+    for (const w of wheels) if (w.front) w.pivot.rotation.y = angle;
   };
   root.setDoor = () => {};
   root.updateCar = (t, amp = 0) => {

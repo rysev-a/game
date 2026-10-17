@@ -8,6 +8,7 @@
 //   // узнаваемая машина: createCar({ bodyColor: 0x1fb3a6, stripeColor: 0xffffff, roofRack: true, plateText: 'ДЕТ 001' })
 //   scene.add(car);            // модель смотрит в -Z, длина ~4.2 юнита
 //   car.spinWheels(dist);      // прокрутка колес на пройденную дистанцию
+//   car.steerWheels(angle);    // поворот передних колес рулем, рад (плюс — налево)
 //   car.updateCar(t, amp);     // вибрация корпуса: t — секунды, amp 0..1; заодно плавно двигает дверь
 //   car.setDoor(true);         // распахнуть водительскую дверь (false — закрыть)
 //
@@ -133,20 +134,27 @@ function createCar(options = {}) {
   const wheelGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.3, 14);
   const wheelMat = new LitMaterial({ color: o.wheelColor });
   const wheels = [];
+  const frontPivots = [];
   [
     [-1.05, -1.35],
     [1.05, -1.35],
     [-1.05, 1.45],
     [1.05, 1.45],
   ].forEach(([x, z]) => {
+    const pivot = new THREE.Group(); // поворот руля — у передних колес (z < 0)
+    pivot.position.set(x, 0.38, z);
     const hub = new THREE.Group();
-    hub.position.set(x, 0.38, z);
     const cyl = new THREE.Mesh(wheelGeo, wheelMat);
     cyl.rotation.z = Math.PI / 2;
     hub.add(cyl);
-    root.add(hub);
+    pivot.add(hub);
+    root.add(pivot);
     wheels.push(hub);
+    if (z < 0) frontPivots.push(pivot);
   });
+  root.steerWheels = function (angle) {
+    for (const p of frontPivots) p.rotation.y = angle; // плюс — налево
+  };
 
   let wheelAngle = 0;
   root.spinWheels = function (distance) {

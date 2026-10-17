@@ -61,6 +61,7 @@ const bounceCooldown = 8; // кадров после удара, пока нов
 let groundHeightAt = () => 0;
 const slopeGravity = 0.02; // ускорение вдоль склона на единицу уклона (юнитов за кадр²)
 const airGravity = 0.012; // падение в полете (юнитов за кадр²)
+const steerMaxAngle = 0.7; // наибольший угол поворота передних колес на экране, рад
 const cameraFollowEase = 0.04; // как быстро камера возвращается за машину (0..1 за кадр)
 let carTime = 0;
 
@@ -169,6 +170,7 @@ function exitCar(force = false) {
   drivingCar.speed = 0;
   drivingCar.slip = 0;
   drivingCar.coast = 0;
+  drivingCar.steerInput = 0;
   wheelBrakeMode = wheelHandbrake = rightHandbrake = false;
   drivingCar = null;
   player.visible = true;
@@ -245,6 +247,7 @@ function updateDriving(c) {
   if (!steer && typeof gyroSteer === 'function') steer = gyroSteer(car) || 0;
   // Выше 1,5 за кадр (250 км/ч) руль тупеет: у гиперкара и Бугатти на предельной скорости поворот в разы слабее
   const fastSteer = 1 / (1 + Math.max(0, Math.abs(car.speed) - 1.5) * 1.6);
+  car.steerInput = steer; // для анимации поворота колес (updateCarMeshes)
   let turn = steer * k.turnRate * fastSteer * Math.min(1, Math.abs(car.speed) / 0.15) * Math.sign(car.speed) * (car.airborne ? 0.15 : 1);
   // На ручнике кузов поворачивает резче, а шины держат слабо — заносит тем сильнее, чем больше глубина заноса.
   // Без ручника шины цепляются почти сразу (у гоночной на большой глубине — чуть скользит и в обычных поворотах)
@@ -678,6 +681,14 @@ function updateCarMeshes() {
     c.mesh.rotation.y = c.heading;
     c.mesh.rotation.x = c.pitch || 0;
     c.mesh.spinWheels(c.speed);
+    // Руль: передние колеса поворачиваются к направлению поворота, а в заносе смотрят туда, куда едет машина (контрруль)
+    if (c.mesh.steerWheels) {
+      const driven = c === drivingCar;
+      const moving = Math.abs(c.speed) > 0.08 ? 1 : 0;
+      const target = driven ? Math.max(-steerMaxAngle, Math.min(steerMaxAngle, (c.steerInput || 0) * 0.5 + (c.slip || 0) * 0.7 * moving)) : 0;
+      c.steerVis = (c.steerVis || 0) + (target - (c.steerVis || 0)) * 0.3;
+      c.mesh.steerWheels(c.steerVis);
+    }
     c.mesh.updateCar(carTime, Math.abs(c.speed) / (c.kind || carDrive).maxSpeed);
     if (c.update) c.update(c); // дым подбитого БТР и т. п. (src/world/vehicles.js)
   }
