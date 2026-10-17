@@ -37,6 +37,12 @@ const handbrakeMinSpeed = 0.06; // медленнее — ручник прос�
 const slideFriction = 0.025; // потеря скорости боком (на радиан заноса)
 const driftScale = 0.2; // 100% на шкале «Глубина заноса» — это прежние 20%
 const powerDriftMinSpeed = 0.15; // медленнее — газ с ручником просто разгоняют (старт с пробуксовкой)
+// ИНЕРЦИЯ ДРИФТА. Вышли из заноса (отпустили ручник или газ) — машина еще катится: скорость не падает ниже
+// «планки» car.coast, а планка плавно затухает (coastDecay за кадр, при инерции 1 — за ~2 с до трети).
+// Настоящее торможение (S на ходу, педаль тормоза), удар и новый занос планку сбрасывают.
+// Инерция — kind.inertia машины и настройка «Инерция после дрифта» (settings.driftInertia, 0 — выкл.)
+const coastDecay = 0.016;
+const coastMinSpeed = 0.15; // из заноса медленнее — планки нет
 const cameraFollowEase = 0.04; // как быстро камера возвращается за машину (0..1 за кадр)
 let carTime = 0;
 
@@ -109,6 +115,7 @@ addInteractable({
 function enterCar(car) {
   drivingCar = car;
   car.slip = 0;
+  car.coast = 0;
   playerWorldX = car.x;
   playerWorldZ = car.z;
   player.visible = false;
@@ -137,6 +144,7 @@ function exitCar(force = false) {
   playerYaw = h + worldRotation;
   drivingCar.speed = 0;
   drivingCar.slip = 0;
+  drivingCar.coast = 0;
   drivingCar = null;
   player.visible = true;
 }
@@ -209,6 +217,7 @@ function updateDriving(c) {
   const { appliedTurn, blockedX, blockedZ, vx, vz } = moveCarWithCollisions(car, turn, grip, maxSlip);
   car.speed *= 1 - slideFriction * (powerDrift ? 0.6 : 1) * Math.abs(Math.sin(car.slip)); // боком машина быстро теряет скорость
   car.drifting = powerDrift;
+  applyDriftCoast(car, base, powerDrift, brakingHard(c, car, onTouch, powerDrift));
   updateTireMarks(car, handbrake || powerDrift);
   // Бензин расходуется на пройденный путь
   const travelled = Math.hypot(vx, vz);
@@ -225,11 +234,45 @@ function updateDriving(c) {
   }
   if (blockedX && blockedZ) car.speed *= -0.25;
   else if (blockedX || blockedZ) car.speed *= 0.85;
-  if (blockedX || blockedZ) car.slip *= 0.5; // ударились — занос гаснет
+  if (blockedX || blockedZ) {
+    car.slip *= 0.5; // ударились — занос гаснет
+    car.coast = 0;
+  }
   if (car.crush) crushUnder(car);
   playerWorldX = car.x;
   playerWorldZ = car.z;
   followCamera(car, appliedTurn);
+}
+
+// Игрок тормозит по-настоящему: S на ходу вперед (или W при заднем ходе), на телефоне — педаль тормоза
+function brakingHard(c, car, onTouch, powerDrift) {
+  if (powerDrift) return false;
+  if (onTouch) return !!touchDrive.brake;
+  return (c.down && car.speed > 0) || (c.up && car.speed < 0);
+}
+
+// Инерция дрифта: пока едем в дрифте (газ и ручник) — запоминаем скорость; вышли (отпустили газ, ручник
+// или оба) — не даем ей упасть ниже затухающей планки. Обычный ручник без дрифта тормозит как раньше
+function applyDriftCoast(car, base, drifting, braking) {
+  const inertia = (base.inertia === undefined ? 1 : base.inertia) * settings.driftInertia;
+  if (drifting) {
+    car.coast = Math.abs(car.speed) > coastMinSpeed ? car.speed : 0;
+    car.driftWas = true;
+    return;
+  }
+  if (car.driftWas) {
+    car.driftWas = false;
+    car.coast = inertia > 0 && Math.abs(car.speed) > coastMinSpeed ? car.speed : 0;
+  }
+  if (!car.coast) return;
+  if (braking || inertia <= 0) {
+    car.coast = 0;
+    return;
+  }
+  car.coast *= 1 - coastDecay / inertia;
+  if (Math.abs(car.coast) < coastMinSpeed * 0.5) car.coast = 0;
+  else if (car.coast > 0) car.speed = Math.max(car.speed, car.coast);
+  else car.speed = Math.min(car.speed, car.coast);
 }
 
 // Плавный старт: доля разгона на скорости speed (1 — полный). launch — доля с места, launchUntil — к какой доле

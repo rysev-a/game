@@ -29,6 +29,7 @@ const SETTINGS_DEFAULTS = {
   autoAim: true,
   firstPerson: false, // вид от первого лица в бою (компьютер)
   driftLevel: 0.5, // 0..1 — насколько глубоко заносит на ручнике и в дрифте (1 — прежние 20%, src/player/driving.js)
+  driftInertia: 1, // 0..2 — как долго машина катится по инерции после выхода из дрифта (0 — сразу теряет скорость)
   brakeSharp: 1, // множители к торможению, разгону и рулю машины
   accelSharp: 1,
   steerSens: 1,
@@ -165,6 +166,8 @@ const settingsTabs = [
     items: [
       { type: 'range', key: 'driftLevel', label: 'Глубина заноса', min: 0.01, max: 1, step: 0.01, show: pct,
         note: 'Ручник на ходу (Space) — машину заносит, на дороге остаются следы. На гоночных газ с ручником (W+Space) — дрифт: машина едет боком, задним ходом — задом' },
+      { type: 'range', key: 'driftInertia', label: 'Инерция после дрифта', min: 0, max: 2, step: 0.05, show: pct,
+        note: 'Вышли из заноса — машина еще катится, скорость затухает плавно; 0% — сразу теряет скорость. Обычное торможение (S) не меняется' },
       { type: 'range', key: 'brakeSharp', label: 'Резкость торможения', min: 0.5, max: 2, step: 0.05, show: pct },
       { type: 'range', key: 'accelSharp', label: 'Резкость разгона', min: 0.5, max: 2, step: 0.05, show: pct },
       { type: 'range', key: 'steerSens', label: 'Чувствительность поворота', min: 0.5, max: 2, step: 0.05, show: pct },
