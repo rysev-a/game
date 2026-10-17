@@ -54,6 +54,7 @@ const coastMinSpeed = 0.15; // из заноса медленнее — план
 const bouncePushDist = 3; // на сколько юнитов отбрасывает прямой удар на скорости 1 при жесткости 100%
 const bouncePushDecay = 0.86; // затухание толчка за кадр при мягкости 100%
 const bounceMaxTurn = 0.3; // наибольший доворот машины от препятствия за удар, рад (~17°)
+const knockSpeed = 0.2; // быстрее (юнитов за кадр, ~33 км/ч) — удар о покрышку выбивает ее (shape.knock), медленнее — она стоит
 const bounceCooldown = 8; // кадров после удара, пока новый удар о то же препятствие не считается новым
 // ПОДЪЕМЫ И СПУСКИ. Высоту земли под машиной дает groundHeightAt(x, z, y) — на трассах гоночного комплекса ДЕМО
 // (src/demo/race.js) полотно поднимается на холмы, насыпи и мост, везде остальное — 0. Машина едет по полотну
@@ -314,7 +315,7 @@ function updateDriving(c) {
   }
   if (car.bounceCd > 0) car.bounceCd--;
   applyBouncePush(car);
-  if ((blockedX || blockedZ) && hitShape) bounceOff(car, hitShape, vx, vz);
+  if ((blockedX || blockedZ) && hitShape) bounceOff(car, hitShape, vx, vz, blockedX && blockedZ);
   else if (blockedX && blockedZ) car.speed *= -0.25;
   else if (blockedX || blockedZ) car.speed *= 0.85;
   if (blockedX || blockedZ) {
@@ -327,16 +328,12 @@ function updateDriving(c) {
   followCamera(car, appliedTurn);
 }
 
-// Удар об упругое препятствие shape: часть скорости гаснет, а машину мягко отталкивает от препятствия (car.push)
-function bounceOff(car, shape, vx, vz) {
+// Удар об упругое препятствие shape: часть скорости гаснет, а машину мягко отталкивает от препятствия (car.push). Сильный удар
+// выбивает препятствие (shape.knock, покрышки автодрома отлетают): машина тогда почти не тормозится и едет дальше; прямой удар
+// отбрасывает ее назад, как пружиной. Слабый скользящий — не гасит скорость и лишь разворачивает от препятствия, чтобы не «влипать»
+function bounceOff(car, shape, vx, vz, wedged) {
   const along = Math.hypot(vx, vz);
   if (!along) return;
-  if (car.bounceCd > 0) {
-    car.speed *= 0.95; // еще упираемся в то же препятствие — только чуть гасим
-    car.bounceCd = bounceCooldown;
-    return;
-  }
-  car.bounceCd = bounceCooldown;
   // Нормаль — от препятствия к ближайшей точке кузова (а не к центру машины): носом — прямой удар, бортом — касательный
   const box = carShape(car.x, car.z, car.heading, car.half);
   const du = (shape.x - car.x) * box.ux + (shape.z - car.z) * box.uz;
@@ -364,17 +361,31 @@ function bounceOff(car, shape, vx, vz) {
   const into = Math.max(0, -(vx * nx + vz * nz)); // скорость в сторону препятствия, юнитов за кадр
   const share = into / along;
   // Траектория: задели боком — движение отклоняется от препятствия (отражение со скруглением), машина едет дальше вперед;
-  // чем прямее удар, тем меньше доворот (лоб в лоб не разворачивает), не больше bounceMaxTurn
+  // чем прямее удар, тем меньше доворот (лоб в лоб не разворачивает), не больше bounceMaxTurn. Доворот — и при затяжном касании
   const e = 0.4 * settings.bounce;
   const want = Math.atan2(-(vx + (1 + e) * into * nx), -(vz + (1 + e) * into * nz)) - Math.atan2(-vx, -vz);
   const kick = Math.max(-bounceMaxTurn, Math.min(bounceMaxTurn, 0.5 * Math.atan2(Math.sin(want), Math.cos(want)))) * (1 - share);
-  if (carFree(car, car.x, car.z, car.heading + kick)) {
+  if (Math.abs(kick) > 1e-4 && carFree(car, car.x, car.z, car.heading + kick)) {
     car.heading += kick;
     worldRotation -= kick; // камера поворачивается вместе с машиной (followCamera)
   }
-  car.speed *= 1 - share * (2 - settings.bounceLoss); // прямой удар: потеря 100% — встали, 0% — отскок без потерь (скорость сменила знак)
+  // Еще упираемся в то же препятствие (новый удар не считается): скорость почти не гасим, иначе машина «влипает»; не даем вжиматься.
+  // Заклинило (оба направления заняты) — скорость понемногу теряем, чтобы газ не давил вхолостую
+  if (car.bounceCd > 0 && car.bounceShape === shape) {
+    car.bounceCd = bounceCooldown;
+    car.push = { x: nx * 0.06 * (1 + into), z: nz * 0.06 * (1 + into), decay: 0.8 };
+    if (wedged) car.speed *= 0.96;
+    return;
+  }
+  car.bounceCd = bounceCooldown;
+  car.bounceShape = shape;
+  // Выбили (покрышка отлетела): на скорости любое касание выбивает — она унесла энергию, машина почти не тормозится и едет дальше
+  const knocked = shape.knock && Math.abs(car.speed) > knockSpeed ? shape.knock(car, nx, nz, Math.max(into, Math.abs(car.speed) * 0.2), vx, vz) : false;
+  const loss = knocked ? 0.35 + 0.65 * share * share : 1; // боком почти не тормозит, лоб в лоб — как пружина (скорость меняет знак)
+  car.speed *= 1 - share * (2 - settings.bounceLoss) * loss; // прямой удар: потеря 100% — встали, 0% — отскок без потерь (скорость сменила знак)
+  // Скользящий удар (share мал) почти не тормозит: пружина работает только на нормальной составляющей, а вдоль стены машина едет дальше
   const decay = Math.pow(bouncePushDecay, 1 / settings.bounceSoft);
-  const pv = bouncePushDist * into * settings.bounce * (1 - decay); // сумма толчка за все кадры — bouncePushDist·into·bounce юнитов
+  const pv = bouncePushDist * into * settings.bounce * (1 - decay) * (knocked ? 0.5 : 1); // сумма толчка за все кадры — bouncePushDist·into·bounce юнитов
   car.push = { x: nx * pv, z: nz * pv, decay };
 }
 

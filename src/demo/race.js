@@ -742,11 +742,77 @@ let onRaceTrack = () => false;
   const red = new THREE.Color(0xb83a2e);
   const white = new THREE.Color(0xeeeeee);
   const tireMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.55, 0.55, 0.95, 10), new LitMaterial({ color: 0xffffff }), keptTires.length);
+  // Покрышки упругие (машина отскакивает), а при сильном ударе еще и отлетают (knock — вызывает bounceOff, src/player/driving.js): пока покрышка
+  // летит, она не препятствие; остановилась — снова ставится на землю как препятствие (лежит там, где упала)
+  const tireStates = [];
+  const movingTires = [];
+  const addTireShape = (st) => {
+    st.shape = addObstacle({ x: st.x, z: st.z, hx: 0.5, hz: 0.5, bouncy: true });
+    st.shape.knock = (car, nx, nz, into, vx, vz) => knockTire(st, nx, nz, into, vx, vz);
+  };
   keptTires.forEach((t, i) => {
     m4.makeTranslation(t.x, t.y + 0.475, t.z);
     tireMesh.setMatrixAt(i, m4);
     tireMesh.setColorAt(i, t.red ? red : black);
-    addObstacle({ x: t.x, z: t.z, hx: 0.5, hz: 0.5, bouncy: true }); // покрышки упругие: машина отскакивает
+    const st = { i, x: t.x, z: t.z, y: t.y, base: t.y, vx: 0, vz: 0, vy: 0, yaw: 0, spin: 0, still: 0, shape: null };
+    tireStates.push(st);
+    addTireShape(st);
+  });
+  const knockTire = (st, nx, nz, into, vx, vz) => {
+    if (!settings.tireKnock || st.moving) return false;
+    const idx = obstacleShapes.indexOf(st.shape);
+    if (idx >= 0) obstacleShapes.splice(idx, 1);
+    st.shape = null;
+    st.moving = true;
+    st.still = 0;
+    // От машины (нормаль nx, nz — от покрышки к машине) и вдоль ее движения; подскакивает
+    const push = into * 1.4 + 0.08;
+    st.vx = -nx * push + vx * 0.4;
+    st.vz = -nz * push + vz * 0.4;
+    st.vy = 0.12 + into * 0.5;
+    st.spin = (Math.random() - 0.5) * 0.5;
+    movingTires.push(st);
+    return true;
+  };
+  const tireRot = new THREE.Quaternion();
+  const tireAxisY = new THREE.Vector3(0, 1, 0);
+  const tirePos = new THREE.Vector3();
+  const tireOne = new THREE.Vector3(1, 1, 1);
+  demoUpdates.push(() => {
+    if (!movingTires.length) return;
+    for (let k = movingTires.length - 1; k >= 0; k--) {
+      const st = movingTires[k];
+      st.vy -= airGravity;
+      st.y += st.vy;
+      let ground = st.base;
+      if (st.y <= ground) {
+        st.y = ground;
+        st.vy = st.vy < -0.04 ? -st.vy * 0.35 : 0;
+      }
+      const onGround = st.y <= ground + 0.001 && st.vy === 0;
+      const drag = onGround ? 0.9 : 0.995;
+      st.vx *= drag;
+      st.vz *= drag;
+      st.x += st.vx;
+      st.z += st.vz;
+      st.yaw += st.spin * (onGround ? 0.5 : 1);
+      st.spin *= 0.97;
+      tirePos.set(st.x, st.y + 0.475, st.z);
+      tireRot.setFromAxisAngle(tireAxisY, st.yaw);
+      m4.compose(tirePos, tireRot, tireOne);
+      tireMesh.setMatrixAt(st.i, m4);
+      tireMesh.instanceMatrix.needsUpdate = true;
+      if (onGround && Math.hypot(st.vx, st.vz) < 0.012) st.still++;
+      else st.still = 0;
+      if (st.still > 6) {
+        // Остановилась: снова препятствие (если на нее не заехала машина)
+        const me = { x: st.x, z: st.z, ux: 1, uz: 0, vx: 0, vz: 1, hu: 0.5, hv: 0.5 };
+        if (cars.some((c) => shapesOverlap(me, carShape(c.x, c.z, c.heading, c.half)))) continue;
+        st.moving = false;
+        movingTires.splice(k, 1);
+        addTireShape(st);
+      }
+    }
   });
   tireMesh.instanceMatrix.needsUpdate = true;
   tireMesh.instanceColor.needsUpdate = true;
