@@ -321,6 +321,25 @@
         border-radius: 8px;
         pointer-events: none;
       }
+      #infFuel {
+        position: absolute;
+        bottom: 68px;
+        left: 228px;
+        z-index: 10;
+        display: none;
+        padding: 6px 10px;
+        color: white;
+        font-family: sans-serif;
+        font-size: 16px;
+        background: rgba(0, 0, 0, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      #infFuel.on {
+        background: rgba(63, 163, 91, 0.75);
+        border-color: #8fe3a8;
+      }
       #speedo b {
         min-width: 3ch;
         text-align: right;
@@ -488,6 +507,7 @@
     <div id="settingsMenu"></div>
     <div id="fuel">⛽<div class="bar"><div id="fuelFill"></div></div></div>
     <div id="speedo"><b id="speedoValue">0</b> km/h</div>
+    <button id="infFuel" title="Бесконечный бензин: бак всегда полный">⛽∞</button>
     <div id="prompt"></div>
     <div id="rainTint"></div>
     <div id="sunTint"></div>

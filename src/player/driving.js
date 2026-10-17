@@ -197,6 +197,7 @@ function updateDriving(c) {
     revMul: base.powerDrift ? settings.reverseSpeed : 1,
     maxReverse: base.maxReverse * (base.powerDrift ? settings.reverseSpeed : 1),
   };
+  if (settings.infiniteFuel) car.fuel = 1; // «Бесконечный бензин»: бак всегда полный
   const hasFuel = car.fuel > 0;
   const onTouch = touchUI && typeof touchDrive !== 'undefined';
   const handLever = onTouch ? touchDrive.handbrake : keys['Space'] || wheelHandbrake; // Space или зажатое колесо в режиме ручника (двойной клик колесом — вкл/выкл режим)
@@ -688,11 +689,17 @@ function carSpeedKmh(car) {
   return Math.min(250, Math.round(Math.abs(car.speed) * kmhPerSpeed));
 }
 const speedoEl = document.getElementById('speedo');
+// Кнопка «⛽∞» (бесконечный бензин) рядом со спидометром; то же — галочка в настройках
+const infFuelBtn = document.getElementById('infFuel');
+infFuelBtn.addEventListener('click', () => setSetting('infiniteFuel', !settings.infiniteFuel));
+infFuelBtn.addEventListener('mousedown', (e) => e.stopPropagation());
 const speedoValue = document.getElementById('speedoValue');
 let speedoShown = -1;
 function updateFuelHud() {
   fuelEl.style.display = drivingCar ? 'flex' : 'none';
   speedoEl.style.display = drivingCar ? 'flex' : 'none';
+  infFuelBtn.style.display = drivingCar ? 'block' : 'none';
+  infFuelBtn.classList.toggle('on', settings.infiniteFuel);
   if (!drivingCar) return;
   const kmh = carSpeedKmh(drivingCar);
   if (kmh !== speedoShown) {
