@@ -191,7 +191,7 @@ function updateDriving(c) {
   };
   const hasFuel = car.fuel > 0;
   const onTouch = touchUI && typeof touchDrive !== 'undefined';
-  const handLever = onTouch ? touchDrive.handbrake : keys['Space'];
+  const handLever = onTouch ? touchDrive.handbrake : keys['Space'] || wheelHandbrake; // Space или зажатое колесо мыши
   const carDrift = base.drift === undefined ? carDrive.drift : base.drift;
   const driftLevel = settings.driftLevel * carDrift; // 0..1 по шкале настроек
   const depth = driftLevel * driftScale;

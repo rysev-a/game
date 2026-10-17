@@ -24,7 +24,7 @@
 // Подсказка действия без клавиш: «E — войти» → «Войти» (зовется из updatePrompt, src/engine/game.js)
 function touchPromptText(t) {
   t = t
-    .replace('W/S — газ, A/D — руль, Space — ручник (занос). ', '')
+    .replace('W/S — газ, A/D — руль, Space или колесо мыши — ручник (занос). ', '')
     .replace(/\. F — [^.]*/, '')
     .replace(/^[EF](?: или F)? — /, '');
   return t.charAt(0).toUpperCase() + t.slice(1);
