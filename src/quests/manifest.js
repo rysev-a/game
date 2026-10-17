@@ -20,7 +20,13 @@
       'src/core/scenario.js',
       'src/core/boot.js',
     ],
-    content: ['src/content/facts.js', 'src/content/characters/denis.js', 'src/content/quests/1-03-bridge.js'],
+    content: [
+      'src/content/facts.js',
+      'src/content/characters/denis.js',
+      'src/content/characters/anna.js',
+      'src/content/quests/1-03-bridge.js',
+      'src/content/quests/1-06-treehouse.js',
+    ],
     adapter: [
       'src/quests/host.js',
       'src/quests/places.js',

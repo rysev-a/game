@@ -9,6 +9,8 @@
 //       { talk: 'denis', pick: [0, 0], see: 'Вера' },   // разговор: номера выбранных вариантов; see — реплика с этим текстом
 //       { dialog: '1.03.flash', pick: [0] },            // то же для узла по ссылке, без персонажа
 //       { inspect: 'body' },                            // событие inspect
+//       { zone: 'treehouse' },                          // игрок в зоне (здании) с таким id
+//       { interact: 'station:laptop' },                 // взаимодействие с объектом, которое перехватывает квест
 //       { do: [{ give: 'copper' }] },                   // любые действия
 //       { wait: '8h' },                                 // потратить игровое время (минуты, '90m', '8h')
 //       { emit: 'name' },                               // событие
@@ -43,6 +45,8 @@
           if (!place) fail('нет места ' + step.at);
           else host.pos = { x: place.x, z: place.z };
         }
+        if (step.zone) host.zoneId = step.zone;
+        if (step.interact && !game.interact(step.interact)) fail('квест не перехватил «' + step.interact + '»');
         if (step.wait) host.time += Core.parseDuration(step.wait);
         if (step.inspect) game.emit('inspect', { id: step.inspect });
         if (step.emit) game.emit(step.emit, {});

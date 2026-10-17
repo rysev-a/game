@@ -59,7 +59,7 @@ defineBuilding('treehouse', {
       room.part(0.9, 0.06, 0.6, 0x2a2a30, -2.5, 0.83, -5.0);
       room.part(0.9, 0.6, 0.06, 0x3a7bd5, -2.5, 1.13, -5.3);
       stations.push({
-        floor: 0, x: -2.5, z: -3.8, label: 'E — ноутбук Веры',
+        floor: 0, x: -2.5, z: -3.8, id: 'laptop', label: 'E — ноутбук Веры', // id: квест может перехватить E (interactions)
         act: () => showToast('Ноутбук Веры. Пароля нет, на экране открыта переписка...', 4500),
         use: { floppy: () => showToast('Ноутбук Веры читает дискету: на ней одна папка, и та под паролем.', 4500) },
       });
@@ -178,7 +178,7 @@ defineBuilding('grandma_house', {
       people: full
         ? [{
             x: 3.2, z: grandmaD / 2 + 3.2, yaw: Math.PI, type: 'anna', gender: 'female',
-            name: 'Анна Петровна', title: 'бабушка Веры',
+            name: 'Анна Петровна', title: 'бабушка Веры', charId: 'anna', // разговор из данных: src/content/characters/anna.js
             talk: simpleTalk('Анна Петровна — бабушка Веры', {
               hello: 'Максимушка... Ты же совсем не изменился. Только похудел.',
               knows: 'Они всё перевернули. А на дерево и не глянули. Взрослые никогда не смотрят наверх.',

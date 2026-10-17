@@ -134,6 +134,11 @@
         lintEffects(list, where);
       }
       if (q.next && !registry.quests[q.next]) bad(where, 'нет следующего квеста «' + q.next + '»');
+      for (const it of q.interactions || []) {
+        if (!/^\w+:[\w.]+$/.test(it.on || '')) bad(where, 'interactions: нужен on вида «station:id», а не «' + it.on + '»');
+        lintCond(it.if, where + ', interactions');
+        lintEffects(it.do, where + ', interactions');
+      }
       for (const [name, node] of Object.entries(q.nodes || {})) lintNode(node, where + ', узел ' + name, null, q);
       for (const [who, list] of Object.entries(q.topics || {})) lintEntries(list, who, where + ', темы ' + who, null, q);
       for (const [who, list] of Object.entries(q.starts || {})) lintEntries(list, who, where + ', входы ' + who, null, q);

@@ -5,3 +5,12 @@
 
 // Сцена у реки: тело и оцепление. «Подошел» — с того же расстояния, с которого игра считает, что игрок на месте
 definePlace('bridge.scene', { x: incident.x, z: incident.z, r: incidentArriveDist, name: 'Мост' });
+
+// Заречье: место берем у здания, поставленного в src/locations/zarechye/grandma.js (координаты там локальные)
+const questBuildingAt = (id) => placedBuildings.find((b) => b.id === id);
+{
+  const house = questBuildingAt('grandma_house');
+  const tree = questBuildingAt('treehouse');
+  definePlace('zarechye.house', { x: house.x, z: house.z, r: 34, name: 'Дом Анны Петровны' }); // двор, калитка и крыльцо
+  definePlace('zarechye.tree', { x: tree.x, z: tree.z, r: 14, name: 'Дерево с домиком' }); // за оврагом
+}

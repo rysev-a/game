@@ -383,3 +383,19 @@ test('длительности: минуты, часы, дни', () => {
   assert.equal(Core.parseDuration('1d'), 1440);
   assert.throws(() => Core.parseDuration('скоро'));
 });
+
+test('interactions: активный квест перехватывает объект, пока выполняется условие', () => {
+  const { game } = makeGame((reg) => {
+    reg.defineQuest({
+      id: 'q',
+      title: 'Q',
+      autoStart: true,
+      steps: [{ id: 'read', text: 'Прочитать', done: 'step:q.read' }],
+      interactions: [{ on: 'station:laptop', if: '!step:q.read', do: [{ flag: 'read_it' }, { step: 'q.read' }] }],
+    });
+  });
+  assert.equal(game.interact('station:other'), false, 'чужой объект квест не берет');
+  assert.equal(game.interact('station:laptop'), true);
+  assert.equal(game.check(['flag:read_it', 'done:q']), true);
+  assert.equal(game.interact('station:laptop'), false, 'квест выполнен — объект снова обычный');
+});

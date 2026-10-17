@@ -23,9 +23,17 @@
 // стены, двери и этажи; «полное» — с мебелью, станциями и жильцами.
 //
 // Жилец: { floor, x, z, yaw, type, gender, opts, name, title, talk(person) → узел диалога }.
-// Станция: { floor, x, z, label, act, radius } — E рядом выполняет act (внутри: floor — этаж).
+// Станция: { floor, x, z, id, label, act, radius } — E рядом выполняет act (внутри: floor — этаж). Если у станции есть
+// id, активный квест может перехватить E (interactions в квесте, src/core/game.js: game.interact('station:<id>')).
+// Жилец с charId разговаривает по данным (src/content/characters), а talk остается запасным разговором.
 
 const BUILDINGS = {};
+
+// E у станции: сначала квест (если он есть и взял взаимодействие), потом обычное действие станции
+const stationAct = (st) => () => {
+  if (st.id && typeof questGame !== 'undefined' && questGame.interact('station:' + st.id)) return;
+  st.act();
+};
 const placedBuildings = [];
 
 function defineBuilding(id, def) {
@@ -85,7 +93,7 @@ function placeBuilding(id, { x, z, heading = 0, full = true } = {}) {
         near: () =>
           !insideBuilding() && !drivingCar && Math.hypot(playerWorldX - w.x, playerWorldZ - w.z) < (st.radius || 2.6),
         prompt: () => (typeof st.label === 'function' ? st.label() : st.label),
-        act: st.act,
+        act: stationAct(st),
         use: st.use, // вещь с нижней панели, примененная рядом (src/player/equipment.js)
       });
     }
@@ -186,7 +194,7 @@ function placeBuilding(id, { x, z, heading = 0, full = true } = {}) {
           priority: 2,
           near: () => !dialogueOpen && here(st.floor, st, st.radius || 2.4),
           prompt: () => (typeof st.label === 'function' ? st.label() : st.label),
-          act: st.act,
+          act: stationAct(st),
           use: st.use,
         });
       }
@@ -228,7 +236,8 @@ addInteractable({
   },
   act: () => {
     const p = storyPersonNear();
-    startDialogue(p, p.talk(p));
+    const node = p.charId && typeof questGame !== 'undefined' && questGame.hasDialog(p.charId) ? questGame.dialogue(p.charId) : null;
+    startDialogue(p, node || p.talk(p));
   },
 });
 

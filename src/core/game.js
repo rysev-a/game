@@ -136,6 +136,21 @@
       return place ? { id: place.id, x: place.x, z: place.z, r: place.r || 10, name: place.name || '' } : null;
     };
 
+    // Взаимодействие с объектом мира, которое перехватывает активный квест. Объект — строка вида 'station:laptop'
+    // (станция здания с id, src/engine/buildings.js). В квесте: interactions: [{ on, if, do }]. Возвращает true,
+    // если квест взял взаимодействие на себя (обычное действие объекта тогда пропускается)
+    game.interact = (target) => {
+      for (const q of Object.values(registry.quests)) {
+        if (!game.isActive(q.id)) continue;
+        for (const it of q.interactions || []) {
+          if (it.on !== target || !game.check(it.if)) continue;
+          game.run(it.do);
+          return true;
+        }
+      }
+      return false;
+    };
+
     // ---------- Факты и сообщения ----------
     game.reveal = (id) => {
       if (game.state.facts[id] !== undefined) return;

@@ -12,7 +12,10 @@ const Core = loadContent();
 // Место сцены у реки в игре задает src/quests/places.js по координатам сцены; для теста — те же числа:
 // река x = 350, тело в riverX − 21, z = 18, «подошел» с 60 юнитов
 definePlace('bridge.scene', { x: 329, z: 18, r: 60, name: 'Мост' });
+definePlace('zarechye.house', { x: 400, z: 900, r: 34, name: 'Дом Анны Петровны' });
+definePlace('zarechye.tree', { x: 400, z: 950, r: 14, name: 'Дерево с домиком' });
 require('./scenarios/1-03-bridge.js');
+require('./scenarios/1-06-treehouse.js');
 
 const reg = Core.registry;
 
@@ -40,8 +43,8 @@ for (const scenario of Object.values(reg.scenarios)) {
 test('квест 1.03: журнал после прохождения', () => {
   const result = Core.runScenario(reg, reg.scenarios['1.03']);
   const journal = result.game.journal();
-  assert.equal(journal.tasks.length, 0);
   assert.deepEqual(journal.done.map((q) => q.title), ['У моста']);
+  assert.deepEqual(journal.tasks.map((q) => q.title), ['Домик на дереве']); // следующий квест выдан
   assert.deepEqual(journal.facts.map((f) => f.id), ['Ф1', 'Ф2', 'Ф3']);
   assert.equal(journal.people[0].name, 'Денис');
   assert.equal(journal.messages[0].name, 'Денис');

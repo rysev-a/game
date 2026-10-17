@@ -8,7 +8,7 @@
 
   const problems = Core.checkContent(Core.registry, {
     items: ITEMS,
-    zones: mapZones.map((z) => z.id),
+    zones: [...mapZones.map((z) => z.id), ...interiors.map((i) => i.id)], // зоны мира и здания (at:treehouse)
   });
   if (problems.length) console.warn('Содержание квестов, ошибки:\n' + problems.join('\n'));
 
