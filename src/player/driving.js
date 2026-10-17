@@ -174,7 +174,7 @@ function exitCar(force = false) {
   drivingCar.slip = 0;
   drivingCar.coast = 0;
   drivingCar.steerInput = 0;
-  wheelBrakeMode = wheelHandbrake = rightHandbrake = false;
+  wheelBrakeMode = wheelHandbrake = rightHandbrake = nitroActive = false;
   drivingCar = null;
   player.visible = true;
 }
@@ -190,12 +190,17 @@ function updateDriving(c) {
   // Уклон под машиной вдоль носа: плюс — в гору. В гору предел скорости ниже, под гору — выше
   car.y = car.y || 0;
   const slope = car.airborne ? 0 : slopeAt(car);
+  // Нитро: двойное W (src/engine/input.js) — разгон сильнее и предел скорости выше, пока W зажата и есть бензин
+  const nitro = nitroActive && car.fuel > 0 && !car.airborne && settings.nitroPower !== 1;
+  const nitroMul = nitro ? Math.pow(settings.nitroPower, 1 + 0.5 * (nitroLevel - 1)) : 1; // ступень выше — сильнее
+  const nitroTop = 1 + 0.12 * nitroLevel;
   const k = {
     ...base,
-    maxSpeed: base.maxSpeed * Math.max(0.45, 1 - 2 * Math.max(0, slope) + 1.5 * Math.max(0, -slope)),
+    maxSpeed: base.maxSpeed * (nitro ? nitroTop : 1) * Math.max(0.45, 1 - 2 * Math.max(0, slope) + 1.5 * Math.max(0, -slope)),
     // Обычная езда — кривая разгона машины (accelAt); дрифт и спецслучаи — прежнее ровное ускорение (driftAccel)
-    accel: (base.acc ? accelAt(base, car.speed) : base.accel * launchFactor(base, car.speed)) * settings.accelSharp * (car.airborne ? 0 : 1),
-    driftAccel: base.accel * settings.accelSharp * launchFactor(base, car.speed) * (car.airborne ? 0 : 1),
+    accel: (base.acc ? accelScale(base) * accelShapeAt(nitro ? { maxSpeed: base.maxSpeed * nitroTop, accShape: base.accShape } : base, car.speed) : base.accel * launchFactor(base, car.speed)) *
+      settings.accelSharp * nitroMul * (car.airborne ? 0 : 1),
+    driftAccel: base.accel * settings.accelSharp * nitroMul * launchFactor(base, car.speed) * (car.airborne ? 0 : 1),
     brake: base.brake * settings.brakeSharp,
     turnRate: base.turnRate * settings.steerSens,
     // Накат: без газа и тормоза машина катится и теряет скорость плавно — качение плюс сопротивление воздуха (растет с квадратом скорости),
@@ -767,6 +772,7 @@ function updateFuelHud() {
   infFuelBtn.style.display = drivingCar ? 'block' : 'none';
   infFuelBtn.classList.toggle('on', settings.infiniteFuel);
   if (!drivingCar) return;
+  speedoValue.style.color = nitroActive ? ['', '#ffb347', '#ff7a2f', '#ff3b2f'][nitroLevel] || '#ff3b2f' : ''; // нитро — спидометр оранжевый, с каждой ступенью краснее
   const kmh = carSpeedKmh(drivingCar);
   if (kmh !== speedoShown) {
     speedoShown = kmh;

@@ -42,6 +42,7 @@ const SETTINGS_DEFAULTS = {
   slideLoss: 1, // 0..3 — потеря скорости при скольжении боком
   spinInertia: 1, // 0.2..3 — инерция вращения кузова в заносе
   coastInertia: 1, // 0.3..3 — накат без газа: больше — машина катится дольше (src/player/driving.js)
+  nitroPower: 2.5, // 0.5..8 — во сколько раз сильнее разгон по двойному W за рулем (1 — выключено)
   reverseSpeed: 2, // 0.5..4 — во сколько раз гоночные едут задним ходом быстрее прежнего (предел и ускорение; src/player/driving.js)
   brakeSharp: 1, // множители к торможению, разгону и рулю машины
   accelSharp: 1,
@@ -135,7 +136,7 @@ const settingsTabs = [
         note: 'Герой сам подойдет: заговорит, войдет в здание или сядет в машину. Далеко — через пару секунд он уже там, а время уйдет как на дорогу пешком' },
       { type: 'html', desk: true, html: '<div class="keycols"><div><div class="sub">Обычный режим</div>' + keyRows([
         ['W / S', 'вперед / назад'],
-        ['W W / W W W', 'бег / спринт (отпустили W — шагом)'],
+        ['W W / W W W', 'бег / спринт (отпустили W — шагом); за рулем — двойное W: нитро, пока W зажата'],
         ['A / D', 'поворот'],
         ['Space', 'прыжок; за рулем — ручник (занос)'],
         ['Правая кнопка мыши', 'за рулем — ручник, пока зажата, как Space: дрифт одной рукой'],
@@ -195,6 +196,8 @@ const settingsTabs = [
       { type: 'check', key: 'infiniteFuel', label: 'Бесконечный бензин', note: 'Бак всегда полный, бензин не кончается. То же — кнопка ⛽∞ над указателем топлива за рулем' },
       { type: 'range', key: 'coastInertia', label: 'Накат (инерция без газа)', min: 0.1, max: 10, step: 0.1, log: true, show: pct,
         note: 'Отпустили газ — машина не встает сразу, а катится и плавно теряет скорость; больше — катится дольше. Тормоз (S) гасит скорость быстро, как раньше' },
+      { type: 'range', key: 'nitroPower', label: 'Ускорение по двойному W', min: 0.5, max: 8, step: 0.05, log: true, show: pct,
+        note: 'Два раза нажать W (второй раз — держать): разгон сильнее и предел скорости выше, пока W зажата. 100% — выключено' },
       { type: 'range', key: 'reverseSpeed', label: 'Скорость заднего хода гоночных', min: 0.25, max: 8, step: 0.1, log: true, show: pct,
         note: 'Предел и ускорение заднего хода гоночных машин (болид, купе, хэтчбек, маслкар, дрифт-купе, прототип, карт) относительно прежнего: 100% — как раньше, 200% — вдвое быстрее. У остальных машин не меняется' },
       { type: 'range', key: 'brakeSharp', label: 'Резкость торможения', min: 0.1, max: 10, step: 0.05, log: true, show: pct },
@@ -324,7 +327,7 @@ function showSettingsTab(id) {
 // ---------- Сетапы вождения ----------
 // Удачно настроенное вождение (занос, сцепление, резкость, накат, отскок) сохраняется под названием; список сетапов — в «Вождение» и
 // «Физика» и полосой внизу экрана за рулем: клик — применить. Хранятся в браузере (game.driveSetups).
-const SETUP_KEYS = ['driftLevel', 'driftInertia', 'brakeSharp', 'accelSharp', 'steerSens', 'reverseSpeed', 'coastInertia', 'tireGrip',
+const SETUP_KEYS = ['driftLevel', 'driftInertia', 'nitroPower', 'brakeSharp', 'accelSharp', 'steerSens', 'reverseSpeed', 'coastInertia', 'tireGrip',
   'handbrakeGrip', 'handbrakePower', 'slideLoss', 'spinInertia', 'bounce', 'bounceLoss', 'bounceSoft', 'tireKnock'];
 let driveSetups = [];
 try {

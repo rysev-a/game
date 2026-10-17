@@ -17,9 +17,27 @@ let wheelLastDown = 0;
 const wheelDoubleMs = 350; // два нажатия колеса не дольше этого друг от друга — двойное
 
 const keys = {};
+// За рулем двойное нажатие W (два раза подряд, второй раз — и держать) включает ускорение: «нитро», пока W зажата (nitroActive,
+// src/player/driving.js; сила — настройка «Ускорение по двойному W»). Еще раз двойное W вскоре после этого — ступень выше (nitroLevel 1–3:
+// разгон и предел скорости растут). Отпустили W — обычный разгон; не жали двойное W 2,5 с — ступень снова первая
+let nitroActive = false;
+let nitroLevel = 0;
+let nitroEndAt = 0;
+let wLastDown = 0;
+const wDoubleMs = 320;
+const nitroKeepMs = 2500;
 window.addEventListener('keydown', (e) => {
   if (settingsOpen || dialogueOpen) return; // в меню и в разговоре играть нельзя; раскрытый инвентарь игре не мешает
   keys[e.code] = true;
+  if (e.code === 'KeyW' && !e.repeat) {
+    const now = performance.now();
+    nitroActive = !!drivingCar && now - wLastDown < wDoubleMs;
+    if (nitroActive) {
+      nitroLevel = nitroLevel > 0 && now - nitroEndAt < nitroKeepMs ? Math.min(3, nitroLevel + 1) : 1;
+      showToast('Нитро ' + '▮'.repeat(nitroLevel) + '▯'.repeat(3 - nitroLevel), 1200);
+    }
+    wLastDown = now;
+  }
   if (e.code === 'KeyE' && !e.repeat) onInteract(); // все действия — клавишей E
   // P — дождь (или снег, если сейчас его время) вручную, Shift+P — снег вручную (src/world/weather.js)
   if (e.code === 'KeyP' && !e.repeat) {
@@ -27,7 +45,13 @@ window.addEventListener('keydown', (e) => {
     else rainManual = !(rainOn || snowOn);
   }
 });
-window.addEventListener('keyup', (e) => (keys[e.code] = false));
+window.addEventListener('keyup', (e) => {
+  keys[e.code] = false;
+  if (e.code === 'KeyW' && nitroActive) {
+    nitroActive = false;
+    nitroEndAt = performance.now();
+  }
+});
 
 // ПОЛНЫЙ ЭКРАН И МЫШЬ
 const fullscreenBtn = document.getElementById('fullscreenBtn');
