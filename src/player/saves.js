@@ -57,7 +57,7 @@ function captureGame() {
     savedAt: Date.now(),
     place: currentZone().name,
     player: { x: playerWorldX, z: playerWorldZ, rotation: worldRotation, heading: playerHeading, driving: drivingCar === car },
-    car: { x: car.x, z: car.z, heading: car.heading, fuel: car.fuel, garageOpen: garage.open },
+    car: { x: car.x, z: car.z, heading: car.heading, fuel: car.fuel, trunk: car.trunk ? car.trunk.canisters : 0, garageOpen: garage.open }, // trunk — канистры в багажнике
     inventory: [...inventory.items],
     devices: [...heroDevices.worn],
     equip: captureEquip(), // броня, ботинки, оружие в ячейках (src/player/equipment.js)
@@ -88,6 +88,7 @@ function applyGame(data) {
   car.heading = data.car.heading;
   car.speed = 0;
   car.fuel = data.car.fuel;
+  car.trunk = { canisters: Math.max(0, Math.min(trunkMax, data.car.trunk || 0)) }; // багажник (в старых сохранениях пуст)
   car.refuelling = false;
   car.mesh.setDoor(false);
   setGarageDoorInstant(!!data.car.garageOpen);

@@ -115,6 +115,52 @@ addInteractable({
   },
 });
 
+// БАГАЖНИК. На заправке можно купить канистры с бензином (src/locations/city/gas-station.js): они лежат в багажнике машины героя —
+// car.trunk = { canisters: n }, не больше trunkMax; число видно рядом с указателем топлива. Залить — E у задней части машины (пешком) или
+// G за рулем на остановке: каждая канистра доливает canisterFuel бака. Багажник сохраняется вместе с машиной (src/player/saves.js)
+const trunkMax = 5;
+const trunkOf = (car) => car.trunk || (car.trunk = { canisters: 0 });
+function pourTrunkCanister(car) {
+  const t = trunkOf(car);
+  if (t.canisters <= 0) return false;
+  if (car.fuel > 0.95) {
+    showToast('Бак почти полный', 2000);
+    return false;
+  }
+  t.canisters--;
+  car.fuel = Math.min(1, car.fuel + canisterFuel);
+  showToast('Бензин залит из багажника: +' + Math.round(canisterFuel * 100) + '% (в багажнике ' + t.canisters + ')', 3500);
+  return true;
+}
+// Пешком: у задней части своей машины (куда открывается багажник)
+const trunkRearReach = 3.6;
+const trunkCarNear = () => {
+  if (drivingCar || pushingCar || insideBuilding() || dialogueOpen) return null;
+  for (const c of cars) {
+    if (!c.trunk || c.trunk.canisters <= 0 || c.fuel > 0.95) continue;
+    const rx = c.x + Math.sin(c.heading) * c.half.l; // зад — по +Z модели
+    const rz = c.z + Math.cos(c.heading) * c.half.l;
+    if (Math.hypot(playerWorldX - rx, playerWorldZ - rz) < trunkRearReach) return c;
+  }
+  return null;
+};
+addInteractable({
+  priority: 3,
+  near: () => !!trunkCarNear(),
+  prompt: () => 'E — залить бензин из багажника (канистр: ' + trunkCarNear().trunk.canisters + ')',
+  act: () => pourTrunkCanister(trunkCarNear()),
+});
+// За рулем, стоя на месте: G — залить
+window.addEventListener('keydown', (e) => {
+  if (e.code !== 'KeyG' || e.repeat || !drivingCar || settingsOpen || dialogueOpen) return;
+  if (Math.abs(drivingCar.speed) > 0.05) {
+    showToast('Остановитесь, чтобы залить бензин из багажника', 2000);
+    return;
+  }
+  if (trunkOf(drivingCar).canisters <= 0) showToast('Багажник пуст: канистры продают на заправках', 2500);
+  else pourTrunkCanister(drivingCar);
+});
+
 // Канистра с бензином (от соседа): E рядом со своей машиной заливает бензин — катить не нужно
 const canisterFuel = 0.45; // сколько бака доливает канистра
 addInteractable({
@@ -771,7 +817,20 @@ infFuelBtn.addEventListener('click', () => setSetting('infiniteFuel', !settings.
 infFuelBtn.addEventListener('mousedown', (e) => e.stopPropagation());
 const speedoValue = document.getElementById('speedoValue');
 let speedoShown = -1;
+// Багажник: число канистр рядом с указателем топлива (появляется, когда в багажнике что-то есть)
+const trunkHud = document.createElement('div');
+trunkHud.id = 'trunkHud';
+trunkHud.title = 'Канистры в багажнике: G — залить (на остановке)';
+trunkHud.style.cssText = 'position:absolute;bottom:14px;left:276px;z-index:10;display:none;align-items:center;gap:6px;color:#fff;font:15px sans-serif;' +
+  'background:rgba(0,0,0,0.6);padding:8px 10px;border-radius:8px;pointer-events:none;';
+if (touchUI) trunkHud.style.cssText += 'left:auto;right:130px;bottom:70px;font-size:13px;padding:4px 8px;';
+document.body.appendChild(trunkHud);
+let trunkHudShown = -1;
 function updateFuelHud() {
+  if (!drivingCar && trunkHudShown !== -1) {
+    trunkHudShown = -1;
+    trunkHud.style.display = 'none';
+  }
   fuelEl.style.display = drivingCar ? 'flex' : 'none';
   speedoEl.style.display = drivingCar ? 'flex' : 'none';
   infFuelBtn.style.display = drivingCar ? 'block' : 'none';
@@ -782,6 +841,12 @@ function updateFuelHud() {
   if (kmh !== speedoShown) {
     speedoShown = kmh;
     speedoValue.textContent = kmh;
+  }
+  const tc = drivingCar.trunk ? drivingCar.trunk.canisters : 0;
+  if (tc !== trunkHudShown) {
+    trunkHudShown = tc;
+    trunkHud.style.display = tc > 0 ? 'flex' : 'none';
+    trunkHud.textContent = '🛢 ×' + tc + '  (G)';
   }
   const f = drivingCar.fuel;
   fuelFill.style.width = Math.round(f * 100) + '%';
