@@ -46,18 +46,33 @@ const questHost = {
   },
   openDialog: (node) => startDialogue(questNarrator, node),
   openPuzzle: (session) => session && openPuzzleUi(session), // окно головоломки: src/quests/puzzle-ui.js
+  paused: () => dialogueOpen || settingsOpen, // в разговоре, журнале, головоломке и меню таймеры стоят
   elixir: () => heroStats.elixir,
   advanceTime: (min) => {
     advanceGameTime(min);
     clockShown = '';
     questFade();
   },
-  teleport: (placeId) => {
+  // opts.car — вместе с машиной героя: она встает на место лицом к opts.heading (по умолчанию на восток), герой садится за руль
+  teleport: (placeId, opts = {}) => {
     const p = Core.registry.places[placeId];
     if (!p) return;
     questFade();
-    playerWorldX = p.x;
-    playerWorldZ = p.z;
+    if (opts.car && garage.car) {
+      if (drivingCar && drivingCar !== garage.car) releaseCar();
+      const car = garage.car;
+      car.x = p.x;
+      car.z = p.z;
+      car.heading = opts.heading === undefined ? -Math.PI / 2 : opts.heading;
+      car.speed = 0;
+      car.slip = 0;
+      car.fuel = Math.max(car.fuel, 0.6);
+      enterCar(car);
+    } else {
+      if (drivingCar) exitCar(true);
+      playerWorldX = p.x;
+      playerWorldZ = p.z;
+    }
     walkAmp = 0;
     if (typeof clickMoveStop === 'function') clickMoveStop();
   },

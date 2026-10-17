@@ -34,6 +34,7 @@
     inspected: {},
     puzzles: {}, // решенные головоломки: { '2.05.elixir': true }
     fights: {}, // выигранные бои: { '2.11.flash': true }
+    timers: {}, // таймеры шагов: { '2.12.drive': минута_конца | -1 (уже сработал) }, warn — какие предупреждения прозвучали
     once: {},
     messages: [],
     tracked: null,
@@ -198,7 +199,90 @@
     let settling = false;
     let again = false;
 
+    // Таймеры. Таймер шага (step.timer = { limit, warn, onExpire, repeat }) стартует, когда шаг становится текущим; таймер квеста
+    // (quest.timer = { limit, start, until, warn, onExpire, repeat }) идет, пока start истинно (по умолчанию — с начала квеста), а until
+    // ложно. Тикает в игровых минутах. Сработал — выполняются onExpire; без repeat он сработает один раз, с repeat запустится заново
+    // (погоня: не успели — вернули на старт и дали еще попытку). Предупреждения warn: { '60%': [действия] } — когда прошло столько времени.
+    // В разговоре, журнале, головоломке и меню время таймера стоит (host.paused).
+    let timerNow = null;
+    function timerList() {
+      const out = [];
+      for (const q of Object.values(registry.quests)) {
+        if (!game.isActive(q.id)) continue;
+        if (q.timer && game.check(q.timer.start) && !(q.timer.until && game.check(q.timer.until))) {
+          out.push({ key: q.id + '.timer', def: q.timer, quest: q.id, text: q.title });
+        }
+        const step = game.currentStep(q.id);
+        if (step && step.timer) out.push({ key: q.id + '.' + step.id, def: step.timer, quest: q.id, text: step.text });
+      }
+      return out;
+    }
+    function timers() {
+      const now = game.now();
+      const dt = timerNow === null ? 0 : now - timerNow;
+      timerNow = now;
+      const paused = host.paused && host.paused();
+      const t = game.state.timers;
+      for (const { key, def } of timerList()) {
+        const total = Core.parseDuration(def.limit);
+        if (t[key] === undefined) {
+          t[key] = now + total;
+          game.bump();
+        }
+        if (t[key] < 0) continue; // уже сработал
+        if (paused) {
+          t[key] += dt;
+          continue;
+        }
+        const left = t[key] - now;
+        for (const [mark, effects] of Object.entries(def.warn || {})) {
+          const wkey = key + ':' + mark;
+          if (t[wkey] || left > total * (1 - parseFloat(mark) / 100)) continue;
+          t[wkey] = -1;
+          game.run(effects);
+        }
+        if (left <= 0) {
+          if (def.repeat) {
+            delete t[key];
+            for (const mark of Object.keys(def.warn || {})) delete t[key + ':' + mark];
+          } else t[key] = -1;
+          game.bump();
+          game.run(def.onExpire);
+          again = true;
+        }
+      }
+    }
+
+    // Идущий сейчас таймер отслеживаемого (или любого активного) квеста: { key, left, total, text } или null
+    game.currentTimer = () => {
+      const list = timerList();
+      list.sort((a, b) => (b.quest === game.state.tracked) - (a.quest === game.state.tracked));
+      for (const { key, def, text } of list) {
+        const end = game.state.timers[key];
+        if (end > 0) return { key, left: Math.max(0, end - game.now()), total: Core.parseDuration(def.limit), text };
+      }
+      return null;
+    };
+
+    // Вернуть квест к шагу: он и все следующие снова не выполнены, их таймеры и бои квеста сбрасываются (после неудачи — начать заново)
+    game.rewind = (ref) => {
+      const [qid, sid] = Core.splitStepRef(ref);
+      const q = registry.quests[qid];
+      const rec = record(qid);
+      if (!q || !rec) return;
+      const from = (q.steps || []).findIndex((s) => s.id === sid);
+      if (from < 0) return;
+      for (const st of q.steps.slice(from)) {
+        delete rec.steps[st.id];
+        for (const k of Object.keys(game.state.timers)) if (k === qid + '.' + st.id || k.startsWith(qid + '.' + st.id + ':')) delete game.state.timers[k];
+      }
+      for (const k of Object.keys(game.state.fights)) if (k.startsWith(qid + '.')) delete game.state.fights[k];
+      for (const k of Object.keys(game.state.puzzles)) if (k.startsWith(qid + '.')) delete game.state.puzzles[k];
+      game.bump();
+    };
+
     function progress() {
+      timers();
       for (const q of Object.values(registry.quests)) {
         if (record(q.id) || !q.autoStart) continue;
         if (game.check(q.autoStart) && game.check(q.requires)) {

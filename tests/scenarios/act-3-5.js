@@ -44,7 +44,7 @@ defineScenario('4.09', {
     { puzzle: '4.09.lock', picks: ['circle', 'star', 'square', 'triangle'], expect: ['puzzle:4.09.lock', 'step:4.09.hatch'] },
     { interact: 'spot:arsenal', expect: ['step:4.09.arsenal', 'has:plasma_gun', 'fact:Ф35'] },
     { fight: '4.09.hall', expect: ['step:4.09.hall'] },
-    { fight: '4.09.baron', expect: ['step:4.09.baron', 'done:4.09', 'quest:4.11'] },
+    { fight: '4.09.baron', expect: ['step:4.09.baron', 'done:4.09', 'quest:4.12'] },
   ],
 });
 

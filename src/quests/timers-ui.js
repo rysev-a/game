@@ -1,0 +1,53 @@
+// src/quests/timers-ui.js
+// ТАЙМЕРЫ НА ЭКРАНЕ И ЗАНОС. Плашка с обратным отсчетом: пока у текущего шага квеста идет таймер (step.timer, src/core/game.js),
+// под целью висит «Осталось 00:42», в последнюю четверть краснеет. Игровая минута равна реальной секунде при скорости
+// времени по умолчанию (game.json: minutesPerSecond), отсчет показывается в реальных секундах.
+// Еще здесь считается время заноса героя за рулем в счетчик driftTime (условие count:driftTime>=3 в квестах про дрифт):
+// занос — когда машина едет заметно быстрее шага и ее нос уходит от курса (car.slip, src/player/driving.js).
+
+(function () {
+  const g = questGame;
+
+  const css = document.createElement('style');
+  css.textContent = `
+    #questTimer { margin-top: 4px; padding: 3px 14px; border-radius: 8px; background: rgba(0,0,0,0.45); color: #fff;
+      font: bold 20px/1.2 sans-serif; display: none; font-variant-numeric: tabular-nums; pointer-events: none; text-align: center; }
+    #questTimer small { display: block; font-size: 11px; font-weight: normal; opacity: 0.75; }
+    #questTimer.low { background: rgba(160,20,20,0.8); }
+  `;
+  document.head.appendChild(css);
+  const el = document.createElement('div');
+  el.id = 'questTimer';
+  // Таймер живет внутри плашки с целью (src/quests/journal-ui.js): так они не налезают друг на друга
+  (document.getElementById('questGoal') || document.body).appendChild(el);
+
+  const perSec = () => (typeof clockConfig !== 'undefined' && clockConfig.minutesPerSecond) || 1;
+
+  let shown = '';
+  setInterval(() => {
+    const t = g.currentTimer();
+    if (!t) {
+      if (shown) el.style.display = 'none';
+      shown = '';
+      return;
+    }
+    const sec = Math.ceil(t.left / perSec());
+    const text = String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0');
+    if (text === shown) return;
+    shown = text;
+    el.replaceChildren(document.createTextNode(text));
+    const small = document.createElement('small');
+    small.textContent = 'Осталось';
+    el.appendChild(small);
+    el.classList.toggle('low', t.left < t.total * 0.25);
+    el.style.display = 'block';
+  }, 250);
+
+  // Занос: раз в 100 мс прибавляем 0,1 к счетчику, пока герой дрифтует (отдельно от кадров: счетчик хранится в сохранении)
+  setInterval(() => {
+    const car = typeof drivingCar !== 'undefined' && drivingCar;
+    if (!car || Math.abs(car.speed) < 0.3 || Math.abs(car.slip || 0) < 0.22) return;
+    g.state.counters.driftTime = Math.round(((g.state.counters.driftTime || 0) + 0.1) * 10) / 10;
+    g.bump();
+  }, 100);
+})();

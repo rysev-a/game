@@ -14,8 +14,11 @@
 //   { puzzle: '2.05.elixir' }                         открыть головоломку (src/core/puzzles.js)
 //   { elixir: 60 }                                    добавить эликсир герою (шкала снаряжения); отрицательное число — потратить
 //   { wait: '8h' }                                    промотать игровое время ('90m', '8h', '1d')
-//   { teleport: 'lab.basement' }                      перенести героя в место (с затемнением)
+//   { waitUntil: '22:00' }                            промотать время до этого часа (ближайшего)
+//   { teleport: 'lab.basement' }                      перенести героя в место (с затемнением); { teleport: 'место', car: true } — вместе с его машиной, за рулем
 //   { heal: 40 }                                      вылечить героя
+//   { rewind: '4.12.f1' }                             вернуть квест к шагу (шаги, таймеры, бои и головоломки квеста — заново)
+//   { heli: { from, goal, goalY, goalR, onGoal } }    управлять радиоуправляемым вертолетом (src/quests/heli.js)
 //   { emit: 'name' } { emit: { name, ...данные } }    событие
 //   { script: 'name' }                                именованный сценарий из кода (Core.scripts)
 //   { if: 'has:x', then: [...], else: [...] }         ветвление
@@ -70,7 +73,17 @@
     puzzle: (arg, g) => g.host.openPuzzle && g.host.openPuzzle(g.puzzleSession(arg)),
     elixir: (arg, g) => g.host.addElixir && g.host.addElixir(arg),
     wait: (arg, g) => g.host.advanceTime && g.host.advanceTime(Core.parseDuration(arg)),
-    teleport: (arg, g) => g.host.teleport && g.host.teleport(arg),
+    waitUntil: (arg, g) => {
+      if (!g.host.advanceTime) return;
+      const [hh, mm] = String(arg).split(':').map(Number);
+      const nowMin = (g.host.hour ? g.host.hour() : (9 * 60 + g.now()) / 60 % 24) * 60;
+      let delta = ((hh || 0) * 60 + (mm || 0) - nowMin + 1440) % 1440;
+      if (delta < 1) delta += 1440;
+      g.host.advanceTime(delta);
+    },
+    teleport: (arg, g) => g.host.teleport && (typeof arg === 'string' ? g.host.teleport(arg, {}) : g.host.teleport(arg.to, arg)),
+    rewind: (arg, g) => g.rewind(arg),
+    heli: (arg, g) => g.host.startHeli && g.host.startHeli(arg),
     heal: (arg, g) => g.host.heal && g.host.heal(arg),
     emit: (arg, g) => (typeof arg === 'string' ? g.emit(arg, {}) : g.emit(arg.name, arg)),
     script: (arg, g) => {

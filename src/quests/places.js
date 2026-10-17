@@ -46,3 +46,16 @@ definePlace('lab.arsenal', { x: labX - 30, z: labBasementZ1 + 24, r: 8, name: '�
 definePlace('lab.hall', { x: labX, z: labBasementZ1 + 40, r: 22, name: 'Зал капсул' });
 definePlace('lab.assembly', { x: labX, z: labWallZ + 30, r: 22, name: 'Сборочный зал' });
 definePlace('lab.office', { x: labX + 30, z: labWallZ + 50, r: 8, name: 'Кабинет Штерна' });
+
+// Погоня (квест 2.12): старт на трассе западнее заправки и пять заграждений-шикан, которые не проехать без заноса
+definePlace('chase.start', { x: -700, z: 3, r: 10, name: 'Старт погони' });
+for (let i = 0; i < 5; i++) definePlace('chase.b' + (i + 1), { x: -600 + i * 70, z: 0, r: 6, name: 'Заграждение' });
+
+// Прилавки у торгового центра (квест 2.13): справа от парковки
+definePlace('mall.stalls', { x: 40, z: -18, r: 12, name: 'Прилавки у торгового центра' });
+
+// Башня в центре (src/locations/tower/tower.js): подножие, вход, площадка вертолетика и девять площадок-этажей (квест 4.12)
+definePlace('tower.base', { x: towerX, z: towerZ, r: 40, name: 'Башня' });
+definePlace('tower.door', { x: towerX, z: towerZ - 14, r: 8, name: 'Вход в башню' });
+definePlace('tower.pad', { x: towerX + 20, z: towerZ - 16, r: 8, name: 'Площадка вертолетика' });
+for (let i = 1; i <= 9; i++) definePlace('tower.f' + i, { x: towerFloorX(i), z: towerFloorZ, r: 16, name: i + ' этаж башни' });

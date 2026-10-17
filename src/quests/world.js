@@ -45,11 +45,19 @@
     const x = place.x + (sp.dx || 0);
     const z = place.z + (sp.dz || 0);
     const group = new THREE.Group();
+    const fades = [];
     for (const [w, h, d, color, px, py, pz] of sp.parts) {
       const box = boxWithEdges(w, h, d, color);
       box.position.set(px, py, pz);
       group.add(box);
+      // fade: true — как стены зданий: становится полупрозрачным, когда заслоняет героя от камеры (src/engine/fade.js)
+      if (sp.fade && h > 1) {
+        const mats = [box.material, ...box.children.map((c) => c.material)];
+        for (const m of mats) m.transparent = true;
+        fades.push({ mesh: box, mats, half: [w / 2, h / 2, d / 2], fade: 1 });
+      }
     }
+    fadeBoxes.push(...fades);
     group.position.set(x, 0, z);
     group.rotation.y = sp.yaw || 0;
     cityGroup.add(group);
@@ -75,6 +83,10 @@
     return {
       remove() {
         cityGroup.remove(group);
+        for (const f of fades) {
+          const k = fadeBoxes.indexOf(f);
+          if (k >= 0) fadeBoxes.splice(k, 1);
+        }
         if (it) removeInteractable(it);
         for (const { ob, shape } of solids) {
           const i = obstacles.indexOf(ob);

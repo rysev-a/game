@@ -85,8 +85,16 @@
           } catch (err) {
             bad(where, 'wait: ' + err.message);
           }
-        } else if (key === 'teleport' && !registry.places[arg]) {
-          bad(where, 'нет места «' + arg + '» в teleport');
+        } else if (key === 'rewind' && !stepRefOk(arg)) {
+          bad(where, 'rewind: нет шага «' + arg + '»');
+        } else if (key === 'heli') {
+          if (!registry.places[arg.from]) bad(where, 'heli: нет места from «' + arg.from + '»');
+          if (!registry.places[arg.goal]) bad(where, 'heli: нет места goal «' + arg.goal + '»');
+          lintEffects(arg.onGoal, where + ', heli');
+        } else if (key === 'teleport' && !registry.places[typeof arg === 'string' ? arg : arg.to]) {
+          bad(where, 'нет места в teleport');
+        } else if (key === 'waitUntil' && !/^\d{1,2}:\d{2}$/.test(arg)) {
+          bad(where, 'waitUntil: нужно время вида 22:00');
         } else if (key === 'dialog' && !Core.resolveNodeRef(registry, arg, null)) {
           bad(where, 'нет узла диалога «' + arg + '»');
         } else if ((key === 'give' || key === 'take') && opts.items) {
@@ -137,7 +145,27 @@
         seen.add(s.id);
         if (!s.text) bad(where, 'у шага «' + s.id + '» нет text');
         lintCond(s.done, where + ', шаг ' + s.id);
+        if (s.timer) {
+          try {
+            Core.parseDuration(s.timer.limit);
+          } catch (err) {
+            bad(where, 'шаг «' + s.id + '»: timer.limit: ' + err.message);
+          }
+          lintEffects(s.timer.onExpire, where + ', таймер шага ' + s.id);
+          for (const list of Object.values(s.timer.warn || {})) lintEffects(list, where + ', таймер шага ' + s.id);
+        }
         if (s.marker && !registry.places[s.marker]) bad(where, 'у шага «' + s.id + '» нет места «' + s.marker + '»');
+      }
+      if (q.timer) {
+        try {
+          Core.parseDuration(q.timer.limit);
+        } catch (err) {
+          bad(where, 'timer.limit: ' + err.message);
+        }
+        lintCond(q.timer.start, where + ', таймер');
+        lintCond(q.timer.until, where + ', таймер');
+        lintEffects(q.timer.onExpire, where + ', таймер');
+        for (const list of Object.values(q.timer.warn || {})) lintEffects(list, where + ', таймер');
       }
       lintCond(q.autoStart, where);
       lintCond(q.requires, where);

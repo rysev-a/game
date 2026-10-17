@@ -26,11 +26,20 @@ for (const [id, x, z] of [
   ['lab.gate', -330, 90], ['lab.desk', -344, 118], ['lab.hatch', -316, 118], ['lab.basement', -330, 218], ['lab.arsenal', -360, 234],
   ['lab.hall', -330, 250], ['lab.assembly', -330, 302], ['lab.office', -300, 322],
 ]) definePlace(id, { x, z, r: 10, name: id });
+definePlace('chase.start', { x: -700, z: 3, r: 10, name: 'Старт погони' });
+for (let i = 1; i <= 5; i++) definePlace('chase.b' + i, { x: -600 + (i - 1) * 70, z: 0, r: 6, name: 'Заграждение' });
+definePlace('mall.stalls', { x: 40, z: -18, r: 12, name: 'Прилавки' });
+definePlace('tower.base', { x: 70, z: 70, r: 40, name: 'Башня' });
+definePlace('tower.door', { x: 70, z: 56, r: 8, name: 'Вход в башню' });
+definePlace('tower.pad', { x: 90, z: 54, r: 8, name: 'Площадка' });
+for (let i = 1; i <= 9; i++) definePlace('tower.f' + i, { x: -130 + (i - 1) * 38, z: 250, r: 16, name: i + ' этаж' });
 require('./scenarios/1-03-bridge.js');
 require('./scenarios/1-06-treehouse.js');
 require('./scenarios/2-05-elixir.js');
 require('./scenarios/2-act2.js');
 require('./scenarios/act-3-5.js');
+require('./scenarios/act-2b.js');
+require('./scenarios/4-12-tower.js');
 
 const reg = Core.registry;
 

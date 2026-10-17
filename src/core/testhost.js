@@ -24,7 +24,11 @@
     h.elixir = () => h.elixirAmount;
     h.addElixir = (n) => (h.elixirAmount = Math.max(0, h.elixirAmount + n));
     h.advanceTime = (min) => (h.time += min);
-    h.teleport = (id) => (h.teleported = id);
+    h.teleport = (id, opts) => {
+      h.teleported = id;
+      h.teleportOpts = opts;
+    };
+    h.startHeli = (opts) => (h.heli = opts);
     h.heal = (n) => (h.healed = (h.healed || 0) + n);
     h.openPuzzle = (session) => h.dialogs.push(session);
     h.toast = (text) => h.toasts.push(text);

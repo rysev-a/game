@@ -399,3 +399,85 @@ test('interactions: активный квест перехватывает об�
   assert.equal(game.check(['flag:read_it', 'done:q']), true);
   assert.equal(game.interact('station:laptop'), false, 'квест выполнен — объект снова обычный');
 });
+
+test('таймеры: предупреждение, срабатывание один раз, repeat, пауза, currentTimer', () => {
+  const { game, host } = makeGame((reg) => {
+    reg.defineQuest({
+      id: 'q',
+      title: 'Q',
+      autoStart: true,
+      steps: [
+        {
+          id: 'run',
+          text: 'Бежать',
+          done: 'flag:there',
+          timer: { limit: '10m', warn: { '50%': [{ flag: 'half' }] }, onExpire: [{ add: { late: 1 } }], repeat: true },
+        },
+      ],
+    });
+  });
+  assert.equal(Math.round(game.currentTimer().left), 10);
+  host.time = 6;
+  game.settle();
+  assert.equal(game.check('flag:half'), true, 'предупреждение на половине');
+  assert.equal(Math.round(game.currentTimer().left), 4);
+  host.paused = () => true;
+  host.time = 9;
+  game.settle();
+  assert.equal(Math.round(game.currentTimer().left), 4, 'на паузе время таймера стоит');
+  host.paused = () => false;
+  host.time = 14;
+  game.settle();
+  assert.equal(game.state.counters.late, 1, 'сработал onExpire');
+  assert.ok(game.currentTimer().left > 5, 'repeat: таймер пошел заново');
+  game.run({ flag: 'there' });
+  assert.equal(game.currentTimer(), null, 'шаг выполнен — таймера нет');
+});
+
+test('таймер квеста: идет между start и until; rewind возвращает шаги, бои и головоломки', () => {
+  const { game, host } = makeGame((reg) => {
+    reg.defineQuest({
+      id: 'q',
+      title: 'Q',
+      autoStart: true,
+      timer: { limit: '5m', start: 'step:q.a', until: 'step:q.b', onExpire: [{ rewind: 'q.a' }] },
+      steps: [
+        { id: 'a', text: 'A', done: 'flag:a' },
+        { id: 'b', text: 'B', done: 'flag:b' },
+      ],
+    });
+  });
+  assert.equal(game.currentTimer(), null, 'до start таймера нет');
+  game.run({ flag: 'a' });
+  assert.ok(game.currentTimer().left > 4);
+  game.state.fights['q.f'] = true;
+  host.time = 6;
+  game.settle();
+  assert.equal(game.state.fights['q.f'], undefined, 'rewind убрал и бои квеста');
+  assert.equal(game.check('flag:a'), true, 'флаги остаются: шаг выполнится снова сам');
+});
+
+test('waitUntil: время идет до ближайшего такого часа', () => {
+  const { game, host } = makeGame(() => {});
+  host.time = 0; // 09:00
+  game.run({ waitUntil: '22:00' });
+  assert.equal(host.time, 13 * 60);
+  game.run({ waitUntil: '22:00' }); // уже 22:00: ждем до следующих суток
+  assert.equal(host.time, 13 * 60 + 24 * 60);
+});
+
+test('checkContent: таймеры, rewind, heli и бои проверяются', () => {
+  const { Core, registry } = makeGame((reg) => {
+    reg.defineQuest({
+      id: 'bad',
+      title: 'Плохой',
+      timer: { limit: 'скоро', onExpire: [{ rewind: 'bad.nope' }, { heli: { from: 'x', goal: 'y' } }, { waitUntil: '25' }] },
+      steps: [{ id: 'a', text: 'A', done: 'flag:a', timer: { limit: '1m', onExpire: [{ teleport: 'ghost' }] } }],
+      fights: { f: { when: 'flag:x', foes: [{ kind: 'dragon', at: 'ghost' }] } },
+    });
+  });
+  const text = Core.checkContent(registry).join('\n');
+  for (const piece of ['timer.limit', 'rewind: нет шага', 'heli: нет места from', 'waitUntil', 'нет места в teleport', 'неизвестный вид врага «dragon»']) {
+    assert.ok(text.includes(piece), 'должно быть найдено: ' + piece + '\n' + text);
+  }
+});
