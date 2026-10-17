@@ -21,6 +21,8 @@
 //   { breakCar: true } { repairCar: true }            машина героя хромает (еле едет) / починена
 //   { playerCar: 'hyper' }                            подарить герою машину этого вида вместо его (и запомнить в сохранении)
 //   { fuelEconomy: 50 }                               настроить расход: бензин машины героя кончается во столько раз медленнее
+//   { weather: 'storm' }                              погода сюжета (src/quests/weather-story.js): gloom хмуро, storm ужасный ливень (скользко),
+//                                                     sun солнце, auto солнце и редкие дожди (прибор их разгоняет), rain призванный ливень (роботы коротят), fog туман
 //   { fuel: 0 } { fuel: 0.4 } { fuel: 'river' }       бак машины героя: доля 0…1; 'river' — ровно хватит от дома до реки (трасса, с запасом на манёвры)
 //   { call: { from: 'denis', dialog: '1.03.call' } }  входящий звонок: телефон звонит, герой отвечает — открывается разговор (таймеры стоят),
 //                                                     текст разговора остается в истории звонков телефона (состояние calls)
@@ -107,6 +109,10 @@
       g.state.fuelEconomy = arg;
       g.bump();
       if (g.host.setFuelEconomy) g.host.setFuelEconomy(arg);
+    },
+    weather: (arg, g) => {
+      g.state.weatherMode = arg;
+      g.bump();
     },
     fuel: (arg, g) => g.host.setFuel && g.host.setFuel(arg),
     call: (arg, g) => {

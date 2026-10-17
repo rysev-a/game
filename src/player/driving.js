@@ -329,7 +329,7 @@ function updateDriving(c) {
     grip = Math.max(0.004, 0.04 - 0.04 * d) * settings.handbrakeGrip;
     maxSlip = 0.45 + 0.7 * d;
   }
-  grip = Math.min(0.95, grip);
+  grip = Math.min(0.95, grip * (typeof weatherGripFactor === 'function' ? weatherGripFactor() : 1)); // ужасный ливень сюжета: шины почти не держат (src/quests/weather-story.js)
   // Шины возвращают сцепление не мгновенно: после ручника или дрифта занос еще держится, пока сцепление растет (инерция заноса)
   if (car.gripNow === undefined || grip < car.gripNow) car.gripNow = grip;
   else car.gripNow += (grip - car.gripNow) * gripRecover * settings.tireGrip;

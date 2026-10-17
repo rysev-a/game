@@ -9,15 +9,18 @@ defineScenario('3.05', {
   steps: [
     { do: [{ start: '3.05' }, { flag: 'braceletCased' }], expect: ['quest:3.05', '!step:3.05.ride'] },
     { at: 'yard.garage', expect: 'step:3.05.ride' },
-    { talk: 'rustam', pick: [0, 0, 0], see: 'Как новая', expect: ['step:3.05.talk', 'dayssince:deal<1'] },
+    { talk: 'rustam', pick: [0, 0, 0], see: 'Как новая', expect: ['step:3.05.talk', 'dayssince:deal<1', 'weather:storm', 'quest:3.06'] }, // ужасный ливень, шины не держат
+    { zone: 'treehouse' }, // прибор погоды Веры собран (3.06)
+    { do: [{ give: 'weather' }], expect: 'done:3.06' },
+    { zone: 'none' },
     { action: '3.05/practice' }, // тренировка: открывается выбор машины (у хоста)
     { action: '3.05/sleep', expectNot: 'step:3.05.morning' }, // до 07:30: на треке еще рано
     { at: 'track.start', expect: ['dayssince:deal>=1', '!step:3.05.morning'] },
-    { wait: '40m', expect: ['step:3.05.morning', 'quest:3.05'] }, // восемь часов утра
+    { wait: '40m', expect: ['step:3.05.morning', 'quest:3.05', 'weather:sun'] }, // восемь часов утра: прибор разогнал тучи
     { drive: true },
     ...raceSteps,
     { at: 'track.start', expect: ['count:cp>=9', 'step:3.05.race'] },
-    { talk: 'rustam', pick: [0, 0], see: 'Это не езда, это танец', expect: ['step:3.05.win'] },
+    { talk: 'rustam', pick: [0, 0], see: 'Это не езда, это танец', expect: ['step:3.05.win', 'weather:auto'] },
     { at: 'mall.entrance', expect: ['step:3.05.chase', 'done:3.05', 'quest:3.12'] },
   ],
 });
@@ -29,6 +32,9 @@ defineScenario('3.05-late', {
     { do: [{ start: '3.05' }, { flag: 'braceletCased' }] },
     { at: 'yard.garage' },
     { talk: 'rustam', pick: [0, 0, 0] },
+    { zone: 'treehouse' },
+    { do: [{ give: 'weather' }] },
+    { zone: 'none' },
     { action: '3.05/sleep' },
     { at: 'track.start' },
     { wait: '40m', expect: 'step:3.05.morning' },

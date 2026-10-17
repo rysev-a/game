@@ -13,6 +13,7 @@
 //   puzzle:2.05.elixir             головоломка решена
 //   fight:2.11.flash               бой выигран
 //   elixir:>=20                    на шкале эликсира герою достаточно
+//   weather:storm                  режим погоды сюжета (gloom, storm, sun, auto, rain, fog)
 //   fuel:>=0.3                     в баке машины героя столько бензина (доля 0…1)
 //   dayssince:deal>=1              прошло столько суток (по полуночи) с отметки { markDay: 'deal' }
 //   at:bridge.scene  near:place    игрок в месте (или в зоне) / в радиусе места
@@ -111,6 +112,7 @@
       const c = Core.parseCompare('e' + arg);
       return Core.compare(g.host.elixir ? g.host.elixir() : 0, c.op, c.value);
     },
+    weather: (arg, g) => g.state.weatherMode === arg,
     fuel: (arg, g) => {
       const c = Core.parseCompare('f' + arg);
       return Core.compare(g.host.fuel ? g.host.fuel() : 1, c.op, c.value);

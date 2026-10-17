@@ -52,6 +52,7 @@ require('./scenarios/act-2b.js');
 require('./scenarios/4-12-tower.js');
 require('./scenarios/3-05-car.js');
 require('./scenarios/3-12-yacht.js');
+require('./scenarios/3-06-13-weather.js');
 
 const reg = Core.registry;
 

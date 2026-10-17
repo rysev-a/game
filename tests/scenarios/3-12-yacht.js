@@ -11,6 +11,6 @@ defineScenario('3.12', {
     { action: '3.12/wait', expect: 'step:3.12.evening' }, // дождались 19:00 прямо у яхты
     { fight: '3.12.yacht', expect: 'step:3.12.yacht' },
     { interact: 'spot:wreck' },
-    { dialog: '3.12.serials', pick: [0, 0], see: 'партия отгружена', expect: ['has:chips', 'fact:Ф42', 'fact:Ф43', 'step:3.12.parts', 'done:3.12', 'quest:4.09'] },
+    { dialog: '3.12.serials', pick: [0, 0], see: 'партия отгружена', expect: ['has:chips', 'fact:Ф42', 'fact:Ф43', 'step:3.12.parts', 'done:3.12', 'quest:3.13'] },
   ],
 });

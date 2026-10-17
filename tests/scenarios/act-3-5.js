@@ -62,7 +62,7 @@ defineScenario('5.02', {
   title: 'Вдвоем: артефакт, прошлое, Вера, Штерн, утро',
   done: ['1.03'],
   steps: [
-    { do: [{ start: '5.02' }, { give: 'artifact' }] },
+    { do: [{ start: '5.02' }, { give: 'artifact' }, { give: 'weather' }] },
     { zone: 'treehouse', expect: 'step:5.02.home' },
     { interact: 'station:workbench', expectNot: 'step:5.02.charge' }, // эликсира нет: подсказка
     { do: [{ elixir: 50 }] },
@@ -70,6 +70,7 @@ defineScenario('5.02', {
     { dialog: '5.02.travel', pick: [0], expect: 'step:5.02.charge' },
     { talk: 'vera', pick: [0, 0], see: 'Ты меня наконец-то узнал', expect: 'step:5.02.vera' },
     { talk: 'vera', see: 'Идем' },
-    { fight: '5.02.stern', expect: ['fight:5.02.stern', 'step:5.02.end', 'done:5.02'] },
+    { action: '5.02/fog', expect: ['weather:fog', 'step:5.02.fog'] }, // люди в черном ищут: туман на весь город
+    { fight: '5.02.stern', expect: ['fight:5.02.stern', 'step:5.02.end', 'done:5.02', 'weather:sun'] },
   ],
 });
