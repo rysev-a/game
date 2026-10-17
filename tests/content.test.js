@@ -15,9 +15,15 @@ definePlace('bridge.scene', { x: 329, z: 18, r: 60, name: 'Мост' });
 definePlace('zarechye.house', { x: 400, z: 900, r: 34, name: 'Дом Анны Петровны' });
 definePlace('zarechye.tree', { x: 400, z: 950, r: 14, name: 'Дерево с домиком' });
 definePlace('mall.entrance', { x: 0, z: -29, r: 14, name: 'Торговый центр' });
+definePlace('village.denis', { x: -1318, z: 7, r: 24, name: 'Сосновка, улица' });
+definePlace('city.library', { x: 220, z: -20, r: 34, name: 'Библиотека' });
+definePlace('yard.forge', { x: -150, z: -27, r: 12, name: 'Кузница Михалыча' });
+definePlace('yard.garage', { x: -128, z: -27, r: 12, name: 'Автомастерская Рустама' });
+definePlace('yard.nikolai', { x: -129, z: -18, r: 10, name: 'Заправка' });
 require('./scenarios/1-03-bridge.js');
 require('./scenarios/1-06-treehouse.js');
 require('./scenarios/2-05-elixir.js');
+require('./scenarios/2-act2.js');
 
 const reg = Core.registry;
 

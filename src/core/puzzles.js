@@ -4,11 +4,16 @@
 // src/quests/puzzle-ui.js.
 //
 //   puzzles: { elixir: { kind: 'sequence', title, hint, pieces: [{ id, label }], answer: [id, ...],
-//                        mistakesAllowed: 2, onSolve: [...действия] } }
+//                        mistakesAllowed: 2, onSolve: [...действия] },
+//              bellows: { kind: 'rhythm', title, hint, beats: 8, tolerance: 0.16, tempo: 1.6,
+//                         mistakesAllowed: 3, onSolve: [...] } }
 //
 // Ссылка на головоломку — '<id квеста>.<имя>': '2.05.elixir'. Открывает ее действие { puzzle: '2.05.elixir' }, решенность
 // проверяет условие puzzle:2.05.elixir. Вид sequence: выбрать части в правильном порядке; ошибок можно сделать
 // mistakesAllowed, потом выбранное сбрасывается и можно начать заново (штрафа нет).
+//
+// Вид rhythm: по полосе ходит бегунок (tempo — секунд на проход), игрок жмет, когда он у центра: pick(фаза 0..1) верен,
+// если |фаза − 0,5| ≤ tolerance. Нужно beats верных нажатий подряд; ошибок можно mistakesAllowed, потом счет обнуляется.
 //
 // Новый вид: Core.puzzleKinds.<вид> = { check(def) → список ошибок данных, create(def, api) → { pick(id) → результат } }.
 
@@ -26,6 +31,42 @@
   };
 
   Core.puzzleKinds = {
+    rhythm: {
+      check(def) {
+        const bad = [];
+        if (!(def.beats > 0)) bad.push('нужно beats больше нуля');
+        if (!(def.tolerance > 0 && def.tolerance < 0.5)) bad.push('tolerance должен быть между 0 и 0,5');
+        return bad;
+      },
+      create(def) {
+        let hits = 0;
+        let mistakes = 0;
+        return {
+          picked: [],
+          get progress() {
+            return hits;
+          },
+          get total() {
+            return def.beats;
+          },
+          get mistakes() {
+            return mistakes;
+          },
+          pick(phase) {
+            if (Math.abs(phase - 0.5) <= def.tolerance) {
+              hits++;
+              return hits >= def.beats ? 'solved' : 'ok';
+            }
+            if (++mistakes > (def.mistakesAllowed === undefined ? 3 : def.mistakesAllowed)) {
+              hits = 0;
+              mistakes = 0;
+              return 'reset';
+            }
+            return 'wrong';
+          },
+        };
+      },
+    },
     // Результат pick: 'ok' (верно, ждем дальше), 'solved', 'wrong' (ошибка, но можно дальше), 'reset' (ошибок слишком много)
     sequence: {
       check(def) {
@@ -41,6 +82,12 @@
         let mistakes = 0;
         return {
           picked,
+          get progress() {
+            return picked.length;
+          },
+          get total() {
+            return def.answer.length;
+          },
           get mistakes() {
             return mistakes;
           },
@@ -79,11 +126,18 @@
         kind: def.kind,
         title: def.title || '',
         hint: def.hint || '',
-        pieces: def.pieces.map((p) => ({ ...p })),
-        answerLength: def.answer.length,
-        mistakesAllowed: def.mistakesAllowed === undefined ? 2 : def.mistakesAllowed,
+        pieces: (def.pieces || []).map((p) => ({ ...p })),
+        mistakesAllowed: def.mistakesAllowed === undefined ? (def.kind === 'rhythm' ? 3 : 2) : def.mistakesAllowed,
+        tempo: def.tempo || 1.6,
+        tolerance: def.tolerance,
         get picked() {
           return run.picked;
+        },
+        get progress() {
+          return run.progress;
+        },
+        get total() {
+          return run.total;
         },
         get mistakes() {
           return run.mistakes;

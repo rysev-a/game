@@ -31,6 +31,11 @@
     #puzzle .hintBtn { cursor: pointer; padding: 3px 10px; border-radius: 6px; background: rgba(255,255,255,0.12); }
     #puzzle .hint { margin-top: 8px; font-size: 13px; line-height: 1.4; opacity: 0.85; display: none; }
     #puzzle .hint.on { display: block; }
+    #puzzle .track { position: relative; height: 38px; margin: 6px 0 14px; border-radius: 19px; background: rgba(255,255,255,0.1); }
+    #puzzle .zone { position: absolute; top: 0; bottom: 0; border-radius: 19px; background: rgba(127,212,138,0.35); border: 1px solid #7fd48a; }
+    #puzzle .runner { position: absolute; top: 3px; width: 8px; height: 32px; margin-left: -4px; border-radius: 4px; background: #ffd84a; }
+    #puzzle button.hit { grid-column: 1 / -1; padding: 14px; font-size: 17px; }
+    #puzzle .dots { text-align: center; font-size: 20px; letter-spacing: 4px; margin: 6px 0; }
     #puzzle .shake { animation: puzzleShake 0.25s; }
     @keyframes puzzleShake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
   `;
@@ -51,13 +56,74 @@
   const hintEl = root.querySelector('.hint');
 
   let session = null;
+  let runnerEl = null;
+  let raf = 0;
+  let t0 = 0;
+  const phaseNow = () => (1 - Math.cos(((performance.now() - t0) / 1000 / session.tempo) * Math.PI * 2)) / 2; // 0..1..0 по косинусу
 
   const say = (text, cls) => {
     msgEl.textContent = text;
     msgEl.className = 'msg' + (cls ? ' ' + cls : '');
   };
 
+  function renderRhythm() {
+    titleEl.textContent = session.title;
+    potEl.replaceChildren();
+    const dots = document.createElement('div');
+    dots.className = 'dots';
+    dots.textContent = '●'.repeat(session.progress) + '○'.repeat(session.total - session.progress);
+    const track = document.createElement('div');
+    track.className = 'track';
+    const zone = document.createElement('div');
+    zone.className = 'zone';
+    zone.style.left = (0.5 - session.tolerance) * 100 + '%';
+    zone.style.width = session.tolerance * 200 + '%';
+    runnerEl = document.createElement('div');
+    runnerEl.className = 'runner';
+    track.append(zone, runnerEl);
+    potEl.style.display = 'block';
+    potEl.append(dots, track);
+    piecesEl.replaceChildren();
+    const b = document.createElement('button');
+    b.className = 'piece hit';
+    b.textContent = 'Качнуть мехи (Пробел)';
+    b.addEventListener('click', hit);
+    piecesEl.appendChild(b);
+    missEl.textContent = 'Ошибок: ' + session.mistakes + ' из ' + (session.mistakesAllowed + 1);
+    hintEl.textContent = session.hint;
+  }
+
+  function animate() {
+    if (!session || session.kind !== 'rhythm') return;
+    raf = requestAnimationFrame(animate);
+    if (runnerEl) runnerEl.style.left = phaseNow() * 100 + '%';
+  }
+
+  // Нажатие в ритме: смотрим, где сейчас бегунок
+  function hit() {
+    if (!session || session.kind !== 'rhythm') return;
+    const result = session.pick(phaseNow());
+    if (result === 'wrong') {
+      say('Мимо. Бейте, когда бегунок в зеленой зоне.', 'bad');
+      panel.classList.remove('shake');
+      void panel.offsetWidth;
+      panel.classList.add('shake');
+    } else if (result === 'reset') {
+      say('Сбились с ритма. Начинайте сначала.', 'bad');
+    } else if (result === 'solved') {
+      renderRhythm();
+      say('Ровно! Горн раскалился.', 'good');
+      setTimeout(close, 900);
+      return;
+    } else {
+      say('');
+    }
+    renderRhythm();
+  }
+
   function render() {
+    if (session.kind === 'rhythm') return renderRhythm();
+    potEl.style.display = '';
     titleEl.textContent = session.title;
     potEl.replaceChildren();
     const label = (id) => session.pieces.find((p) => p.id === id).label;
@@ -67,7 +133,7 @@
       chip.textContent = i + 1 + '. ' + label(id);
       potEl.appendChild(chip);
     });
-    for (let i = session.picked.length; i < session.answerLength; i++) {
+    for (let i = session.picked.length; i < session.total; i++) {
       const slot = document.createElement('span');
       slot.className = 'slot';
       slot.textContent = i + 1 + '.';
@@ -108,6 +174,7 @@
 
   function close() {
     if (!session) return;
+    cancelAnimationFrame(raf);
     session = null;
     root.classList.remove('on');
     if (!dialogueNode) dialogueOpen = false; // если в это время не начался настоящий разговор
@@ -124,6 +191,10 @@
     say('');
     render();
     root.classList.add('on');
+    if (session.kind === 'rhythm') {
+      t0 = performance.now();
+      animate();
+    }
   };
 
   root.querySelector('.x').addEventListener('click', close);
@@ -137,6 +208,7 @@
       e.stopImmediatePropagation();
       e.preventDefault();
       if (e.code === 'Escape') close();
+      else if (e.code === 'Space' && !e.repeat) hit();
     },
     true,
   );

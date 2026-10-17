@@ -145,8 +145,14 @@
         else for (const msg of kind.check(pz)) bad(where + ', головоломка ' + name, msg);
         lintEffects(pz.onSolve, where + ', головоломка ' + name);
       }
+      for (const e of (q.world && q.world.people) || []) {
+        if (!registry.characters[e.who]) bad(where, 'world.people: нет персонажа «' + e.who + '»');
+        if (!registry.places[e.at]) bad(where, 'world.people: нет места «' + e.at + '»');
+        lintCond(e.if, where + ', world');
+      }
       for (const it of q.interactions || []) {
         if (!/^\w+:[\w.]+$/.test(it.on || '')) bad(where, 'interactions: нужен on вида «station:id», а не «' + it.on + '»');
+        else if (it.on.startsWith('spot:') && !registry.spots[it.on.slice(5)]) bad(where, 'interactions: нет объекта «' + it.on + '»');
         lintCond(it.if, where + ', interactions');
         lintEffects(it.do, where + ', interactions');
       }
@@ -164,7 +170,17 @@
       for (const [name, node] of Object.entries(d.nodes || {})) lintNode(node, where + ', узел ' + name, d, d);
     }
 
-    for (const c of Object.values(registry.characters)) if (!c.name) bad('персонаж ' + c.id, 'нет name');
+    for (const c of Object.values(registry.characters)) {
+      if (!c.name) bad('персонаж ' + c.id, 'нет name');
+      if (c.at && !registry.places[c.at]) bad('персонаж ' + c.id, 'нет места «' + c.at + '» в at');
+    }
+    for (const sp of Object.values(registry.spots)) {
+      const where = 'объект ' + sp.id;
+      if (!registry.places[sp.at]) bad(where, 'нет места «' + sp.at + '» в at');
+      if (!(sp.parts || []).length) bad(where, 'нет parts');
+      for (const part of sp.parts || []) if (!Array.isArray(part) || part.length !== 7) bad(where, 'часть: [w, h, d, цвет, x, y, z]');
+      lintCond(sp.if, where);
+    }
     for (const f of Object.values(registry.facts)) if (!f.text) bad('факт ' + f.id, 'нет text');
     for (const p of Object.values(registry.places)) {
       if (typeof p.x !== 'number' || typeof p.z !== 'number') bad('место ' + p.id, 'нужны числа x и z');

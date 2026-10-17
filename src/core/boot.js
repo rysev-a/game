@@ -11,5 +11,6 @@
   root.defineCharacter = (a, b) => reg().defineCharacter(a, b);
   root.defineFact = (a, b) => reg().defineFact(a, b);
   root.definePlace = (a, b) => reg().definePlace(a, b);
+  root.defineSpot = (a, b) => reg().defineSpot(a, b);
   root.defineScenario = (a, b) => reg().defineScenario(a, b);
 })(globalThis);

@@ -3,6 +3,7 @@
 //
 //   defineScenario('1.03', {
 //     title: 'У моста проходится',
+//     done: ['1.03'],                                 // квесты, которые к началу уже выполнены (без их действий onDone)
 //     steps: [
 //       { expect: 'quest:1.03' },                       // условие должно быть правдой (expectNot — ложью)
 //       { at: 'bridge.scene' },                         // игрок встал в центр места (или { at: { x, z } })
@@ -35,6 +36,10 @@
     if (opts.setup) opts.setup(host);
     const game = Core.createGame({ registry, host });
     const failures = [];
+    for (const id of scenario.done || []) {
+      game.state.quests[id] = { state: 'done', steps: {}, startedAt: 0, doneAt: 0 };
+      for (const st of (registry.quests[id] && registry.quests[id].steps) || []) game.state.quests[id].steps[st.id] = true;
+    }
     game.settle(); // квесты с autoStart начинаются с начала истории
 
     scenario.steps.forEach((step, i) => {

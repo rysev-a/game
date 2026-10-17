@@ -17,6 +17,7 @@
     characters: 'персонаж',
     facts: 'факт',
     places: 'место',
+    spots: 'объект мира',
     scenarios: 'сценарий',
   };
 
@@ -45,6 +46,7 @@
     reg.defineCharacter = (a, b) => put('characters', ...entry(a, b));
     reg.defineFact = (a, b) => put('facts', ...entry(a, b));
     reg.definePlace = (a, b) => put('places', ...entry(a, b));
+    reg.defineSpot = (a, b) => put('spots', ...entry(a, b));
     reg.defineScenario = (a, b) => put('scenarios', ...entry(a, b));
     return reg;
   };
