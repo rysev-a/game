@@ -24,7 +24,8 @@
 //   18–20. «Змейки 8–10» — самые узкие (26 → 22) и длинные, южнее «Гран-при»
 //   21–30. «Фигуры» — севернее гоночного комплекса, по продолжению продольной дороги: скидпад, треугольник, ромб, буква L, зигзаг,
 //           подкова, гантель, звезда, боб и цветок (разной формы и ширины 16–26)
-// Все трассы — внутри круга мира (забор, src/engine/layout.js).
+//   31–80. «Кольца» — полигон радиусов севернее «Фигур» (z от −1450 до −2780): 50 кругов, 10 радиусов (20…96) × 5 ширин (12…34), для дрифта
+// Все трассы — внутри круга мира (забор, src/engine/layout.js; в ДЕМО он шире — demoWorldRadius в demo/index.html).
 //
 // Каждая трасса — замкнутая осевая линия (точки через ~2 юнита); полотно, поребрики и стенки из покрышек
 // строятся по ней одинаково. Где полотно одной дороги заходит на другую (перекресток восьмерки, подъезды),
@@ -329,6 +330,59 @@ let onRaceTrack = () => false;
     ...shapeSpurs,
   ];
 
+  // ---------- Полигон радиусов: 50 колец (10 радиусов × 5 ширин) для проверки дрифта ----------
+  // Севернее «Фигур» (z от −1450): продолжение продольной дороги x = −148 идет на север, от нее на запад — дороги рядов, от них — подъезды к кольцам.
+  // Радиус оси — 20…96 юнитов, ширина полотна — 12…34; кольца идут рядами (полками): крупные ряды ниже по дороге, мелкие выше.
+  // Подбирай по радиусу и ширине: узкое кольцо маленького радиуса — шпилька, широкое большого — просторный вираж.
+  const RING_RADII = [20, 25, 30, 36, 43, 51, 60, 70, 82, 96];
+  const RING_WIDTHS = [12, 16, 20, 26, 34];
+  const ringItems = [];
+  for (const R of RING_RADII) for (const w of RING_WIDTHS) ringItems.push({ R, w, d: 2 * R + w }); // d — внешний диаметр полотна
+  ringItems.sort((a, b) => b.d - a.d || a.R - b.R);
+  const ringEast = -230; // восточный край блока (до продольной дороги x = −148 остается 82)
+  const ringRowW = 1100; // длина ряда колец
+  const ringGap = 18; // зазор между кольцами (с покрышками и поребриками)
+  const ringRows = [];
+  {
+    let cur = { w: 0, h: 0, items: [] };
+    for (const it of ringItems) {
+      if (cur.w + it.d + ringGap > ringRowW && cur.items.length) {
+        ringRows.push(cur);
+        cur = { w: 0, h: 0, items: [] };
+      }
+      cur.items.push(it);
+      cur.w += it.d + ringGap;
+      cur.h = Math.max(cur.h, it.d);
+    }
+    ringRows.push(cur);
+  }
+  const radTracks = [];
+  const radSpurs = [];
+  const radRoads = [];
+  let radCursor = -1450; // южная граница очередного ряда (z растет к югу, ряды идут на север)
+  let radTop = radCursor;
+  for (const row of ringRows) {
+    const roadZ = radCursor - 8; // дорога ряда — у его южной границы
+    let x = ringEast;
+    for (const it of row.items) {
+      const hw = it.w / 2;
+      const cx = x - it.R - hw;
+      const cz = roadZ - 14 - it.R - hw; // южный край полотна — в 14 юнитах к северу от дороги
+      radTracks.push({
+        id: 'ring_r' + it.R + '_w' + it.w, name: 'Кольцо R' + it.R + ' · ширина ' + it.w, start: 0.5, w: it.w, mapStep: 4,
+        desc: 'Круг радиусом ' + it.R + ' по оси полотна, ширина ' + it.w + ' (внутренний край — радиус ' + (it.R - hw) + ', внешний — ' + (it.R + hw) + '): для проверки дрифта.',
+        pts: closedCurve((u) => [cx + it.R * Math.cos(TAU * u), cz + it.R * Math.sin(TAU * u)], 2),
+      });
+      radSpurs.push({ pts: line(cx, roadZ, cx, cz + it.R), w: 12 }); // подъезд к южной точке кольца
+      x -= it.d + ringGap;
+    }
+    radRoads.push({ pts: line(-148, roadZ, ringEast - row.w + ringGap, roadZ), w: 12 });
+    radTop = roadZ - 14 - row.h - 12;
+    radCursor = radTop - 6;
+  }
+  const radSpine = { pts: line(-148, shapeRoadZ, -148, radTop + 20), w: 12 }; // продольная дорога дальше на север
+  const radArea = { x1: ringEast - ringRowW - 40, x2: -110, z1: radTop - 20, z2: -1440 };
+
   // ---------- Трассы ----------
   const asphaltColor = 0x404044;
   const TRACKS = [
@@ -434,6 +488,7 @@ let onRaceTrack = () => false;
     },
     ...driftTracks,
     ...shapeTracks,
+    ...radTracks,
   ];
 
   // Линия старта — в начале осевой линии: сдвигаем начало на прямую, подальше от перекрестков и подъездов
@@ -467,6 +522,10 @@ let onRaceTrack = () => false;
     ...driftSpurs,
     // «Фигуры»: дорога на восток от площадки, продольная дорога и подъезды
     ...shapeRoads,
+    // «Полигон радиусов»: продолжение продольной дороги, дороги рядов и подъезды к кольцам
+    radSpine,
+    ...radRoads,
+    ...radSpurs,
   ];
 
   // Все полотна — один список: осевая линия, полуширина, замкнута ли
@@ -577,7 +636,7 @@ let onRaceTrack = () => false;
   const area4 = { x1: -1300, x2: -785, z1: -495, z2: 495 }; // дрифт-полигон, север
   const area5 = { x1: -830, x2: -120, z1: 575, z2: 1005 }; // дрифт-полигон, юг
   const area6 = { x1: -1260, x2: -110, z1: -1375, z2: -925 }; // дрифт-полигон «Фигуры»
-  for (const [ar, id, name] of [[area4, 'driftpark', 'Дрифт-полигон'], [area5, 'driftpark_south', 'Дрифт-полигон: длинные змейки'], [area6, 'driftshapes', 'Дрифт-полигон: фигуры']]) {
+  for (const [ar, id, name] of [[radArea, 'driftrings', 'Дрифт-полигон: кольца'], [area4, 'driftpark', 'Дрифт-полигон'], [area5, 'driftpark_south', 'Дрифт-полигон: длинные змейки'], [area6, 'driftshapes', 'Дрифт-полигон: фигуры']]) {
     flatRect(ar.x2 - ar.x1, ar.z2 - ar.z1, 0x46703e, 0.005, (ar.x1 + ar.x2) / 2, (ar.z1 + ar.z2) / 2);
     mapObjects.push({ x: (ar.x1 + ar.x2) / 2, z: (ar.z1 + ar.z2) / 2, hx: (ar.x2 - ar.x1) / 2, hz: (ar.z2 - ar.z1) / 2, color: '#35583a', ground: true });
     registerZone(id, name, ar, { birds: 0.3 });
@@ -619,7 +678,7 @@ let onRaceTrack = () => false;
       addHoverInfo(mesh, { kind: 'Автодром', name: 'Трасса «' + sf.track.name + '»', desc: sf.track.desc + ' Линия старта — шашечки: с нее идет секундомер круга.' });
     } else addHoverInfo(mesh, { kind: 'Автодром', name: 'Подъезд', desc: 'Дорога между трассами автодрома и площадкой.' });
     const mapColor = sf.color === asphaltColor ? '#56565c' : '#8a6a48';
-    for (let i = 0; i < n; i += 2) {
+    for (let i = 0; i < n; i += (sf.track && sf.track.mapStep) || 2) {
       mapObjects.push({ x: sf.pts[i].x, z: sf.pts[i].z, hx: sf.hw, hz: sf.hw, color: mapColor, ground: true });
     }
   });
