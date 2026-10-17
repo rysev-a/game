@@ -21,6 +21,7 @@ function personTitle(p) {
   const kind = p.kind || p.role;
   const titles = {
     officer: ['полицейский', 'полицейская'],
+    mib: ['человек в черном', 'женщина в черном'],
     resident: ['сосед', 'соседка'],
     cashier: ['кассир', 'кассир'],
     staff: ['продавец', 'продавщица'],
@@ -71,11 +72,14 @@ const inCity = () => {
   return /^city\d+$/.test(id);
 };
 const inVillage = () => !insideBuilding() && currentZone().id === 'village';
+// На трассе (z около 0) прохожий тоже подтолкнет машину: у моста, на съездах, у заправок
+const onHighway = () => !insideBuilding() && Math.abs(playerWorldZ) < 40;
 const incidentKnown = () => incident.arrived || incident.state === 'done';
 
 // ---------- Диалоги ----------
 const greetings = {
   officer: ['Здесь работает полиция. Не подходите к оцеплению.'],
+  mib: ['Проходите, гражданин. Здесь вам смотреть не на что.', 'Не задерживайтесь. Это закрытая зона.'],
   resident: ['Добрый день, сосед!', 'Здравствуйте. Хорошая погода, да?'],
   cashier: ['Здравствуйте. Чем могу помочь?', 'Следующий!'],
   staff: ['Добрый день. Что-нибудь подсказать?'],
@@ -90,11 +94,11 @@ function greetingFor(p) {
 
 function rootDialogue(p) {
   const speaker = personLabel(p);
-  const isOfficer = p.kind === 'officer';
+  const isOfficer = p.kind === 'officer' || p.kind === 'mib';
   const options = [];
 
   // Главная просьба: машина села, а вы в городе (любой прохожий) или в поселке (сосед)
-  if (carStalled() && !isOfficer && (inCity() || (inVillage() && p.kind === 'resident'))) {
+  if (carStalled() && !isOfficer && (inCity() || onHighway() || (inVillage() && p.kind === 'resident'))) {
     options.push({ text: 'Моя машина села. Не поможете подтолкнуть?', next: askPush });
   }
   if (isOfficer) {
@@ -124,7 +128,7 @@ const riverRumor = (p) => ({
 
 const officerWho = (p) => ({
   speaker: personLabel(p),
-  text: 'Прохожий. Он уже дал показания. Больше сказать не могу.',
+  text: p.kind === 'mib' ? 'Это вас не касается. Идите своей дорогой.' : 'Прохожий. Он уже дал показания. Больше сказать не могу.',
   options: [{ text: 'Понятно.', end: true }],
 });
 

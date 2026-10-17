@@ -16,6 +16,15 @@ defineQuest({
       done: 'near:village.denis',
       marker: 'village.denis',
       hint: 'Сосновка на западном конце трассы, Денис стоит на улице у вашего дома. Можно кликнуть по карте',
+      timer: {
+        limit: '120m',
+        warn: { '60%': [{ toast: 'Денис ждет в Сосновке и нервничает: время уходит.' }] },
+        onExpire: [
+          { toast: 'Денис не дождался и ушел по делам. Вы возвращаетесь к дереву и пробуете снова.' },
+          { teleport: { to: 'zarechye.road', car: true } },
+        ],
+        repeat: true,
+      },
     },
     {
       id: 'talk',

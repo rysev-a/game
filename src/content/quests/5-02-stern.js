@@ -16,6 +16,15 @@ defineQuest({
       done: 'at:treehouse',
       marker: 'zarechye.tree',
       hint: 'Заречье на востоке, за оврагом: веревочная лестница в дупле',
+      timer: {
+        limit: '90m',
+        warn: { '60%': [{ toast: 'Вера ждет у дерева: нельзя тянуть.' }] },
+        onExpire: [
+          { toast: 'Опоздали: Вера ушла к реке одна. Возвращаетесь к выходу из лаборатории и едете снова.' },
+          { teleport: { to: 'lab.exit', car: true } },
+        ],
+        repeat: true,
+      },
     },
     {
       id: 'charge',

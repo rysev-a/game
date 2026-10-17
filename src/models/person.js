@@ -595,7 +595,7 @@ function createWalkingMan(options = {}) {
   if (o.glasses) {
     [-0.055, 0.055].forEach((x) => {
       onFace(0.075, 0.06, 0x202020, x, headY + 0.01, 0.006);
-      onFace(0.055, 0.04, 0xbcd8e8, x, headY + 0.01, 0.01);
+      onFace(0.055, 0.04, o.glassesLens !== undefined ? o.glassesLens : 0xbcd8e8, x, headY + 0.01, 0.01);
     });
   }
   if (o.beard) {
@@ -1039,6 +1039,11 @@ const PERSON_PRESETS = {
   office: { tie: true, bag: 'tote', bagColor: 0x2a2a2a },
   student: { bag: 'backpack' },
   worker: { hat: 'cap', shirtColor: 0xe58a2f, pantsColor: 0x3a4a6a },
+};
+// Человек в черном: черный костюм и галстук, черные очки (квест 1.03: у моста работают «странные люди»)
+PERSON_PRESETS.mib = {
+  jacket: 0x0b0b0d, shirtColor: 0x0b0b0d, pantsColor: 0x0b0b0d, tie: true, tieColor: 0x050505, glasses: true, glassesLens: 0x050505,
+  hairColor: 0x141414, shoeColor: 0x050505, skinColor: 0xd9a888, buttons: true,
 };
 PERSON_PRESETS.geek = PERSON_PRESETS.maxim; // старое имя набора игрока
 

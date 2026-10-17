@@ -16,6 +16,15 @@ defineQuest({
       done: 'has:bp_bracelet',
       marker: 'village.loft',
       hint: 'Голубятня на краю улицы Сосновки, к востоку от дома героя',
+      timer: {
+        limit: '120m',
+        warn: { '60%': [{ toast: 'Время уходит: тайник Веры нужно найти до конца дня.' }] },
+        onExpire: [
+          { toast: 'День прошел впустую. Возвращаетесь в Заречье и едете снова.' },
+          { teleport: { to: 'zarechye.road', car: true } },
+        ],
+        repeat: true,
+      },
     },
     {
       id: 'calc',
@@ -29,6 +38,15 @@ defineQuest({
       text: 'Отдать чертеж Михалычу во дворе у заправки',
       done: 'step:3.04.bring',
       marker: 'yard.forge',
+      timer: {
+        limit: '90m',
+        warn: { '60%': [{ toast: 'Михалыч скоро закончит работу.' }] },
+        onExpire: [
+          { toast: 'Михалыч ушел. Возвращаетесь к серверу и едете снова.' },
+          { teleport: { to: 'village.server', car: true } },
+        ],
+        repeat: true,
+      },
     },
     {
       id: 'forge',
@@ -43,6 +61,15 @@ defineQuest({
       done: 'has:bracelet',
       marker: 'zarechye.tree',
       hint: 'Нужно хотя бы 20 единиц эликсира: сварите его на верстаке (2.05), если шкала пуста',
+      timer: {
+        limit: '70m',
+        warn: { '60%': [{ toast: 'Эликсир остывает: нужно успеть до ночи.' }] },
+        onExpire: [
+          { toast: 'Эликсир остыл. Возвращаетесь к кузнице и едете снова.' },
+          { teleport: { to: 'yard.nikolai', car: true } },
+        ],
+        repeat: true,
+      },
     },
   ],
 

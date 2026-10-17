@@ -16,6 +16,15 @@ defineQuest({
       done: 'talked:mihalych',
       marker: 'yard.forge',
       hint: 'Заправка на трассе у торгового центра, кузница чуть севернее колонок',
+      timer: {
+        limit: '45m',
+        warn: { '60%': [{ toast: 'Михалыч вот-вот закроет кузницу на ночь.' }] },
+        onExpire: [
+          { toast: 'Кузница закрыта. Вы возвращаетесь к библиотеке и едете снова.' },
+          { teleport: { to: 'road.city', car: true } },
+        ],
+        repeat: true,
+      },
     },
     {
       id: 'bring',

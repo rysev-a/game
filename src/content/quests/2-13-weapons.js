@@ -16,12 +16,30 @@ defineQuest({
       done: ['has:sg_pipe', 'has:sg_stock', 'has:sg_spring', 'has:mg_pipe', 'has:mg_gears', 'has:mg_spring'],
       marker: 'mall.stalls',
       hint: 'Три прилавка справа от парковки: «Металл» (стволы), «Запчасти» (пружины, механизм), «Дерево» (ложа). В кошельке 400',
+      timer: {
+        limit: '40m',
+        warn: { '60%': [{ toast: 'Прилавки скоро свернутся: торговцы уже собирают товар.' }] },
+        onExpire: [
+          { toast: 'Прилавки убрали. Возвращаетесь к библиотеке и едете снова.' },
+          { teleport: { to: 'road.city', car: true } },
+        ],
+        repeat: true,
+      },
     },
     {
       id: 'bring',
       text: 'Отнести чертежи и детали Михалычу во дворе у заправки',
       done: 'step:2.13.bring',
       marker: 'yard.forge',
+      timer: {
+        limit: '40m',
+        warn: { '60%': [{ toast: 'Михалыч ждет, а день клонится к вечеру.' }] },
+        onExpire: [
+          { toast: 'Михалыч ушел из кузницы. Возвращаетесь к прилавкам и едете снова.' },
+          { teleport: { to: 'mall.stalls', car: true } },
+        ],
+        repeat: true,
+      },
     },
     {
       id: 'shotgun',

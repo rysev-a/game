@@ -46,6 +46,42 @@
     incident.officers.push(o);
   }
 
+  // Люди в черном и два черных фургона (квест 1.03): странные люди в костюмах и черных очках у ленты, фургоны на обочине
+  function addBlackVan(x, z, heading) {
+    const mesh = createCar({ bodyColor: 0x0c0c10, cabinColor: 0x15151c });
+    mesh.scale.set(1.15, 1.25, 1.55);
+    mesh.position.set(x, 0, z);
+    mesh.rotation.y = heading;
+    cityGroup.add(mesh);
+    const car = {
+      mesh, x, z, heading, speed: 0, color: 0x0c0c10, locked: true, half: { w: 1.15, l: 3.3 },
+      info: { kind: 'Машина', name: 'Черный фургон', desc: 'Без номеров, стекла тонированы. Закрыт.' },
+    };
+    cars.push(car);
+    incident.cars.push(car);
+  }
+
+  function addAgent(x, z) {
+    const mesh = createPerson('mib', { gender: 'male' });
+    const o = {
+      mesh, gender: 'male', kind: 'mib', hold: true, home: { x, z }, x, z, moving: false, target: null,
+      timer: rand(300, 900), speed: 0.03, phase: rand(0, 6), amp: 0, yaw: Math.atan2(-(incident.x - x), -(incident.z - z)),
+    };
+    mesh.position.set(x, 0, z);
+    mesh.rotation.y = o.yaw;
+    mesh.updateWalk(0, 0);
+    cityGroup.add(mesh);
+    npcs.push(o);
+    incident.officers.push(o);
+  }
+
+  // Прохожий на обочине у моста: его можно попросить подтолкнуть машину без бензина (src/player/talk.js, квест 1.06)
+  let bystander = null;
+  function addBystander() {
+    addNpc({ x1: riverX - 36, z1: 7, x2: riverX - 28, z2: 7 }, 'male', 'passerby');
+    bystander = npcs[npcs.length - 1];
+  }
+
   // E у тела: воспоминание. Доступно, когда герой уже поговорил с Денисом, и пока не посмотрел
   let bodyInteractable = null;
   const bodyReach = 4.2;
@@ -71,6 +107,10 @@
     // каждый кадр, пока сцена на месте: время и отрисовка замирают. Правильное место исправления — addEmergencyCar
     for (const car of incident.cars) if (!car.half) car.half = { ...carHalf };
     addDenis();
+    addBlackVan(riverX - 46, 10, Math.PI / 2 + 0.12);
+    addBlackVan(riverX - 40, 17.5, Math.PI / 2 - 0.1);
+    for (const [x, z] of [[riverX - 33, 13], [riverX - 33, 20], [riverX - 25, 26]]) addAgent(x, z);
+    addBystander();
     addBodyInteractable();
   };
 
@@ -78,6 +118,12 @@
   despawnIncident = function (permanently) {
     if (bodyInteractable) removeInteractable(bodyInteractable);
     bodyInteractable = null;
+    if (bystander) {
+      cityGroup.remove(bystander.mesh);
+      const i = npcs.indexOf(bystander);
+      if (i >= 0) npcs.splice(i, 1);
+      bystander = null;
+    }
     origDespawnIncident(permanently);
   };
 

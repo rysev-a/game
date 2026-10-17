@@ -16,6 +16,15 @@ defineQuest({
       done: 'at:treehouse',
       marker: 'zarechye.tree',
       hint: 'Заречье на востоке, за оврагом: веревочная лестница в дупле',
+      timer: {
+        limit: '70m',
+        warn: { '60%': [{ toast: 'Тот, кто пришел за ноутбуком, не станет ждать: быстрее к дереву!' }] },
+        onExpire: [
+          { toast: 'Опоздали: у дерева уже никого. Возвращаетесь на заправку и едете снова.' },
+          { teleport: { to: 'yard.nikolai', car: true } },
+        ],
+        repeat: true,
+      },
     },
     {
       id: 'take',

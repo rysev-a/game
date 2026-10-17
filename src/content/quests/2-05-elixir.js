@@ -24,6 +24,15 @@ defineQuest({
       done: 'has:elixir_kit',
       marker: 'mall.entrance',
       hint: 'Торговый центр на трассе у первого города. Людмила на первом этаже у входа',
+      timer: {
+        limit: '55m',
+        warn: { '60%': [{ toast: 'Людмила Сергеевна скоро закроет отдел: поторопитесь.' }] },
+        onExpire: [
+          { toast: 'Отдел закрылся, пока вы добирались. Возвращаетесь к дереву и едете еще раз.' },
+          { teleport: { to: 'zarechye.road', car: true } },
+        ],
+        repeat: true,
+      },
     },
     {
       id: 'return',
@@ -31,6 +40,15 @@ defineQuest({
       done: 'at:treehouse',
       marker: 'zarechye.tree',
       hint: 'Заречье, за оврагом: веревочная лестница в дупле',
+      timer: {
+        limit: '55m',
+        warn: { '60%': [{ toast: 'Ингредиенты быстро выдыхаются: времени почти нет.' }] },
+        onExpire: [
+          { toast: 'Ингредиенты выдохлись по дороге. Вы возвращаетесь в торговый центр и берете набор заново.' },
+          { teleport: { to: 'mall.entrance', car: true } },
+        ],
+        repeat: true,
+      },
     },
     {
       id: 'brew',

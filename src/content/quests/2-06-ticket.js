@@ -16,6 +16,15 @@ defineQuest({
       done: 'at:library',
       marker: 'city.library',
       hint: 'Библиотека в сером городе у трассы. E у входа',
+      timer: {
+        limit: '50m',
+        warn: { '60%': [{ toast: 'Библиотека скоро закроется на обед.' }] },
+        onExpire: [
+          { toast: 'Библиотека закрылась на обед. Возвращаетесь к дереву и пробуете снова.' },
+          { teleport: { to: 'zarechye.road', car: true } },
+        ],
+        repeat: true,
+      },
     },
     {
       id: 'talk',

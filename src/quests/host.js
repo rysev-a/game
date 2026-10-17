@@ -6,6 +6,9 @@
 // Рассказчик для узлов без собеседника (воспоминание): окну диалога нужен «человек», но не нужно его тело
 const questNarrator = { talking: false, seated: true };
 
+// Идет входящий звонок (телефон героя звонит, src/quests/journal-ui.js): игра на паузе
+let questCallOpen = false;
+
 // Сообщения ядра идут по очереди: «Новое задание» и сообщение на телефон не должны затирать друг друга
 const questToasts = [];
 let questToastBusy = false;
@@ -71,6 +74,15 @@ function questTravelToLocation(loc, payload) {
   setTimeout(() => (window.location.href = LOCATIONS[loc].page), 450);
 }
 
+// Доля бака, которой хватает от дома героя до реки по трассе: длина пути (highwayLengthToRiver, если дорога ее задала, иначе прямая и 15% на изгибы)
+// плюс запас 4% на выезд из гаража, торможения и разворот. fuelRange — src/player/driving.js
+function questFuelToRiver() {
+  const home = Core.registry.places['village.home'];
+  const straight = riverX - (home ? home.x : villageX);
+  const len = typeof highwayLengthToRiver === 'number' ? highwayLengthToRiver : straight * 1.15;
+  return Math.min(1, len / (fuelRange * ((garage.car && garage.car.fuelEconomy) || 1)) + 0.04);
+}
+
 const questHost = {
   now: () => gameMinutes,
   hour: () => gameHour(),
@@ -94,6 +106,13 @@ const questHost = {
     showToast(on ? 'Мотор троит и дымит: машина еле едет. Нужен ремонт.' : 'Машина починена: едет как новая.', 4000);
   },
   swapPlayerCar: (kindId) => questSwapPlayerCar(kindId),
+  // Бак машины героя: доля 0…1; 'river' — ровно хватит от дома до реки по трассе (с небольшим запасом)
+  setFuel: (v) => {
+    const car = garage.car;
+    if (!car) return;
+    car.fuel = v === 'river' ? questFuelToRiver() : Math.max(0, Math.min(1, v));
+  },
+  fuel: () => (garage.car ? garage.car.fuel : 1),
   setFuelEconomy: (n) => {
     if (garage.car) garage.car.fuelEconomy = n;
     if (n > 1) showToast('Расход топлива настроен: бензина хватит надолго (в ' + n + ' раз).', 4000);
@@ -105,7 +124,7 @@ const questHost = {
     renderEquipHud();
     showToast('Люди в черном догнали вас. Темнота... и снова старт.', 4500);
   },
-  paused: () => dialogueOpen || settingsOpen, // в разговоре, журнале, головоломке и меню таймеры стоят
+  paused: () => dialogueOpen || settingsOpen || questCallOpen, // в разговоре, журнале, головоломке и меню таймеры стоят
   elixir: () => heroStats.elixir,
   advanceTime: (min) => {
     advanceGameTime(min);

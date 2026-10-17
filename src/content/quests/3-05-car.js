@@ -19,6 +19,15 @@ defineQuest({
       done: 'near:yard.garage',
       marker: 'yard.garage',
       hint: 'Мастерская во дворе у заправки, западнее торгового центра. Машина едет еле-еле, зато едет',
+      timer: {
+        limit: '130m',
+        warn: { '60%': [{ toast: 'Мотор троит и дымит все сильнее: время идет.' }] },
+        onExpire: [
+          { toast: 'Машина заглохла посреди пути, пришлось тащить ее. Возвращаетесь к дереву и пробуете снова.' },
+          { teleport: { to: 'zarechye.road', car: true } },
+        ],
+        repeat: true,
+      },
     },
     {
       id: 'talk',

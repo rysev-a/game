@@ -35,6 +35,14 @@
     h.setCarLimp = (v) => (h.limp = v);
     h.swapPlayerCar = (kind) => (h.playerCarKind = kind);
     h.setFuelEconomy = (n) => (h.fuelEconomy = n);
+    h.fuelLevel = 1;
+    h.fuel = () => h.fuelLevel;
+    h.setFuel = (v) => (h.fuelLevel = v === 'river' ? 0.7 : v);
+    h.calls = [];
+    h.incomingCall = (call) => {
+      h.calls.push(call.from);
+      h.dialogs.push(call.node); // в тесте герой отвечает сразу
+    };
     h.killHero = () => (h.killed = (h.killed || 0) + 1);
     h.startPractice = (opts) => (h.practice = opts);
     h.endPractice = () => (h.practice = null);

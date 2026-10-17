@@ -16,6 +16,15 @@ defineQuest({
       done: 'near:zarechye.house',
       marker: 'zarechye.house',
       hint: 'Заречье на востоке, за рекой и мостом. Можно кликнуть по карте',
+      timer: {
+        limit: '70m',
+        warn: { '60%': [{ toast: 'Анна Петровна одна и боится: время идет.' }] },
+        onExpire: [
+          { toast: 'Анна Петровна не дождалась и ушла к соседям. Возвращаетесь к кузнице и едете снова.' },
+          { teleport: { to: 'yard.nikolai', car: true } },
+        ],
+        repeat: true,
+      },
     },
     {
       id: 'talk',

@@ -3,7 +3,8 @@
 defineScenario('1.03', {
   title: 'У моста проходится от начала до конца',
   steps: [
-    { expect: ['quest:1.03', '!step:1.03.arrive'] },
+    // Игра начинается со звонка Дениса; бак заполнен на дорогу до реки
+    { expect: ['quest:1.03', '!step:1.03.arrive', 'fuel:>=0.5'] },
 
     // Далеко от моста первый шаг не выполнен, у моста — выполнен
     { at: { x: 0, z: 0 }, expectNot: 'step:1.03.arrive' },
@@ -15,15 +16,24 @@ defineScenario('1.03', {
     { talk: 'denis', see: 'глянь' }, // после разговора Денис отсылает к телу
 
     // Осмотр тела: воспоминание из двух реплик
-    { dialog: '1.03.flash', pick: [0], see: 'Девочка с плота', expect: ['step:1.03.body', 'fact:Ф3', 'done:1.03', 'quest:1.06'] }, // следом выдается квест 1.06
+    { dialog: '1.03.flash', pick: [0, 0], see: 'бабушку Веры', expect: ['step:1.03.body', 'fact:Ф3', 'done:1.03', 'quest:1.06', '!fuel:>=0.1'] }, // следом выдается квест 1.06, бак пуст
     { talk: 'denis', see: 'Чего тебе', expectNot: 'quest:1.03' }, // квест закончен — Денис говорит как обычно
+  ],
+});
+
+defineScenario('1.03-late', {
+  title: 'Не успели к мосту: таймер возвращает героя домой, бак снова полный, попытка повторяется',
+  steps: [
+    { do: [{ fuel: 0.1 }] },
+    { wait: '151m', expect: ['quest:1.03', '!step:1.03.arrive', 'fuel:>=0.5'] },
+    { expect: [] },
   ],
 });
 
 defineScenario('1.03-skip-ahead', {
   title: 'Осмотр тела до разговора: шаг отмечается сразу, квест заканчивается, когда выполнено всё',
   steps: [
-    { dialog: '1.03.flash', pick: [0], expect: 'step:1.03.body' },
+    { dialog: '1.03.flash', pick: [0, 0], expect: 'step:1.03.body' },
     { expectNot: 'done:1.03' },
     { at: 'bridge.scene', expect: 'step:1.03.arrive' },
     { talk: 'denis', pick: [0, 0, 0, 0], expect: ['done:1.03'] },

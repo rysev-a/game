@@ -12,6 +12,10 @@ const Core = loadContent();
 // Место сцены у реки в игре задает src/quests/places.js по координатам сцены; для теста — те же числа:
 // река x = 350, тело в riverX − 21, z = 18, «подошел» с 60 юнитов
 definePlace('bridge.scene', { x: 329, z: 18, r: 60, name: 'Мост' });
+definePlace('village.home', { x: -1318, z: 0, r: 14, name: 'Дом, Сосновка' });
+definePlace('road.city', { x: 200, z: 0, r: 14, name: 'Трасса у города' });
+definePlace('zarechye.road', { x: 610, z: 84, r: 12, name: 'Грунтовка к Заречью' });
+definePlace('gas.zarechye', { x: 398, z: -9, r: 14, name: 'Заправка «Заречье»' });
 definePlace('zarechye.house', { x: 400, z: 900, r: 34, name: 'Дом Анны Петровны' });
 definePlace('zarechye.tree', { x: 400, z: 950, r: 14, name: 'Дерево с домиком' });
 definePlace('mall.entrance', { x: 0, z: -29, r: 14, name: 'Торговый центр' });

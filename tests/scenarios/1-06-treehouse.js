@@ -3,7 +3,8 @@
 defineScenario('1.06', {
   title: 'Домик на дереве проходится от начала до конца',
   steps: [
-    { do: [{ start: '1.06' }], expect: ['quest:1.06', '!step:1.06.arrive'] },
+    { do: [{ start: '1.06' }], expect: ['quest:1.06', '!step:1.06.push', '!step:1.06.arrive'] }, // бак пуст
+    { do: [{ fuel: 1 }], expect: 'step:1.06.push' }, // дотолкали до заправки и заправились
 
     // Заречье, потом разговор с Анной Петровной: Ф4, Ф5, Ф6 по порядку реплик
     { at: { x: 0, z: 0 }, expectNot: 'step:1.06.arrive' },

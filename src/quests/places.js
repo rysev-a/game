@@ -6,8 +6,19 @@
 // Сцена у реки: тело и оцепление. «Подошел» — с того же расстояния, с которого игра считает, что игрок на месте
 definePlace('bridge.scene', { x: incident.x, z: incident.z, r: incidentArriveDist, name: 'Мост' });
 
-// Заречье: место берем у здания, поставленного в src/locations/zarechye/grandma.js (координаты там локальные)
 const questBuildingAt = (id) => placedBuildings.find((b) => b.id === id);
+
+// Дом героя в Сосновке: машина стоит в гараже носом к улице; место — на улице напротив гаража, отсюда начинаются все «не успел — на старт»
+definePlace('village.home', { x: garage.car ? garage.car.x : villageX, z: 0, r: 14, name: 'Дом, Сосновка' });
+
+// Места на дороге для «не успел — вернули и дали еще попытку» (таймеры квестов): машину можно поставить без помех
+definePlace('road.city', { x: 200, z: 0, r: 14, name: 'Трасса у города' });
+definePlace('zarechye.road', { x: questBuildingAt('grandma_house').x, z: questBuildingAt('grandma_house').z - 26, r: 12, name: 'Грунтовка к Заречью' });
+
+// Заправка «Заречье» за мостом (src/locations/city/gas-station.js): колонки к северу от трассы
+definePlace('gas.zarechye', { x: 398, z: -9, r: 14, name: 'Заправка «Заречье»' });
+
+// Заречье: место берем у здания, поставленного в src/locations/zarechye/grandma.js (координаты там локальные)
 {
   const house = questBuildingAt('grandma_house');
   const tree = questBuildingAt('treehouse');
