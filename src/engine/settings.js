@@ -197,14 +197,14 @@ const settingsTabs = [
 
 const settingsStyle = document.createElement('style');
 settingsStyle.textContent = `
-  #settingsMenu { width: min(580px, calc(100vw - 28px)); max-height: calc(100vh - 90px); overflow-y: auto; touch-action: pan-y; }
+  #settingsMenu { width: min(580px, calc(100vw - 28px)); max-height: calc(100vh - 24px); overflow-y: auto; touch-action: pan-y; }
   #settingsMenu .tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px; }
   #settingsMenu .tabs button { padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.25);
     background: rgba(255, 255, 255, 0.06); color: white; font: 13px sans-serif; cursor: pointer; }
   #settingsMenu .tabs button.on { background: rgba(143, 208, 255, 0.28); border-color: rgba(143, 208, 255, 0.7); }
-  #settingsMenu .panel { display: none; height: min(330px, calc(100vh - 290px)); min-height: 150px; overflow-y: auto; padding-right: 4px; }
+  #settingsMenu .panel { display: none; height: min(760px, calc(100vh - 200px)); min-height: 150px; overflow-y: auto; padding-right: 4px; }
   #settingsMenu .panel.on { display: block; }
-  #settingsMenu .item { margin-bottom: 12px; }
+  #settingsMenu .item { margin-bottom: 8px; }
   #settingsMenu .row { align-items: center; gap: 8px; }
   #settingsMenu .row .val { margin-left: auto; opacity: 0.85; }
   #settingsMenu .mute { width: 30px; height: 26px; padding: 0; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.3);
