@@ -129,6 +129,7 @@ addInteractable({
 // Сесть за руль
 function enterCar(car) {
   drivingCar = car;
+  wheelHandbrake = false;
   car.slip = 0;
   car.coast = 0;
   car.recoil = 0;
@@ -165,6 +166,7 @@ function exitCar(force = false) {
   drivingCar.speed = 0;
   drivingCar.slip = 0;
   drivingCar.coast = 0;
+  wheelHandbrake = false;
   drivingCar = null;
   player.visible = true;
 }
@@ -191,7 +193,7 @@ function updateDriving(c) {
   };
   const hasFuel = car.fuel > 0;
   const onTouch = touchUI && typeof touchDrive !== 'undefined';
-  const handLever = onTouch ? touchDrive.handbrake : keys['Space'] || wheelHandbrake; // Space или зажатое колесо мыши
+  const handLever = onTouch ? touchDrive.handbrake : keys['Space'] || wheelHandbrake; // Space или ручник колесом мыши (двойной клик — вкл/выкл)
   const carDrift = base.drift === undefined ? carDrive.drift : base.drift;
   const driftLevel = settings.driftLevel * carDrift; // 0..1 по шкале настроек
   const depth = driftLevel * driftScale;

@@ -7,8 +7,11 @@
 // с игроком. Пока зажато колесо мыши, движение мыши вращает камеру и наклоняет горизонт; отпустили —
 // после паузы камера сама встает за игрока (как после стрелок, cameraHoldFrames в src/player/player.js).
 let viewDragging = false;
-// За рулем колесо мыши, зажатое на сцене, — ручник (как Space; src/player/driving.js), а не вращение вида: камера и так едет за машиной
+// За рулем двойное нажатие колеса мыши на сцене включает ручник (как Space), еще двойное — выключает (src/player/driving.js);
+// вращения вида колесом за рулем нет: камера и так едет за машиной
 let wheelHandbrake = false;
+let wheelLastDown = 0;
+const wheelDoubleMs = 350; // два нажатия колеса не дольше этого друг от друга — двойное
 
 const keys = {};
 window.addEventListener('keydown', (e) => {
@@ -62,16 +65,22 @@ document.addEventListener('webkitfullscreenchange', onFullscreenChange);
 renderer.domElement.addEventListener('mousedown', (e) => {
   if (e.button === 1) {
     e.preventDefault(); // без «автопрокрутки» браузера
-    if (drivingCar) wheelHandbrake = true;
-    else viewDragging = true;
+    if (drivingCar) {
+      const now = performance.now();
+      if (now - wheelLastDown < wheelDoubleMs) {
+        wheelHandbrake = !wheelHandbrake;
+        wheelLastDown = 0;
+        showToast(wheelHandbrake ? 'Ручник включен (двойной клик колесом — выключить)' : 'Ручник выключен', 1500);
+      } else wheelLastDown = now;
+    } else viewDragging = true;
   } else if (e.button === 0 && !settingsOpen && !dialogueOpen) {
     pickHovered(); // клик по подсвеченной вещи — в инвентарь
   }
 });
 document.addEventListener('mouseup', (e) => {
-  if (e.button === 1) viewDragging = wheelHandbrake = false;
+  if (e.button === 1) viewDragging = false;
 });
-window.addEventListener('blur', () => (viewDragging = wheelHandbrake = false));
+window.addEventListener('blur', () => (viewDragging = false));
 
 // Где курсор над сценой (-1..1) — по нему ищем вещь под мышью (updatePickHover в src/engine/interact.js)
 let pickMouse = null;
