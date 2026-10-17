@@ -4,7 +4,7 @@
 // src/models/vehicles.js): плоские цвета (LitMaterial), темные контуры, светятся только фары.
 //
 //   const m = createGtCar({ bodyColor: 0x1f5fd0 });  // createRallyCar, createMuscleCar, createDriftCar,
-//                                                    // createProtoCar, createKart
+//                                                    // createProtoCar, createKart, createHyperCar, createBugatti
 // Интерфейс как у createCar: spinWheels, updateCar, setDoor, userData.exhaust. Модель смотрит в -Z.
 
 const raceGlass = 0x22313f; // тонированные стекла
@@ -135,6 +135,67 @@ function createProtoCar(options = {}) {
   k.wheel(-0.85, 1.55, 0.38, 0.4);
   k.wheel(0.85, 1.55, 0.38, 0.4);
   k.exhaust.position.set(0, 0.45, 2.35);
+  return k.root;
+}
+
+// ГИПЕРКАР: очень низкий клин с широкими арками, боковыми воздухозаборниками, диффузором и большим задним крылом
+function createHyperCar(options = {}) {
+  const o = Object.assign({ bodyColor: 0xf0a010, accentColor: 0x1b1b1f }, options);
+  const k = vehicleKit({ shake: 0.008, shakeRate: 34 });
+  k.part(2.1, 0.36, 4.5, o.bodyColor).position.set(0, 0.46, 0.05);
+  k.wedge(2.1, [[-2.25, 0.28], [-2.45, 0.32], [-2.25, 0.5], [-1.0, 0.7], [-1.0, 0.28]], o.bodyColor); // нос
+  k.wedge(1.55, [[-1.0, 0.62], [-0.15, 1.08], [1.15, 1.08], [2.0, 0.62]], raceGlass); // кабина
+  // Боковые воздухозаборники и накладки над арками
+  for (const x of [-1.06, 1.06]) {
+    k.part(0.14, 0.26, 1.0, o.accentColor).position.set(x, 0.62, 0.55);
+    k.part(0.28, 0.28, 1.1, o.bodyColor).position.set(x * 0.98, 0.58, -1.5);
+    k.part(0.28, 0.3, 1.2, o.bodyColor).position.set(x * 0.98, 0.6, 1.55);
+  }
+  k.part(2.2, 0.05, 0.32, o.accentColor).position.set(0, 0.26, -2.4); // сплиттер
+  k.part(1.6, 0.14, 0.4, o.accentColor).position.set(0, 0.3, 2.3); // диффузор
+  // Заднее крыло на двух стойках
+  k.part(2.1, 0.06, 0.55, o.accentColor).position.set(0, 1.12, 2.15);
+  for (const x of [-0.7, 0.7]) k.part(0.06, 0.45, 0.2, o.accentColor).position.set(x, 0.88, 2.1);
+  for (const x of [-0.75, 0.75]) k.lamp(x, 0.56, -2.3, 0xfff2b0, 0.4, 0.07);
+  k.lamp(0, 0.6, 2.26, 0xff3030, 1.7, 0.06);
+  k.wheel(-1.0, -1.55, 0.38, 0.34, 0x151515, 0xe0b030);
+  k.wheel(1.0, -1.55, 0.38, 0.34, 0x151515, 0xe0b030);
+  k.wheel(-1.02, 1.5, 0.4, 0.42, 0x151515, 0xe0b030);
+  k.wheel(1.02, 1.5, 0.4, 0.42, 0x151515, 0xe0b030);
+  k.exhaust.position.set(0, 0.4, 2.3);
+  return k.root;
+}
+
+// БУГАТТИ: длинный широкий гран-турер в двух тонах (темно-синий низ, черная крыша), подковообразная решетка радиатора,
+// светлая боковая линия «C» и сплошной задний фонарь
+function createBugatti(options = {}) {
+  const o = Object.assign({ bodyColor: 0x0f2a6b, roofColor: 0x14141a, accentColor: 0x6db8f0, chromeColor: 0xc9ced6 }, options);
+  const k = vehicleKit({ shake: 0.007, shakeRate: 30 });
+  k.part(2.12, 0.55, 4.8, o.bodyColor).position.set(0, 0.55, 0.05);
+  k.wedge(2.0, [[-2.35, 0.32], [-2.5, 0.4], [-2.2, 0.82], [-1.0, 0.86], [-1.0, 0.3]], o.bodyColor); // нос и капот
+  k.wedge(1.75, [[-1.0, 0.82], [-0.25, 1.38], [1.15, 1.38], [2.05, 0.82]], raceGlass); // кабина
+  k.part(1.55, 0.06, 1.3, o.roofColor).position.set(0, 1.4, 0.45); // крыша
+  k.part(0.7, 0.04, 2.2, o.roofColor).position.set(0, 0.84, -1.55); // темная вставка капота
+  // Боковая линия «C»: две горизонтали и вертикаль у задней арки
+  for (const x of [-1.07, 1.07]) {
+    k.part(0.02, 0.07, 1.7, o.accentColor).position.set(x, 0.86, -0.1);
+    k.part(0.02, 0.07, 1.0, o.accentColor).position.set(x, 0.46, 0.5);
+    k.part(0.02, 0.47, 0.07, o.accentColor).position.set(x, 0.66, 0.9);
+    k.part(0.26, 0.3, 1.2, o.bodyColor).position.set(x * 0.97, 0.62, -1.55);
+    k.part(0.26, 0.34, 1.3, o.bodyColor).position.set(x * 0.97, 0.64, 1.6);
+  }
+  // Подкова радиатора: две стойки и перемычка снизу, хромированные
+  k.part(0.9, 0.08, 0.06, o.chromeColor).position.set(0, 0.28, -2.52);
+  for (const x of [-0.48, 0.48]) k.part(0.08, 0.5, 0.06, o.chromeColor).position.set(x, 0.55, -2.53);
+  k.part(0.9, 0.34, 0.04, 0x08080a).position.set(0, 0.5, -2.5);
+  for (const x of [-0.85, 0.85]) k.lamp(x, 0.7, -2.4, 0xfff2b0, 0.42, 0.1);
+  k.lamp(0, 0.78, 2.46, 0xff3030, 1.9, 0.08); // сплошной задний фонарь
+  k.part(1.9, 0.05, 0.3, o.roofColor).position.set(0, 1.08, 2.3); // выдвижное крыло
+  k.wheel(-1.02, -1.55, 0.42, 0.36, 0x151515, o.chromeColor);
+  k.wheel(1.02, -1.55, 0.42, 0.36, 0x151515, o.chromeColor);
+  k.wheel(-1.04, 1.6, 0.44, 0.44, 0x151515, o.chromeColor);
+  k.wheel(1.04, 1.6, 0.44, 0.44, 0x151515, o.chromeColor);
+  k.exhaust.position.set(0, 0.4, 2.5);
   return k.root;
 }
 

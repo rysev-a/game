@@ -9,7 +9,7 @@ const exitMaxSpeed = 0.03; // выйти можно, только когда м�
 const carAccel = 0.02;
 const carBrake = 0.04;
 const carDrag = 0.006;
-const kmhPerSpeed = 250 / 1.5; // скорость за кадр → км/ч: самая быстрая машина (1,5, прототип) — 250 км/ч
+const kmhPerSpeed = 250 / 1.5; // скорость за кадр → км/ч (прототип, 1,5 за кадр, — 250 км/ч; гиперкар 2,1 — 350; Бугатти 2,4 — 400)
 const carMaxSpeed = 0.8;
 const carMaxReverse = -0.3;
 const carTurnRate = 0.045;
@@ -169,7 +169,7 @@ function exitCar(force = false) {
   drivingCar.speed = 0;
   drivingCar.slip = 0;
   drivingCar.coast = 0;
-  wheelBrakeMode = wheelHandbrake = false;
+  wheelBrakeMode = wheelHandbrake = rightHandbrake = false;
   drivingCar = null;
   player.visible = true;
 }
@@ -200,7 +200,7 @@ function updateDriving(c) {
   if (settings.infiniteFuel) car.fuel = 1; // «Бесконечный бензин»: бак всегда полный
   const hasFuel = car.fuel > 0;
   const onTouch = touchUI && typeof touchDrive !== 'undefined';
-  const handLever = onTouch ? touchDrive.handbrake : keys['Space'] || wheelHandbrake; // Space или зажатое колесо в режиме ручника (двойной клик колесом — вкл/выкл режим)
+  const handLever = onTouch ? touchDrive.handbrake : keys['Space'] || wheelHandbrake || rightHandbrake; // Space, правая кнопка мыши или зажатое колесо в режиме ручника (двойной клик колесом — вкл/выкл режим)
   const carDrift = base.drift === undefined ? carDrive.drift : base.drift;
   const driftLevel = settings.driftLevel * carDrift; // 0..1 по шкале настроек
   const depth = driftLevel * driftScale;
@@ -240,7 +240,9 @@ function updateDriving(c) {
   let steer = (c.left ? 1 : 0) - (c.right ? 1 : 0);
   if (!steer && typeof touchDriveSteer === 'function') steer = touchDriveSteer();
   if (!steer && typeof gyroSteer === 'function') steer = gyroSteer(car) || 0;
-  let turn = steer * k.turnRate * Math.min(1, Math.abs(car.speed) / 0.15) * Math.sign(car.speed) * (car.airborne ? 0.15 : 1);
+  // Выше 1,5 за кадр (250 км/ч) руль тупеет: у гиперкара и Бугатти на предельной скорости поворот в разы слабее
+  const fastSteer = 1 / (1 + Math.max(0, Math.abs(car.speed) - 1.5) * 1.6);
+  let turn = steer * k.turnRate * fastSteer * Math.min(1, Math.abs(car.speed) / 0.15) * Math.sign(car.speed) * (car.airborne ? 0.15 : 1);
   // На ручнике кузов поворачивает резче, а шины держат слабо — заносит тем сильнее, чем больше глубина заноса.
   // Без ручника шины цепляются почти сразу (у гоночной на большой глубине — чуть скользит и в обычных поворотах)
   if (handbrake) turn *= 1 + 1.3 * depth;
@@ -418,14 +420,14 @@ function updateCarHeight(car) {
 // сильный с места, слабеет с ростом скорости (1 − s³, s — доля максимальной скорости) и «пилой» по передачам —
 // на каждой передаче тяга сначала выше, к переключению слабеет. Множитель кривой подбирается один раз так,
 // чтобы время до заданной скорости сошлось (accelScale). У машины без kind.acc — прежнее ровное ускорение
-const accelShape = 3;
+const accelShape = 3; // у машины можно задать свой (kind.accShape): чем больше, тем дольше тяга держится у максимума — гиперкар и Бугатти доходят до предела за секунды, а не минуты
 const gearTops = [0.18, 0.34, 0.5, 0.66, 0.82, 1]; // верхние границы передач — доли максимальной скорости
 function accelShapeAt(kind, speed) {
   const s = Math.max(0, speed) / kind.maxSpeed;
   if (s >= 1) return 0;
   let lo = 0;
   for (const top of gearTops) {
-    if (s < top) return (1 - Math.pow(s, accelShape)) * (1.12 - 0.24 * ((s - lo) / (top - lo)));
+    if (s < top) return (1 - Math.pow(s, kind.accShape || accelShape)) * (1.12 - 0.24 * ((s - lo) / (top - lo)));
     lo = top;
   }
   return 0;
@@ -686,7 +688,7 @@ const fuelFill = document.getElementById('fuelFill');
 // на пределе дает 250 км/ч, остальные — свои максимумы: обычная легковушка ~133, трактор ~53
 // Скорость машины в км/ч (спидометр здесь и на телефоне, src/engine/touch-drive.js)
 function carSpeedKmh(car) {
-  return Math.min(250, Math.round(Math.abs(car.speed) * kmhPerSpeed));
+  return Math.min(450, Math.round(Math.abs(car.speed) * kmhPerSpeed));
 }
 const speedoEl = document.getElementById('speedo');
 // Кнопка «⛽∞» (бесконечный бензин) рядом со спидометром; то же — галочка в настройках

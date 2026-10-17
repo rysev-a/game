@@ -642,12 +642,12 @@ let onRaceTrack = () => false;
   addVehicle('tractor', lotX - 3.5, lotZ + 6, 0, { open: true });
   addVehicle('apc', lotX + 3.5, lotZ + 6, 0, { open: true });
 
-  // Гоночный парк — севернее, на своей стоянке у продольной дороги: шесть машин с разной ездой
-  // (VEHICLE_KINDS: gt, rally, muscle, drift, proto, kart). Садятся без ключей
+  // Гоночный парк — севернее, на своей стоянке у продольной дороги: восемь машин с разной ездой
+  // (VEHICLE_KINDS: gt, rally, muscle, drift, proto, kart, hyper — до 350 км/ч, bugatti — до 400). Садятся без ключей
   const pitZ = -88;
-  flatRect(16, 44, 0x505054, 0.011, lotX, pitZ);
-  mapObjects.push({ x: lotX, z: pitZ, hx: 8, hz: 22, color: '#56565c', ground: true });
-  ['gt', 'rally', 'muscle', 'drift', 'proto', 'kart'].forEach((id, i) => {
+  flatRect(16, 57, 0x505054, 0.011, lotX, pitZ + 6.5);
+  mapObjects.push({ x: lotX, z: pitZ + 6.5, hx: 8, hz: 28.5, color: '#56565c', ground: true });
+  ['gt', 'rally', 'muscle', 'drift', 'proto', 'kart', 'hyper', 'bugatti'].forEach((id, i) => {
     addVehicle(id, lotX + (i % 2 ? 3.5 : -3.5), pitZ - 13 + Math.floor(i / 2) * 13, 0, { open: true });
   });
 

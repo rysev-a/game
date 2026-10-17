@@ -75,6 +75,20 @@ const VEHICLE_KINDS = {
     acc: [100, 3.5], accel: 0.035, brake: 0.06, drag: 0.007, maxSpeed: 0.95, maxReverse: -0.25, turnRate: 0.066, drift: 0.9,
     launch: 0.4, launchUntil: 0.35, powerDrift: true, gyro: true, sound: 'race', pitch: 1.3,
   },
+  hyper: {
+    id: 'hyper', name: 'Гиперкар', make: createHyperCar, color: 0xf0a010,
+    desc: 'Гиперкар до 350 км/ч: рвет с места, на скорости руль вялый — поворачивать надо заранее. Газ с ручником — дрифт.',
+    half: { w: 1.2, l: 2.5 },
+    acc: [100, 2.9], accShape: 6, accel: 0.03, brake: 0.075, drag: 0.004, maxSpeed: 2.1, maxReverse: -0.3, turnRate: 0.04, drift: 0.5,
+    launch: 0.12, launchUntil: 0.6, powerDrift: true, gyro: true, sound: 'race', pitch: 1.2,
+  },
+  bugatti: {
+    id: 'bugatti', name: 'Бугатти', make: createBugatti, color: 0x0f2a6b,
+    desc: 'Бугатти: до 400 км/ч, сотня за 2,4 секунды. Тяжелый и очень быстрый: тормозить и входить в поворот надо заранее. Газ с ручником — дрифт.',
+    half: { w: 1.25, l: 2.7 },
+    acc: [100, 2.4], accShape: 6, accel: 0.034, brake: 0.08, drag: 0.004, maxSpeed: 2.4, maxReverse: -0.3, turnRate: 0.036, drift: 0.45,
+    launch: 0.1, launchUntil: 0.65, powerDrift: true, gyro: true, sound: 'race', pitch: 0.9,
+  },
   jeep: {
     id: 'jeep', name: 'Джип', make: createJeep, color: 0x5d6e3c,
     desc: 'Внедорожник на больших колесах: быстрый разгон, тяжелый руль.',

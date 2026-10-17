@@ -12,6 +12,7 @@ let viewDragging = false;
 // зажатое колесо вращает вид
 let wheelBrakeMode = false;
 let wheelHandbrake = false; // колесо зажато в режиме ручника
+let rightHandbrake = false; // за рулем правая кнопка мыши, пока зажата, — ручник (как Space)
 let wheelLastDown = 0;
 const wheelDoubleMs = 350; // два нажатия колеса не дольше этого друг от друга — двойное
 
@@ -79,14 +80,21 @@ renderer.domElement.addEventListener('mousedown', (e) => {
     }
     if (drivingCar && wheelBrakeMode) wheelHandbrake = !toggled;
     else viewDragging = true;
+  } else if (e.button === 2 && drivingCar && !settingsOpen && !dialogueOpen) {
+    e.preventDefault();
+    rightHandbrake = true; // правая кнопка за рулем — ручник (дрифт)
   } else if (e.button === 0 && !settingsOpen && !dialogueOpen) {
     pickHovered(); // клик по подсвеченной вещи — в инвентарь
   }
 });
+renderer.domElement.addEventListener('contextmenu', (e) => {
+  if (drivingCar) e.preventDefault(); // без контекстного меню браузера: правая кнопка — ручник
+});
 document.addEventListener('mouseup', (e) => {
   if (e.button === 1) viewDragging = wheelHandbrake = false;
+  if (e.button === 2) rightHandbrake = false;
 });
-window.addEventListener('blur', () => (viewDragging = wheelHandbrake = false));
+window.addEventListener('blur', () => (viewDragging = wheelHandbrake = rightHandbrake = false));
 
 // Где курсор над сценой (-1..1) — по нему ищем вещь под мышью (updatePickHover в src/engine/interact.js)
 let pickMouse = null;
