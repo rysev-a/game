@@ -32,6 +32,7 @@
     talked: {},
     nodes: {},
     inspected: {},
+    puzzles: {}, // решенные головоломки: { '2.05.elixir': true }
     once: {},
     messages: [],
     tracked: null,

@@ -10,6 +10,7 @@
 //   talked:denis                   хоть раз говорил с персонажем
 //   talk:denis.police              дошел до этого узла диалога
 //   inspected:body                 осмотрел объект (событие inspect)
+//   puzzle:2.05.elixir             головоломка решена
 //   at:bridge.scene  near:place    игрок в месте (или в зоне) / в радиусе места
 //   inside  driving                игрок в здании / за рулем
 //   time:22:00-06:00  night  day   игровое время (через полночь тоже)
@@ -88,6 +89,7 @@
     talked: (arg, g) => !!g.state.talked[arg],
     talk: (arg, g) => !!g.state.nodes[arg],
     inspected: (arg, g) => !!g.state.inspected[arg],
+    puzzle: (arg, g) => !!g.state.puzzles[arg],
     at: (arg, g) => {
       if (g.registry.places[arg]) return g.nearPlace(arg);
       return !!g.host.zone && g.host.zone() === arg;

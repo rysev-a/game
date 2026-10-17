@@ -43,6 +43,7 @@
       if (kind === 'has' && !itemKnown(name)) bad(where, 'нет вещи «' + name + '» в «' + cond + '»');
       else if ((kind === 'quest' || kind === 'done') && !registry.quests[arg]) bad(where, 'нет квеста «' + arg + '»');
       else if (kind === 'step' && !stepRefOk(arg)) bad(where, 'нет шага «' + arg + '»');
+      else if (kind === 'puzzle' && !Core.resolvePuzzle(registry, arg)) bad(where, 'нет головоломки «' + arg + '»');
       else if (kind === 'fact' && !registry.facts[arg]) bad(where, 'нет факта «' + arg + '»');
       else if (kind === 'talked' && !registry.characters[arg]) bad(where, 'нет персонажа «' + arg + '»');
       else if (kind === 'talk' && !registry.characters[arg.split('.')[0]]) bad(where, 'нет персонажа в «' + cond + '»');
@@ -73,6 +74,10 @@
           bad(where, 'нет шага «' + arg + '»');
         } else if (key === 'reveal' && !registry.facts[arg]) {
           bad(where, 'нет факта «' + arg + '»');
+        } else if (key === 'puzzle' && !Core.resolvePuzzle(registry, arg)) {
+          bad(where, 'нет головоломки «' + arg + '»');
+        } else if (key === 'elixir' && typeof arg !== 'number') {
+          bad(where, 'elixir: нужно число');
         } else if (key === 'dialog' && !Core.resolveNodeRef(registry, arg, null)) {
           bad(where, 'нет узла диалога «' + arg + '»');
         } else if ((key === 'give' || key === 'take') && opts.items) {
@@ -134,6 +139,12 @@
         lintEffects(list, where);
       }
       if (q.next && !registry.quests[q.next]) bad(where, 'нет следующего квеста «' + q.next + '»');
+      for (const [name, pz] of Object.entries(q.puzzles || {})) {
+        const kind = Core.puzzleKinds[pz.kind];
+        if (!kind) bad(where + ', головоломка ' + name, 'неизвестный вид «' + pz.kind + '»');
+        else for (const msg of kind.check(pz)) bad(where + ', головоломка ' + name, msg);
+        lintEffects(pz.onSolve, where + ', головоломка ' + name);
+      }
       for (const it of q.interactions || []) {
         if (!/^\w+:[\w.]+$/.test(it.on || '')) bad(where, 'interactions: нужен on вида «station:id», а не «' + it.on + '»');
         lintCond(it.if, where + ', interactions');

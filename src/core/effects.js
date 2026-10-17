@@ -11,6 +11,8 @@
 //   { toast: 'Текст' }                                короткое сообщение
 //   { phone: { from: 'denis', text: '…' } }           сообщение на телефон (попадает и в журнал)
 //   { dialog: '1.03.flash' }                          открыть узел диалога
+//   { puzzle: '2.05.elixir' }                         открыть головоломку (src/core/puzzles.js)
+//   { elixir: 60 }                                    добавить эликсир герою (шкала снаряжения)
 //   { emit: 'name' } { emit: { name, ...данные } }    событие
 //   { script: 'name' }                                именованный сценарий из кода (Core.scripts)
 //   { if: 'has:x', then: [...], else: [...] }         ветвление
@@ -62,6 +64,8 @@
     toast: (arg, g) => g.host.toast && g.host.toast(arg),
     phone: (arg, g) => g.addMessage(arg.from, arg.text),
     dialog: (arg, g) => g.host.openDialog && g.host.openDialog(g.dialogueNode(arg)),
+    puzzle: (arg, g) => g.host.openPuzzle && g.host.openPuzzle(g.puzzleSession(arg)),
+    elixir: (arg, g) => g.host.addElixir && g.host.addElixir(arg),
     emit: (arg, g) => (typeof arg === 'string' ? g.emit(arg, {}) : g.emit(arg.name, arg)),
     script: (arg, g) => {
       const fn = Core.scripts[arg];

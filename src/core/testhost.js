@@ -11,6 +11,7 @@
       items: {},
       pos: null, // { x, z }
       zoneId: null,
+      elixir: 0,
       toasts: [],
       dialogs: [],
     };
@@ -20,6 +21,8 @@
     h.takeItem = (id, n = 1) => (h.items[id] = Math.max(0, (h.items[id] || 0) - n));
     h.playerPos = () => h.pos;
     h.zone = () => h.zoneId;
+    h.addElixir = (n) => (h.elixir += n);
+    h.openPuzzle = (session) => h.dialogs.push(session);
     h.toast = (text) => h.toasts.push(text);
     h.openDialog = (node) => h.dialogs.push(node);
     h.random = () => 0; // всегда первая реплика из списка: тесты не зависят от случая

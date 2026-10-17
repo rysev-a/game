@@ -11,6 +11,7 @@
 //       { inspect: 'body' },                            // событие inspect
 //       { zone: 'treehouse' },                          // игрок в зоне (здании) с таким id
 //       { interact: 'station:laptop' },                 // взаимодействие с объектом, которое перехватывает квест
+//       { puzzle: '2.05.elixir', picks: ['water', …] }, // головоломка: выбрать части по порядку (expect — после)
 //       { do: [{ give: 'copper' }] },                   // любые действия
 //       { wait: '8h' },                                 // потратить игровое время (минуты, '90m', '8h')
 //       { emit: 'name' },                               // событие
@@ -47,6 +48,11 @@
         }
         if (step.zone) host.zoneId = step.zone;
         if (step.interact && !game.interact(step.interact)) fail('квест не перехватил «' + step.interact + '»');
+        if (step.puzzle) {
+          const session = game.puzzleSession(step.puzzle);
+          if (!session) fail('нет головоломки ' + step.puzzle);
+          else for (const id of step.picks || []) session.pick(id);
+        }
         if (step.wait) host.time += Core.parseDuration(step.wait);
         if (step.inspect) game.emit('inspect', { id: step.inspect });
         if (step.emit) game.emit(step.emit, {});

@@ -14,8 +14,10 @@ const Core = loadContent();
 definePlace('bridge.scene', { x: 329, z: 18, r: 60, name: 'Мост' });
 definePlace('zarechye.house', { x: 400, z: 900, r: 34, name: 'Дом Анны Петровны' });
 definePlace('zarechye.tree', { x: 400, z: 950, r: 14, name: 'Дерево с домиком' });
+definePlace('mall.entrance', { x: 0, z: -29, r: 14, name: 'Торговый центр' });
 require('./scenarios/1-03-bridge.js');
 require('./scenarios/1-06-treehouse.js');
+require('./scenarios/2-05-elixir.js');
 
 const reg = Core.registry;
 

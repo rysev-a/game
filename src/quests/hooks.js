@@ -129,6 +129,21 @@
     incident.officers = all;
   };
 
+  // ---------- Людмила Сергеевна в торговом центре ----------
+  // Стоит на первом этаже недалеко от входа лицом к двери; разговор — по данным (src/content/characters/lyudmila.js)
+  {
+    const mesh = createPerson('lyudmila', { gender: 'female' });
+    const x = 7;
+    const z = mall.door.z - 8;
+    mesh.position.set(x, 0, z);
+    mall.floors[0].group.add(mesh);
+    mesh.updateWalk(0, 0);
+    mallPeople.push({
+      floor: 0, x, z, mesh, gender: 'female', yaw: 0, phase: 0, amp: 0, wait: 0,
+      role: 'director', charId: 'lyudmila', name: 'Людмила Сергеевна', title: 'директор торгового центра',
+    });
+  }
+
   // ---------- Метка текущего шага на карте ----------
   // Кружок, если место на карте; если за краем — стрелка у края в его сторону
   const origDrawMapView = drawMapView;

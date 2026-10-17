@@ -36,6 +36,11 @@ const questHost = {
     if (!questToastBusy) questShowNextToast();
   },
   openDialog: (node) => startDialogue(questNarrator, node),
+  openPuzzle: (session) => session && openPuzzleUi(session), // окно головоломки: src/quests/puzzle-ui.js
+  addElixir: (n) => {
+    heroStats.elixir = Math.min(heroStats.maxElixir, heroStats.elixir + n);
+    renderEquipHud();
+  },
 };
 
 const questGame = Core.createGame({ registry: Core.registry, host: questHost });
