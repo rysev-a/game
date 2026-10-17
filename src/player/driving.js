@@ -525,9 +525,21 @@ window.addEventListener('keydown', (e) => {
 // Указатель топлива внизу слева: виден только за рулем
 const fuelEl = document.getElementById('fuel');
 const fuelFill = document.getElementById('fuelFill');
+// СПИДОМЕТР рядом с топливом: скорость за кадр (car.speed) в км/ч. Самая быстрая машина (maxSpeed 1,5 — прототип)
+// на пределе дает 250 км/ч, остальные — свои максимумы: обычная легковушка ~133, трактор ~53
+const speedoEl = document.getElementById('speedo');
+const speedoValue = document.getElementById('speedoValue');
+const kmhPerSpeed = 250 / 1.5;
+let speedoShown = -1;
 function updateFuelHud() {
   fuelEl.style.display = drivingCar ? 'flex' : 'none';
+  speedoEl.style.display = drivingCar ? 'flex' : 'none';
   if (!drivingCar) return;
+  const kmh = Math.min(250, Math.round(Math.abs(drivingCar.speed) * kmhPerSpeed));
+  if (kmh !== speedoShown) {
+    speedoShown = kmh;
+    speedoValue.textContent = kmh;
+  }
   const f = drivingCar.fuel;
   fuelFill.style.width = Math.round(f * 100) + '%';
   fuelFill.style.background = f <= fuelLow ? '#d23c3c' : f < 0.4 ? '#e0a82a' : '#3fa35b';
