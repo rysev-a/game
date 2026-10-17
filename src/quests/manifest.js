@@ -56,6 +56,7 @@
     adapter: [
       'src/quests/host.js',
       'src/quests/common-hooks.js',
+      'src/quests/gates.js',
       'main:src/quests/places.js',
       'main:src/quests/hooks.js',
       'src/quests/world.js',

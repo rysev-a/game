@@ -83,7 +83,7 @@ test('квест 1.03: журнал после прохождения', () => {
   assert.deepEqual(journal.tasks.map((q) => q.title), ['Домик на дереве']); // следующий квест выдан
   assert.deepEqual(journal.facts.map((f) => f.id), ['Ф1', 'Ф2', 'Ф3']);
   assert.equal(journal.people[0].name, 'Денис');
-  assert.equal(journal.messages[0].name, 'Денис');
+  assert.equal(result.game.state.calls[0].from, 'denis'); // звонок в истории телефона
 });
 
 test('перепись meta: ключи квеста 1.03 видны', () => {

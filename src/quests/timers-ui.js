@@ -10,16 +10,16 @@
 
   const css = document.createElement('style');
   css.textContent = `
-    #questTimer { margin-top: 4px; padding: 3px 14px; border-radius: 8px; background: rgba(0,0,0,0.45); color: #fff;
+    #questTimer { margin: 0; padding: 4px 12px; border-radius: 8px; background: rgba(0,0,0,0.45); color: #fff;
       font: bold 20px/1.2 sans-serif; display: none; font-variant-numeric: tabular-nums; pointer-events: none; text-align: center; }
-    #questTimer small { display: block; font-size: 11px; font-weight: normal; opacity: 0.75; }
+    #questTimer small { display: none; }
     #questTimer.low { background: rgba(160,20,20,0.8); }
   `;
   document.head.appendChild(css);
   const el = document.createElement('div');
   el.id = 'questTimer';
-  // Таймер живет внутри плашки с целью (src/quests/journal-ui.js): так они не налезают друг на друга
-  (document.getElementById('questGoal') || document.body).appendChild(el);
+  // Таймер — таймер телефона героя: он висит рядом со значком телефона (src/quests/journal-ui.js)
+  (document.getElementById('phoneTimerSlot') || document.body).appendChild(el);
 
   const perSec = () => (typeof clockConfig !== 'undefined' && clockConfig.minutesPerSecond) || 1;
 
@@ -40,7 +40,7 @@
     small.textContent = 'Осталось';
     el.appendChild(small);
     el.classList.toggle('low', t.left < t.total * 0.25);
-    el.style.display = 'block';
+    el.style.display = 'inline-block';
   }, 250);
 
   // Занос: раз в 100 мс прибавляем 0,1 к счетчику, пока герой дрифтует (отдельно от кадров: счетчик хранится в сохранении)

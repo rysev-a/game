@@ -166,8 +166,6 @@ function createHomeInterior() {
       part(0.6, 0.5, 0.6, 0x3a5a8a, -6.7, 0.25, -3.0); // кресло
       pickup('notebook', -8.0, -3.0, 0.85);
       furniture(3.0, 2.0, 0.5, 0x5a3a2a, -3.6, -5.7, '#5a3a2a'); // книжный шкаф у северной стены
-      // Браслет возврата на том же столе. Пока голубятни (3.04) нет, он лежит дома; взять — надеть на руку
-      pickup('bracelet', -8.0, -4.1, 0.85);
     }
 
     return { group, solids, fadeBoxes: fade, mapShapes, pickups };

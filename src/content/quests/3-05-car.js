@@ -102,7 +102,7 @@ defineQuest({
     {
       id: 'practice',
       text: 'Потренироваться вечером на треке (выбрать машину)',
-      if: ['step:3.05.talk', '!step:3.05.race', '!flag:practicing', 'has:bracelet'],
+      if: ['step:3.05.talk', '!step:3.05.race', '!flag:practicing', 'flag:braceletCased'],
       do: [{ practice: { at: 'track.start', cars: ['own', 'gt', 'race', 'rally', 'muscle', 'proto'] } }],
     },
     { id: 'back', text: 'Вернуться назад браслетом', if: 'flag:practicing', do: [{ practiceEnd: true }] },

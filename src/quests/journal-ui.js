@@ -10,7 +10,7 @@
   const g = questGame;
   const css = document.createElement('style');
   css.textContent = `
-    #questGoal { position: absolute; top: 62px; left: 50%; transform: translateX(-50%); z-index: 10; max-width: min(420px, 92vw);
+    #questGoal { display: none !important; position: absolute; top: 62px; left: 50%; transform: translateX(-50%); z-index: 10; max-width: min(420px, 92vw);
       box-sizing: border-box; padding: 5px 12px; border-radius: 8px; background: rgba(0, 0, 0, 0.5); color: white;
       font: 13px/1.35 sans-serif; text-align: center; cursor: pointer; display: none; }
     #questGoal .title { font-size: 11px; opacity: 0.65; }
@@ -19,7 +19,7 @@
     #journal { position: fixed; inset: 0; z-index: 70; display: none; align-items: center; justify-content: center;
       background: rgba(0, 0, 0, 0.55); font-family: sans-serif; }
     #journal.on { display: flex; }
-    .phoneShell { position: relative; width: min(360px, calc(100% - 24px)); height: min(680px, calc(100% - 24px)); display: flex; flex-direction: column;
+    .phoneShell { position: relative; width: min(440px, calc(100% - 16px)); height: min(900px, calc(100% - 16px)); display: flex; flex-direction: column;
       box-sizing: border-box; padding: 8px; border-radius: 40px; border: 2px solid #3a3f4a; background: #12151b; color: white;
       box-shadow: 0 18px 60px rgba(0, 0, 0, 0.7), inset 0 0 0 2px #05070a; }
     .phoneScreen { position: relative; flex: 1; display: flex; flex-direction: column; min-height: 0; border-radius: 32px; overflow: hidden;
@@ -50,7 +50,7 @@
     #journal .empty { opacity: 0.55; font-size: 14px; padding: 8px 0; }
     #phoneCall { position: fixed; inset: 0; z-index: 80; display: none; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.6); font-family: sans-serif; }
     #phoneCall.on { display: flex; }
-    #phoneCall .phoneShell { animation: phoneShake 0.9s infinite; height: min(560px, calc(100% - 24px)); }
+    #phoneCall .phoneShell { animation: phoneShake 0.9s infinite; height: min(560px, calc(100% - 24px)); width: min(360px, calc(100% - 16px)); }
     #phoneCall .callScreen { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 70px 20px 24px; text-align: center; }
     #phoneCall .avatar { width: 96px; height: 96px; border-radius: 48px; display: flex; align-items: center; justify-content: center; font-size: 44px;
       background: linear-gradient(135deg, #3a7bd5, #2a3d66); box-shadow: 0 0 0 0 rgba(143, 208, 255, 0.6); animation: phonePulse 1.4s infinite; }
@@ -58,19 +58,40 @@
     #phoneCall .sub { margin-top: 4px; opacity: 0.65; font-size: 14px; }
     #phoneCall .answer { margin-top: auto; width: 72px; height: 72px; border-radius: 36px; border: 0; background: #2fbf5f; color: white; font-size: 32px; cursor: pointer; }
     #phoneCall .hint { margin-top: 10px; font-size: 12px; opacity: 0.6; }
-    @keyframes phoneShake { 0%, 100% { transform: translateX(0) rotate(0); } 10% { transform: translateX(-3px) rotate(-1deg); } 20% { transform: translateX(3px) rotate(1deg); } 30% { transform: translateX(-3px) rotate(-1deg); } 40% { transform: translateX(3px) rotate(1deg); } 50% { transform: translateX(0); } }
+    #journal .appGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 4px; }
+    #journal .app { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 4px 10px; border: 0; border-radius: 18px;
+      background: rgba(255, 255, 255, 0.07); color: white; font: 12px sans-serif; cursor: pointer; }
+    #journal .app:hover { background: rgba(143, 208, 255, 0.16); }
+    #journal .app .ico { font-size: 34px; line-height: 1.1; }
+    #journal .app.hot { box-shadow: 0 0 0 2px #ffd84a; animation: phonePulse 1.4s infinite; }
+    #journal .sect { margin: 10px 2px 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.55; }
+    #journal .bubble { max-width: 86%; margin: 0 0 8px; padding: 8px 11px; border-radius: 16px 16px 16px 4px; background: rgba(255, 255, 255, 0.1); font-size: 14px; line-height: 1.4; }
+    #journal .bubble small { display: block; font-size: 10px; opacity: 0.55; margin-bottom: 2px; }
+    #journal .bubble.me { margin-left: auto; border-radius: 16px 16px 4px 16px; background: rgba(60, 130, 220, 0.45); }
+    #journal .bigBtn { display: block; width: 100%; margin: 8px 0; padding: 12px; border: 0; border-radius: 14px; background: #2f7fd5; color: white; font: bold 15px sans-serif; cursor: pointer; }
+    #journal .bigTimer { font: bold 54px/1.1 sans-serif; text-align: center; font-variant-numeric: tabular-nums; padding: 10px 0; }
+    #journal .bigTimer.low { color: #ff6b5b; }
+    #phoneBtnWrap { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; pointer-events: auto; }
+    #phoneBtn { position: relative; width: 44px; height: 44px; padding: 0; border: 2px solid rgba(255, 255, 255, 0.55); border-radius: 10px; background: rgba(20, 24, 32, 0.8); cursor: pointer; display: none; align-items: center; justify-content: center; }
+    #phoneBtn:hover { background: rgba(40, 60, 90, 0.9); }
+    #phoneBtn.ring::after { content: ''; position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; border-radius: 6px; background: #ff5a4a; }
+    #phoneBtn img { width: 32px; height: 32px; image-rendering: pixelated; }
+      @keyframes phoneShake { 0%, 100% { transform: translateX(0) rotate(0); } 10% { transform: translateX(-3px) rotate(-1deg); } 20% { transform: translateX(3px) rotate(1deg); } 30% { transform: translateX(-3px) rotate(-1deg); } 40% { transform: translateX(3px) rotate(1deg); } 50% { transform: translateX(0); } }
     @keyframes phonePulse { 0% { box-shadow: 0 0 0 0 rgba(143, 208, 255, 0.55); } 70% { box-shadow: 0 0 0 22px rgba(143, 208, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(143, 208, 255, 0); } }
   `;
   document.head.appendChild(css);
 
-  const tabs = [
+  // Приложения телефона: всё, что герой знает и умеет, лежит здесь (нужно записывать звонки, чтобы ничего не забыть)
+  const apps = [
+    ['calls', 'Звонки', '📞'],
+    ['messages', 'Сообщения', '💬'],
+    ['notes', 'Заметки', '📝'],
     ['tasks', 'Задания', '📋'],
-    ['done', 'Готово', '✅'],
-    ['facts', 'Выводы', '💡'],
-    ['people', 'Люди', '👥'],
-    ['messages', 'Чат', '💬'],
+    ['nav', 'Навигатор', '🧭'],
+    ['timer', 'Таймер', '⏱'],
   ];
-  let tab = 'tasks';
+  const appTitle = Object.fromEntries(apps.map(([id, label]) => [id, label]));
+  let screen = 'home'; // 'home' | id приложения | 'call:<номер звонка>'
   let open = false;
   let drawnVersion = -1;
 
@@ -81,47 +102,48 @@
     return n;
   };
 
-  // Телефон: статус-строка с часами, заголовок раздела, содержимое и нижняя панель разделов
+  // Телефон: статус-строка с часами, заголовок экрана и содержимое
   const clockText = () => (typeof formatGameTime === 'function' ? formatGameTime(gameMinutes) : '');
   function phoneShell(inner) {
     const shell = el('div', 'phoneShell');
-    const screen = el('div', 'phoneScreen');
+    const screenEl = el('div', 'phoneScreen');
     const status = el('div', 'phoneStatus');
     const time = el('span', '', clockText());
     status.append(time, el('span', '', '▂▄▆ 📶 🔋'));
-    screen.append(el('div', 'phoneNotch'), status, ...inner);
-    shell.append(screen, el('div', 'phoneHome'));
-    return { shell, time };
+    screenEl.append(el('div', 'phoneNotch'), status, ...inner);
+    const home = el('div', 'phoneHome');
+    shell.append(screenEl, home);
+    return { shell, time, home };
   }
 
   const root = el('div');
   root.id = 'journal';
   const head = el('div', 'head');
+  const backBtn = el('button', 'close', '‹');
+  backBtn.title = 'Назад';
+  backBtn.addEventListener('click', () => go(screen.startsWith('call:') ? 'calls' : 'home'));
   const headName = el('span', 'name', 'Телефон');
-  head.appendChild(headName);
-  const tabButtons = {};
-  const dock = el('div', 'dock');
-  for (const [id, label, icon] of tabs) {
-    const b = el('button', 'tab');
-    b.append(el('span', 'ico', icon), document.createTextNode(label));
-    b.addEventListener('click', () => {
-      tab = id;
-      render();
-    });
-    tabButtons[id] = b;
-    dock.appendChild(b);
-  }
   const closeBtn = el('button', 'close', '✕');
   closeBtn.title = 'Закрыть (J или Esc)';
   closeBtn.addEventListener('click', () => setOpen(false));
-  head.appendChild(closeBtn);
+  head.append(backBtn, headName, closeBtn);
   const body = el('div', 'body');
-  const phone = phoneShell([head, body, dock]);
+  const phone = phoneShell([head, body]);
+  phone.home.title = 'На главный экран';
+  phone.home.style.cursor = 'pointer';
+  phone.home.addEventListener('click', () => go('home'));
   root.appendChild(phone.shell);
   root.addEventListener('mousedown', (e) => {
     if (e.target === root) setOpen(false);
   });
   document.body.appendChild(root);
+
+  function go(next) {
+    screen = next;
+    // Навигатор — уже открыт в телефоне: с этого момента появляется миникарта (флаг nav, src/quests/gates.js)
+    if (next === 'nav' && !g.state.flags.nav) g.run([{ flag: 'nav' }]);
+    render();
+  }
 
   const when = (min) => formatGameDateShort(min) + ', ' + formatGameTime(min);
 
@@ -141,7 +163,7 @@
       if (s.hint) row.appendChild(el('span', 'hint', s.hint));
       c.appendChild(row);
     }
-    // Кнопки квеста (quest.actions): тренировка, ожидание утра и т. п.; нажали — журнал закрывается и действие выполняется
+    // Кнопки квеста (quest.actions): тренировка, ожидание утра и т. п.; нажали — телефон закрывается и действие выполняется
     for (const a of t.actions || []) {
       const b = el('button', 'track', a.text);
       b.style.marginTop = '6px';
@@ -156,50 +178,127 @@
     return c;
   }
 
+  // Текущая цель и расстояние до метки (для главного экрана и навигатора)
+  function goalInfo() {
+    const id = g.state.tracked;
+    const step = id && g.currentStep(id);
+    if (!step) return null;
+    const marker = g.currentMarker();
+    const dist = marker ? Math.round(Math.hypot(marker.x - playerWorldX, marker.z - playerWorldZ)) : null;
+    return { quest: Core.registry.quests[id].title, text: step.text, hint: step.hint || '', dist: dist !== null && dist > marker.r ? dist : null };
+  }
+
+  const fmtTimer = (left) => {
+    const sec = Math.ceil(left / ((typeof clockConfig !== 'undefined' && clockConfig.minutesPerSecond) || 1));
+    return String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0');
+  };
+
   function render() {
     drawnVersion = g.version;
-    for (const [id, label] of tabs) {
-      tabButtons[id].classList.toggle('on', id === tab);
-      if (id === tab) headName.textContent = { tasks: 'Задания', done: 'Выполненные', facts: 'Выводы', people: 'Люди', messages: 'Сообщения' }[id];
-    }
     phone.time.textContent = clockText();
+    const isCall = screen.startsWith('call:');
+    headName.textContent = isCall ? 'Звонок' : screen === 'home' ? 'Телефон' : appTitle[screen];
+    backBtn.style.visibility = screen === 'home' ? 'hidden' : 'visible';
     const j = g.journal();
     body.textContent = '';
     const empty = (text) => body.appendChild(el('div', 'empty', text));
-    if (tab === 'tasks') {
+    const row = (text, sub) => {
+      const r = el('div', 'row', text);
+      if (sub) r.appendChild(el('span', 'when', sub));
+      body.appendChild(r);
+      return r;
+    };
+
+    if (screen === 'home') {
+      const gi = goalInfo();
+      const banner = el('div', 'card');
+      banner.appendChild(el('h3', '', gi ? gi.quest : 'Телефон'));
+      banner.appendChild(el('div', 'goal', gi ? gi.text + (gi.dist !== null ? ' · ' + gi.dist + ' м' : '') : 'Сейчас заданий нет.'));
+      if (gi && gi.hint) banner.appendChild(el('div', 'meta', gi.hint));
+      body.appendChild(banner);
+      const grid = el('div', 'appGrid');
+      for (const [id, label, icon] of apps) {
+        const b = el('button', 'app');
+        b.append(el('span', 'ico', icon), document.createTextNode(label));
+        if (id === 'nav' && !g.state.flags.nav) b.classList.add('hot');
+        b.addEventListener('click', () => go(id));
+        grid.appendChild(b);
+      }
+      body.appendChild(grid);
+    } else if (screen === 'calls') {
+      for (const c of g.state.calls.slice().reverse()) {
+        const ch = Core.registry.characters[c.from];
+        const r = el('div', 'row call');
+        r.appendChild(el('b', '', (ch ? ch.name : c.from) + ' · входящий'));
+        r.appendChild(el('span', 'when', when(c.at)));
+        const b = el('button', 'track', '▶ Прослушать');
+        b.addEventListener('click', () => go('call:' + c.id));
+        r.appendChild(b);
+        body.appendChild(r);
+      }
+      if (!g.state.calls.length) empty('Звонков пока не было. Все звонки записываются, чтобы ничего не забыть.');
+    } else if (isCall) {
+      const c = g.state.calls.find((x) => String(x.id) === screen.slice(5));
+      if (c) {
+        const ch = Core.registry.characters[c.from];
+        row('Запись звонка: ' + (ch ? ch.name : c.from), when(c.at));
+        for (const line of c.lines) {
+          const b = el('div', 'bubble' + (line.me ? ' me' : ''), line.text);
+          if (!line.me && line.who) b.insertBefore(el('small', '', line.who), b.firstChild);
+          body.appendChild(b);
+        }
+        if (!c.lines.length) empty('Запись пуста.');
+      }
+    } else if (screen === 'messages') {
+      for (const m of j.messages.slice().reverse()) row(m.name + ': ' + m.text, when(m.at));
+      if (!j.messages.length) empty('Сообщений нет.');
+    } else if (screen === 'notes') {
+      if (j.facts.length) body.appendChild(el('div', 'sect', 'Выводы'));
+      for (const f of j.facts) row(f.text, when(f.at));
+      if (j.people.length) body.appendChild(el('div', 'sect', 'Люди'));
+      for (const p of j.people) row(p.name + (p.title ? ' — ' + p.title : ''), p.desc);
+      if (!j.facts.length && !j.people.length) empty('Заметок пока нет: выводы и знакомые появляются, когда вы узнаете что-то важное.');
+    } else if (screen === 'tasks') {
       j.tasks.forEach((t) => body.appendChild(card(t, false)));
       if (!j.tasks.length) empty('Сейчас заданий нет.');
-    } else if (tab === 'done') {
+      if (j.done.length) body.appendChild(el('div', 'sect', 'Выполненные'));
       j.done.forEach((t) => body.appendChild(card(t, true)));
-      if (!j.done.length) empty('Выполненных заданий пока нет.');
-    } else if (tab === 'facts') {
-      for (const f of j.facts) {
-        const row = el('div', 'row', f.text);
-        row.appendChild(el('span', 'when', when(f.at)));
-        body.appendChild(row);
-      }
-      if (!j.facts.length) empty('Выводов пока нет: они появляются, когда вы узнаете что-то важное.');
-    } else if (tab === 'people') {
-      for (const p of j.people) {
-        const row = el('div', 'row', p.name + (p.title ? ' — ' + p.title : ''));
-        if (p.desc) row.appendChild(el('span', 'when', p.desc));
-        body.appendChild(row);
-      }
-      if (!j.people.length) empty('Вы пока ни с кем не говорили.');
-    } else {
-      for (const m of j.messages.slice().reverse()) {
-        const row = el('div', 'row', m.name + ': ' + m.text);
-        row.appendChild(el('span', 'when', when(m.at)));
-        body.appendChild(row);
-      }
-      if (!j.messages.length) empty('Сообщений нет.');
+    } else if (screen === 'nav') {
+      const gi = goalInfo();
+      const card1 = el('div', 'card');
+      card1.appendChild(el('h3', '', gi ? gi.quest : 'Навигатор'));
+      card1.appendChild(el('div', 'goal', gi ? gi.text : 'Цели нет: заданий сейчас нет.'));
+      if (gi && gi.dist !== null) card1.appendChild(el('div', 'step', 'До цели: ' + gi.dist + ' м'));
+      if (gi && gi.hint) card1.appendChild(el('div', 'meta', gi.hint));
+      body.appendChild(card1);
+      const b = el('button', 'bigBtn', '🗺 Открыть карту');
+      b.addEventListener('click', () => {
+        setOpen(false);
+        if (typeof setMapFullOpen === 'function') setMapFullOpen(true);
+      });
+      body.appendChild(b);
+      body.appendChild(el('div', 'meta', 'Миникарта в углу экрана — это навигатор телефона: она показывает, куда ехать.'));
+    } else if (screen === 'timer') {
+      const t = g.currentTimer();
+      if (t) {
+        const c = el('div', 'card');
+        c.appendChild(el('h3', '', t.text));
+        const big = el('div', 'bigTimer', fmtTimer(t.left));
+        if (t.left < t.total * 0.25) big.classList.add('low');
+        c.appendChild(big);
+        body.appendChild(c);
+      } else empty('Таймер не запущен. Когда нужно будет успеть, герой заведет его на телефоне.');
     }
   }
 
   // Пока журнал открыт, он считается «открытым разговором» (dialogueOpen): так игра не принимает ввод, а Esc в
   // src/engine/mouse-look.js закрывает открытое окно, а не открывает настройки (его проверка escOverlayOpen — константа,
   // обернуть ее нельзя). При переносе в основные файлы здесь будет свой флаг journalOpen в escOverlayOpen.
-  function setOpen(value) {
+  function setOpen(value, startScreen) {
+    if (value && open && startScreen) {
+      go(startScreen);
+      return;
+    }
     if (value === open || (value && (dialogueOpen || settingsOpen))) return;
     open = value;
     root.classList.toggle('on', open);
@@ -207,6 +306,8 @@
       for (const k of Object.keys(keys)) keys[k] = false; // отпускаем зажатые клавиши
       if (document.exitPointerLock) document.exitPointerLock();
       dialogueOpen = true;
+      screen = startScreen && !startScreen.startsWith('call:') ? startScreen : 'home';
+      if (screen === 'nav' && !g.state.flags.nav) g.run([{ flag: 'nav' }]);
       render();
     } else if (!dialogueNode) {
       dialogueOpen = false; // если в это время не начался настоящий разговор
@@ -219,16 +320,65 @@
     (e) => {
       if (e.code === 'KeyJ' && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.stopImmediatePropagation();
-        setOpen(!open);
+        if (!open && !hasItem('phone')) showToast('Телефон остался на столике в гостиной.', 2500);
+        else setOpen(!open);
         return;
       }
       if (!open) return;
       e.stopImmediatePropagation();
       e.preventDefault();
-      if (e.code === 'Escape') setOpen(false);
+      if (e.code === 'Escape') {
+        if (screen === 'home') setOpen(false);
+        else go(screen.startsWith('call:') ? 'calls' : 'home');
+      }
     },
     true,
   );
+
+  // ---------- Значок телефона рядом с инвентарем ----------
+  // Телефон героя — не просто инвентарь: в нем звонки, сообщения, заметки, задания, навигатор и таймер. Значок виден, когда телефон у героя
+  const phoneWrap = el('div');
+  phoneWrap.id = 'phoneBtnWrap';
+  const phoneBtn = el('button');
+  phoneBtn.id = 'phoneBtn';
+  phoneBtn.title = 'Телефон (J)';
+  phoneBtn.appendChild(pixelIcon(ITEMS.phone.icon));
+  phoneBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setOpen(true);
+  });
+  phoneBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+  const timerSlot = el('span');
+  timerSlot.id = 'phoneTimerSlot';
+  phoneWrap.append(phoneBtn, timerSlot);
+  const topLeftBox = document.getElementById('topLeft');
+  topLeftBox.insertBefore(phoneWrap, topLeftBox.firstChild);
+  setInterval(() => {
+    phoneBtn.style.display = hasItem('phone') ? 'flex' : 'none';
+  }, 300);
+
+  // ---------- Запись звонков ----------
+  // Пока идет разговор по телефону, каждая реплика и каждый выбранный ответ попадают в запись звонка (g.state.calls)
+  let recording = null;
+  const origRenderDialogue = renderDialogue;
+  renderDialogue = function () {
+    origRenderDialogue();
+    if (recording && dialogueNode) {
+      recording.lines.push({ who: dialogueNode.speaker || '', text: dialogueNode.text });
+      g.bump();
+    }
+  };
+  const origChooseOption = chooseDialogueOption;
+  chooseDialogueOption = function (i) {
+    const opt = recording && dialogueNode && (dialogueNode.options || [])[i];
+    if (opt) recording.lines.push({ who: 'Максим', text: opt.text, me: true });
+    origChooseOption(i);
+  };
+  const origEndDialogue = endDialogue;
+  endDialogue = function () {
+    recording = null;
+    origEndDialogue();
+  };
 
   // ---------- Входящий звонок ----------
   // Действие { call: { from, dialog } } (src/core/effects.js): телефон звонит и трясется, пока герой не ответит (кнопка, Enter, E или Пробел);
@@ -278,6 +428,7 @@
     callRoot.classList.remove('on');
     questCallOpen = false;
     dialogueOpen = false;
+    recording = call.record || null;
     g.host.openDialog(call.node);
   }
   callAnswer.addEventListener('click', answerCall);

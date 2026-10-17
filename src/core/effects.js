@@ -22,7 +22,8 @@
 //   { playerCar: 'hyper' }                            подарить герою машину этого вида вместо его (и запомнить в сохранении)
 //   { fuelEconomy: 50 }                               настроить расход: бензин машины героя кончается во столько раз медленнее
 //   { fuel: 0 } { fuel: 0.4 } { fuel: 'river' }       бак машины героя: доля 0…1; 'river' — ровно хватит от дома до реки (трасса, с запасом на манёвры)
-//   { call: { from: 'denis', dialog: '1.03.call' } }  входящий звонок: телефон звонит, герой отвечает — открывается разговор (таймеры стоят)
+//   { call: { from: 'denis', dialog: '1.03.call' } }  входящий звонок: телефон звонит, герой отвечает — открывается разговор (таймеры стоят),
+//                                                     текст разговора остается в истории звонков телефона (состояние calls)
 //   { kill: true }                                    героя убили: затемнение, он выбирается из машины и приходит в себя
 //   { practice: { at, cars } }                        тренировка: выбрать машину и оказаться на месте at; { practiceEnd: true } — браслетом назад
 //   { rewind: '4.12.f1' }                             вернуть квест к шагу (шаги, таймеры, бои и головоломки квеста — заново)
@@ -109,10 +110,13 @@
     },
     fuel: (arg, g) => g.host.setFuel && g.host.setFuel(arg),
     call: (arg, g) => {
-      g.state.messages.push({ from: arg.from, text: '☎ Звонок (разговор)', at: g.now() }); // в журнале остается запись о звонке
+      // Запись в истории звонков телефона: текст разговора дописывает окно телефона (src/quests/journal-ui.js)
+      const record = { id: g.state.calls.length + 1, from: arg.from, at: g.now(), lines: [] };
+      g.state.calls.push(record);
       g.bump();
-      if (g.host.incomingCall) g.host.incomingCall({ from: arg.from, node: g.dialogueNode(arg.dialog) });
-      else g.host.openDialog && g.host.openDialog(g.dialogueNode(arg.dialog));
+      const node = g.dialogueNode(arg.dialog);
+      if (g.host.incomingCall) g.host.incomingCall({ from: arg.from, node, record });
+      else g.host.openDialog && g.host.openDialog(node);
     },
     kill: (arg, g) => g.host.killHero && g.host.killHero(),
     practice: (arg, g) => g.host.startPractice && g.host.startPractice(arg),

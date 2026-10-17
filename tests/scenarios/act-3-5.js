@@ -25,9 +25,9 @@ defineScenario('3.04', {
     { talk: 'mihalych', pick: [0, 0], see: 'раздувай горн', expect: ['step:3.04.bring', '!has:bp_bracelet'] },
     { interact: 'spot:forge' },
     { puzzle: '3.04.bellows', picks: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5], expect: ['puzzle:3.04.bellows', 'step:3.04.forge'] },
-    { interact: 'station:workbench', expectNot: 'has:bracelet' }, // эликсира нет: квест лишь подсказывает
+    { interact: 'station:workbench', expectNot: 'flag:braceletCased' }, // эликсира нет: квест лишь подсказывает
     { do: [{ elixir: 20 }] },
-    { interact: 'station:workbench', expect: ['has:bracelet', 'fact:Ф23', 'done:3.04', 'quest:3.05'] },
+    { interact: 'station:workbench', expect: ['flag:braceletCased', 'fact:Ф23', 'done:3.04', 'quest:3.05'] },
   ],
 });
 

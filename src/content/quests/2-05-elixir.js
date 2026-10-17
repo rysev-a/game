@@ -124,7 +124,7 @@ defineQuest({
       ],
       answer: ['water', 'heat', 'honey', 'sea_salt', 'sugar', 'stir', 'reagent', 'copper_wire'],
       mistakesAllowed: 2,
-      onSolve: [{ take: 'elixir_kit' }, { elixir: 60 }, { reveal: 'Ф14' }, { toast: 'Эликсир сварен: шкала эликсира пополнена.' }],
+      onSolve: [{ take: 'elixir_kit' }, { elixir: 60 }, { give: 'regen' }, { reveal: 'Ф14' }, { toast: 'Эликсир сварен, а прибор Веры с верстака ожил: теперь у героя есть здоровье, и раны можно залечивать.' }],
     },
   },
 

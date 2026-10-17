@@ -7,7 +7,7 @@ defineScenario('3.05', {
   title: 'Крутая тачка проходится: Рустам, ожидание утра, гонка, подарок, погоня',
   done: ['1.03'],
   steps: [
-    { do: [{ start: '3.05' }, { give: 'bracelet' }], expect: ['quest:3.05', '!step:3.05.ride'] },
+    { do: [{ start: '3.05' }, { flag: 'braceletCased' }], expect: ['quest:3.05', '!step:3.05.ride'] },
     { at: 'yard.garage', expect: 'step:3.05.ride' },
     { talk: 'rustam', pick: [0, 0, 0], see: 'Как новая', expect: ['step:3.05.talk', 'dayssince:deal<1'] },
     { action: '3.05/practice' }, // тренировка: открывается выбор машины (у хоста)
@@ -26,7 +26,7 @@ defineScenario('3.05-late', {
   title: 'Крутая тачка: не уложился в гонку — еще попытка; не ушел от погони — убили и снова на старт',
   done: ['1.03'],
   steps: [
-    { do: [{ start: '3.05' }, { give: 'bracelet' }] },
+    { do: [{ start: '3.05' }, { flag: 'braceletCased' }] },
     { at: 'yard.garage' },
     { talk: 'rustam', pick: [0, 0, 0] },
     { action: '3.05/sleep' },
