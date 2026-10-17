@@ -42,7 +42,9 @@ const nightSkyColor = new THREE.Color(0x9fb4ff);
 
 // day 0..1 (daylight() из clock.js): ночью солнце гаснет, небо тускнеет и синеет
 function setDaylight(day) {
-  sunLight.intensity = 0.38 * day;
-  skyLight.intensity = 0.55 + 0.17 * day;
+  // «Всегда солнечно»: свет ярче обычного дня (солнце и небо сильнее)
+  const sunny = settings.alwaysSunny ? 1 : 0;
+  sunLight.intensity = (0.38 + 0.16 * sunny) * day;
+  skyLight.intensity = 0.55 + 0.17 * day + 0.1 * sunny;
   skyLight.color.copy(nightSkyColor).lerp(daySkyColor, day);
 }

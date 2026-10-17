@@ -66,6 +66,7 @@ const isNightHour = (h) => h >= 22 || h < 6;
 
 // Освещенность: ночь 0,12 → рассвет с 4:30 до 7 → день до 19 → закат до 21:30
 function daylight(min = gameMinutes) {
+  if (settings.alwaysSunny) return 1; // «Всегда солнечно» (src/engine/settings.js)
   const h = gameHour(min);
   if (h >= 7 && h <= 19) return 1;
   if (h > 19 && h < 21.5) return 1 - ((h - 19) / 2.5) * 0.88;

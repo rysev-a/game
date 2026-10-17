@@ -10,6 +10,7 @@ let rainOn = false; // P — включить/выключить вручную;
 let snowOn = false; // идет снег (вместо дождя): с ноября по март или Shift+P
 let weather = 0; // 0 — ясно, 1 — ливень; плавно догоняет цель
 const clearSky = new THREE.Color(0x334455);
+const sunnySky = new THREE.Color(0x8fc8f2); // «Всегда солнечно»: яркое голубое небо
 const rainSky = new THREE.Color(0x1c2733);
 const brightSky = new THREE.Color(0x6a88a6); // чуть светлее обычного — сразу после дождя
 const nightSky = new THREE.Color(0x070b14); // ночное небо (чем темнее время суток — тем ближе к нему)
@@ -101,10 +102,11 @@ function updateRain() {
   const night = 1 - daylight();
   skyScratch.copy(clearSky).lerp(nightSky, night);
   scene.background.copy(skyScratch).lerp(rainSky, weather * (1 - night * 0.7)).lerp(brightSky, glow * 0.6 * (1 - night));
+  if (settings.alwaysSunny) scene.background.lerp(sunnySky, 0.9);
   setDaylight(1 - night); // свет сцены; синее затенение поверх экрана теперь слабее, темноту дает сам свет
   nightTint.style.opacity = (night * 0.25).toFixed(3);
   scene.fog.color.copy(scene.background);
-  scene.fog.density = 0.01 + 0.006 * weather - 0.003 * glow;
+  scene.fog.density = (0.01 + 0.006 * weather - 0.003 * glow) * (settings.alwaysSunny ? 0.6 : 1); // ясный день — дальше видно
   sunTint.style.opacity = (0.1 * glow).toFixed(3);
   rainTint.style.opacity = (0.22 * weather).toFixed(3);
 
@@ -258,7 +260,7 @@ function updateSchedule() {
   const falling = rainManual !== null ? rainManual : scheduled; // идут осадки
   // Снег или дождь; выключенные в настройках (src/engine/settings.js) не идут совсем
   const isSnow = settings.snow && (snowManual !== null ? snowManual : coldSeason());
-  snowOn = falling && isSnow;
-  rainOn = falling && !isSnow && settings.rain;
+  snowOn = falling && isSnow && !settings.alwaysSunny;
+  rainOn = falling && !isSnow && settings.rain && !settings.alwaysSunny;
   if (wasOn && !(rainOn || snowOn)) rainEndedAt = gameTime;
 }

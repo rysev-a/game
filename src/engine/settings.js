@@ -21,6 +21,7 @@ const SETTINGS_DEFAULTS = {
   ambientVolume: 1,
   effects: true, // звуки (двигатель, фраза, шаги, выстрелы) включены
   effectsVolume: 1,
+  alwaysSunny: false, // всегда солнечно: ясный яркий день, без осадков и ночи (src/engine/clock.js, src/world/weather.js)
   rain: true,
   snow: true,
   rainFreq: 'normal', // 'rare' | 'normal' | 'often'
@@ -110,6 +111,7 @@ const settingsTabs = [
     id: 'weather',
     name: 'Погода',
     items: [
+      { type: 'check', key: 'alwaysSunny', label: 'Всегда солнечно', note: 'Яркий ясный день и хороший свет в любое время: без дождя, снега, сумерек и ночи. Часы идут, свет не меняется' },
       { type: 'check', key: 'rain', label: 'Дождь', note: 'Без галочки дождя не бывает: ни по расписанию, ни по P' },
       { type: 'check', key: 'snow', label: 'Снег', note: 'С ноября по март вместо дождя идет снег; Shift+P — снег вручную' },
       { type: 'select', key: 'rainFreq', label: 'Как часто идет дождь',
