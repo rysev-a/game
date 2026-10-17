@@ -28,89 +28,45 @@ function updateMallPeople() {
   cityGroup.add(disc);
 }
 
-// ---------- Площадка ----------
-const demoHalf = 125; // площадка 250 × 250 с центром в (0, 0)
-const demoRect = { x1: -demoHalf, x2: demoHalf, z1: -demoHalf, z2: demoHalf };
-flatRect(demoHalf * 2, demoHalf * 2, 0x3f6b3a, 0.006, 0, 0);
-mapObjects.push({ x: 0, z: 0, hx: demoHalf, hz: demoHalf, color: '#2f5233', ground: true });
-registerZone('demo', 'ДЕМО-площадка', demoRect, { birds: 0.5 });
-clearZones.push(demoRect);
+// ---------- Локации ----------
+// ДЕМО разделено на три локации — отдельные страницы: demo/races.html, demo/lab.html, demo/characters.html (меню — demo/index.html).
+// Какая загружена, задает страница: demoLocation, demoWorldRadius и demoWorldCenter (src/engine/layout.js). Каждая локация — свой круглый
+// город, обнесенный сетчатым забором (src/world/fence.js), с зеленой землей без пустых полей и лесом (src/world/forest.js):
+//   races      — «Гоночные трассы»: все трассы автодрома, стоянки машин (src/demo/race.js);
+//   lab        — «Лаборатория»: тир, вольер, лаборатория, обучение бою, DANGER, помощники Барона, стол со всеми вещами, подставка
+//                с приборами и пустые заготовки зданий (src/demo/range*.js, tutorial.js);
+//   characters — «Персонажи»: дом и гараж героя, дом бабушки Веры, домик на дереве, ряд персонажей сюжета с диалогами, полные здания.
+const DEMO_LOCATION_NAMES = { races: 'Гоночные трассы', lab: 'Лаборатория', characters: 'Персонажи' };
+const inRaces = demoLocation === 'races';
+const inLab = demoLocation === 'lab';
+const inCharacters = demoLocation === 'characters';
+const combatShift = { x: 0, z: 0 }; // боевая зона (тир, вольер, лаборатория) стоит на своих местах (range*.js, tutorial.js, race.js)
 
-// ---------- Четыре стороны ----------
-// ДЕМО цельное: в середине — площадка героя (дом, дорога, дом бабушки, домик на дереве), от нее расходятся четыре дороги:
-//   запад  — автодром: все трассы (src/demo/race.js);
-//   восток — боевая зона: тир, лаборатория, обучение бою, DANGER и помощники Барона (src/demo/range*.js, tutorial.js);
-//   север  — сборка и головоломки: стол со всеми вещами, подставка с приборами, пустые заготовки зданий;
-//   юг     — общение: персонажи сюжета, торговцы и те, кто просит что-то собрать, настроить, помочь, и полные здания.
-// Каждая зона — прямоугольник (registerZone: название в панели локации), у входа — указатель с названием.
-const DEMO_ZONES = {
-  combat: { name: 'Боевая зона', x: 430, z: 0, hx: 140, hz: 130 },
-  craft: { name: 'Сборка и головоломки', x: 80, z: -430, hx: 150, hz: 110 },
-  people: { name: 'Люди и поручения', x: 80, z: 440, hx: 150, hz: 120 },
-};
-// Боевая зона — прежний тир, сдвинутый на восток от площадки (на столько сдвинуты его постройки в range*.js, tutorial.js)
-const combatShift = { x: 330, z: -60 };
-const demoRoadX = 80; // север — юг: дорога от площадки к зонам «Сборка» и «Люди»
+// Земля всего круга — зеленая: ни в мире, ни на карте нет пустых темных полей
+{
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(worldRadius + 450, 160), new LitMaterial({ color: 0x356b3a, side: THREE.DoubleSide }));
+  disc.rotation.x = -Math.PI / 2;
+  disc.position.set(worldCenter.x, 0.003, worldCenter.z);
+  cityGroup.add(disc);
+}
 
-// Дорога с запада на восток: по ней можно покататься. Дальше за площадкой она идет на восток к боевой зоне,
-// а от нее на север и юг — к зонам сборки и общения; на запад она выходит к автодрому (src/demo/race.js)
-roadH(-demoHalf + 6, demoHalf - 6, 0, 'asphalt');
-roadH(demoHalf - 6, 385, 0, 'asphalt'); // доезжает до стойки с оружием: дальше — мишени
-roadV(DEMO_ZONES.craft.z + DEMO_ZONES.craft.hz - 10, -4, demoRoadX, 'asphalt');
-roadV(4, DEMO_ZONES.people.z - DEMO_ZONES.people.hz + 10, demoRoadX, 'asphalt');
+// Площадка локации (лаборатория, персонажи): прямоугольник чуть светлее земли, на нем дорога с запада на восток; лес на площадке не растет.
+// Гоночные трассы строят свою землю сами (src/demo/race.js)
+const demoRect = inLab ? { x1: -70, x2: 170, z1: -10, z2: 150 } : { x1: -125, x2: 125, z1: -130, z2: 110 };
+if (!inRaces) {
+  const w = demoRect.x2 - demoRect.x1;
+  const d = demoRect.z2 - demoRect.z1;
+  flatRect(w, d, 0x3f6b3a, 0.006, (demoRect.x1 + demoRect.x2) / 2, (demoRect.z1 + demoRect.z2) / 2);
+  mapObjects.push({ x: (demoRect.x1 + demoRect.x2) / 2, z: (demoRect.z1 + demoRect.z2) / 2, hx: w / 2, hz: d / 2, color: '#2f5233', ground: true });
+  // Название локации — по всему кругу (панель «Локация»)
+  registerZone('demo_' + demoLocation, DEMO_LOCATION_NAMES[demoLocation], { x1: worldCenter.x - worldRadius, x2: worldCenter.x + worldRadius, z1: worldCenter.z - worldRadius, z2: worldCenter.z + worldRadius }, { birds: 0.5 });
+  clearZones.push(demoRect);
+  roadH(demoRect.x1 + 6, demoRect.x2 - 6, 0, 'asphalt'); // дорога: по ней можно покататься
+}
 buildRoadMeshes();
 
-// Зоны: земля, название в панели локации, место на карте
-for (const z of Object.values(DEMO_ZONES)) {
-  const rect = { x1: z.x - z.hx, x2: z.x + z.hx, z1: z.z - z.hz, z2: z.z + z.hz };
-  flatRect(z.hx * 2, z.hz * 2, 0x3f6b3a, 0.006, z.x, z.z);
-  mapObjects.push({ x: z.x, z: z.z, hx: z.hx, hz: z.hz, color: '#2f5233', ground: true });
-  registerZone('demo_' + z.name, z.name, rect, { birds: 0.5 });
-  clearZones.push(rect);
-}
-
-// Указатель: столб с табличкой (название зоны и куда ехать), читается при наведении и издали по крупной надписи
-function demoSign(x, z, title, sub, yaw = 0) {
-  const g = new THREE.Group();
-  const post = boxWithEdges(0.25, 3.2, 0.25, 0x5a4a3a);
-  post.position.y = 1.6;
-  g.add(post);
-  const cv = document.createElement('canvas');
-  cv.width = 512;
-  cv.height = 128;
-  const c = cv.getContext('2d');
-  c.fillStyle = '#1d4d8a';
-  c.fillRect(0, 0, 512, 128);
-  c.strokeStyle = '#fff';
-  c.lineWidth = 6;
-  c.strokeRect(6, 6, 500, 116);
-  c.fillStyle = '#fff';
-  c.textAlign = 'center';
-  c.font = 'bold 46px sans-serif';
-  c.fillText(title, 256, 62);
-  c.font = '28px sans-serif';
-  c.fillText(sub, 256, 104);
-  const tex = new THREE.CanvasTexture(cv);
-  const board = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 1.1), new LitMaterial({ map: tex, side: THREE.DoubleSide }));
-  board.position.y = 3.0;
-  g.add(board);
-  g.position.set(x, 0, z);
-  g.rotation.y = yaw;
-  g.scale.setScalar(2); // крупно, чтобы читалось с высоты камеры
-  cityGroup.add(g);
-  addObstacle({ x, z, hx: 0.3, hz: 0.3 });
-  addHoverInfo(board, { kind: 'ДЕМО', name: 'Указатель: ' + title, desc: sub });
-}
-demoSign(-100, 12, '← Автодром', 'все трассы: на запад', 0);
-demoSign(100, 12, 'Боевая зона →', 'тир, лаборатория, обучение: на восток', 0);
-demoSign(demoRoadX + 10, -16, '↑ Сборка и головоломки', 'вещи, приборы, заготовки: на север', 0);
-demoSign(demoRoadX + 10, 16, '↓ Люди и поручения', 'персонажи и здания: на юг', 0);
-demoSign(DEMO_ZONES.combat.x - DEMO_ZONES.combat.hx + 12, 12, 'Боевая зона', 'стойка с оружием, манекены, вольер и пульт обучения', 0);
-demoSign(demoRoadX + 10, DEMO_ZONES.craft.z + DEMO_ZONES.craft.hz - 14, 'Сборка и головоломки', 'стол с вещами, приборы и заготовки зданий', 0);
-demoSign(demoRoadX + 10, DEMO_ZONES.people.z - DEMO_ZONES.people.hz + 14, 'Люди и поручения', 'поговорить, взять поручение, помочь', 0);
-
 // ---------- Дом и гараж героя ----------
-{
+if (inCharacters) {
   const side = -1; // северная сторона дороги, фасад к дороге
   const houseX = -24;
   const houseZ = side * (18 + homeD / 2);
@@ -141,7 +97,7 @@ demoSign(demoRoadX + 10, DEMO_ZONES.people.z - DEMO_ZONES.people.hz + 14, 'Лю�
 // Рядом с домом героя — дом Анны Петровны (полный: с ней во дворе), за ним извилистая тропинка уходит
 // в лес к огромному дереву; в кроне — очень большой домик, спрятанный в листве (src/content/buildings/treehouse.js)
 const demoScene = ['grandma_house', 'treehouse']; // эти заготовки стоят полными здесь, а не в ряду зданий
-{
+if (inCharacters) {
   const gx = 10;
   const gz = -24;
   flatRect(26, 22, 0x3a6b3d, 0.008, gx, gz - 1);
@@ -312,9 +268,9 @@ function placeDemoRow(list, rowZ, centerX = 0) {
     demoPeople.push(p);
   });
 }
-// Персонажи — на юге, в зоне «Люди и поручения»: ряд лицом к дороге. Помощники Барона — на востоке, в боевой зоне, у вольера
-placeDemoRow(DEMO_CHARACTERS, DEMO_ZONES.people.z - 30, DEMO_ZONES.people.x);
-placeDemoRow(DEMO_BOSSES, DEMO_ZONES.combat.z - DEMO_ZONES.combat.hz + 16, DEMO_ZONES.combat.x);
+// Персонажи сюжета — в локации «Персонажи», ряд лицом к дороге; помощники Барона — в «Лаборатории», у вольера
+if (inCharacters) placeDemoRow(DEMO_CHARACTERS, 18, 0);
+if (inLab) placeDemoRow(DEMO_BOSSES, 20, 0);
 
 function demoDialogue(p) {
   const c = p.demo;
@@ -351,10 +307,10 @@ addInteractable({
 // ---------- Предметы ----------
 // Длинный стол, на нем все предметы из ITEMS. Взятая вещь со стола исчезает; если ее выбросить
 // из инвентаря (ее там больше нет), она снова появляется на столе
-{
-  // Север, зона «Сборка и головоломки»: стол стоит у въезда, дальше — подставка с приборами и заготовки зданий
-  const tableX = DEMO_ZONES.craft.x;
-  const tableZ = DEMO_ZONES.craft.z + DEMO_ZONES.craft.hz - 65;
+if (inLab) {
+  // Лаборатория: стол со всеми вещами, за ним — подставка с приборами и заготовки зданий
+  const tableX = 0;
+  const tableZ = 34;
   const ids = Object.keys(ITEMS).filter((id) => !DEVICES[id]); // приборы — на своей подставке
   const step = 3;
   const x0 = tableX - ((ids.length - 1) * step) / 2;
@@ -399,9 +355,9 @@ addInteractable({
 // Подставка за столом предметов: все приборы из DEVICES (src/player/devices.js). E — надеть: прибор
 // исчезает с подставки и оказывается на герое. Еще раз E у пустого места — снять и положить обратно,
 // чтобы заново проверить, как прибор меняет игру (браслет — панель сохранений)
-{
-  const standX = DEMO_ZONES.craft.x;
-  const standZ = DEMO_ZONES.craft.z + DEMO_ZONES.craft.hz - 55;
+if (inLab) {
+  const standX = 0;
+  const standZ = 42;
   const ids = Object.keys(DEVICES);
   const step = 4;
   const x0 = standX - ((ids.length - 1) * step) / 2;
@@ -444,14 +400,12 @@ addInteractable({
 }
 
 // ---------- Здания ----------
-// Все заготовки из реестра (src/content/buildings) стоят в ряд дважды: пустые (только стены, двери, этажи) — на севере, в зоне
-// «Сборка и головоломки», полные (мебель, станции, жильцы) — на юге, в зоне «Люди и поручения», рядом с теми, кто в них работает.
-// Фасады смотрят на дорогу к площадке
+// Все заготовки из реестра (src/content/buildings) стоят рядом: пустые (только стены, двери, этажи) — в «Лаборатории», полные (мебель, станции,
+// жильцы) — в «Персонажах», рядом с теми, кто в них работает. Фасады смотрят на дорогу
 {
-  const rows = [
-    { z: DEMO_ZONES.craft.z - 25, x: DEMO_ZONES.craft.x, heading: 0, full: false, title: 'Пустая заготовка: стены, двери и этажи.' },
-    { z: DEMO_ZONES.people.z + 40, x: DEMO_ZONES.people.x, heading: Math.PI, full: true, title: 'Полная заготовка: станции, вещи и жильцы.' },
-  ];
+  const rows = [];
+  if (inLab) rows.push({ z: 70, x: 0, heading: Math.PI, full: false, title: 'Пустая заготовка: стены, двери и этажи.' });
+  if (inCharacters) rows.push({ z: 70, x: 0, heading: Math.PI, full: true, title: 'Полная заготовка: станции, вещи и жильцы.' });
   const ids = Object.keys(BUILDINGS);
   const gap = 10;
   for (const row of rows) {
@@ -487,6 +441,13 @@ heroStats.elixir = heroStats.maxElixir;
 renderInventory();
 renderEquipHud();
 
-// Старт на площадке у дороги; указатели на четыре стороны — рядом
-const demoStart = { x: 0, z: 14 };
-showToast('ДЕМО: вокруг площадки четыре стороны — на запад автодром (все трассы), на восток боевая зона (тир, обучение), на север сборка и головоломки, на юг люди и поручения. Указатели — у дороги', 9000);
+// Старт: на площадке локации (у дороги), в гоночных трассах — у стоянки машин
+const demoStart = inRaces ? { x: -130, z: -8 } : inLab ? { x: 0, z: 48 } : { x: 0, z: 8 };
+showToast(
+  inRaces
+    ? 'Гоночные трассы: стоянки с машинами — рядом (болид, джип, трактор, БТР; гоночный парк — севернее); трассы — по дороге на запад, фигуры, кольца и восьмерки — по продольной дороге на север и юг'
+    : inLab
+      ? 'Лаборатория: стол со всеми вещами и подставка с приборами — рядом; тир с оружием, мишенями, вольером и пультом обучения — на востоке'
+      : 'Персонажи: ряд персонажей сюжета — с каждым можно поговорить (E); дом героя и дом бабушки Веры с тропинкой к домику на дереве — на севере',
+  8000,
+);

@@ -8,8 +8,8 @@ const riverX = 350; // центр реки (совпадает с cityXs[0] + ci
 const riverHalf = 16; // половина ширины русла по верху берегов
 
 // Граница мира — круг, по нему идет сетчатый забор, дальше выйти нельзя
-const worldCenter = { x: -375, z: 0 };
-// В ДЕМО мир шире (demoWorldRadius задает demo/index.html): там десятки трасс, зоны обучения, сборки и общения
+const worldCenter = typeof demoWorldCenter === 'object' ? demoWorldCenter : { x: -375, z: 0 }; // в ДЕМО — центр своей локации (demo/*.html)
+// В ДЕМО у каждой локации свой круглый мир (demoWorldRadius и demoWorldCenter задают demo/races.html, lab.html, characters.html)
 const worldRadius = typeof demoWorldRadius === 'number' ? demoWorldRadius : 1100;
 // Описанный квадрат (для земли, леса и миникарты): карта получается квадратной
 const worldBounds = {
