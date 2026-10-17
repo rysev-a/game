@@ -11,7 +11,7 @@ const inClearZone = (x, z) =>
 const trees = []; // деревья внутри забора: { x, z, s }
 const outerTrees = []; // снаружи, только для вида
 const wb = worldBounds;
-const treeSpacing = isDemoWorld ? (worldRadius > 1000 ? 30 : 9) : 12; // ДЕМО: большой мир (трассы) — реже, маленькие локации — густой лес // мир большой: сетка реже, чтобы деревьев было не слишком много
+const treeSpacing = isDemoWorld ? Math.min(40, Math.max(9, worldRadius / 55)) : 12; // ДЕМО: чем больше мир (трассы), тем реже лес; маленькие локации — густой // мир большой: сетка реже, чтобы деревьев было не слишком много
 for (let gx = wb.minX - 56; gx < wb.maxX + 56; gx += treeSpacing) {
   for (let gz = wb.minZ - 56; gz < wb.maxZ + 56; gz += treeSpacing) {
     if (Math.random() < 0.15) continue;

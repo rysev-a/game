@@ -588,7 +588,7 @@ let demoTreeBlocked = () => false;
 
   // ---------- Трассы ----------
   const asphaltColor = 0x404044;
-  const TRACKS = [
+  const TRACKS_ALL = [
     {
       id: 'eight', name: 'Восьмерка', start: 0.12,
       desc: 'Две петли с перекрестком посередине: на перекрестке трасса пересекает сама себя.',
@@ -694,6 +694,21 @@ let demoTreeBlocked = () => false;
     ...radTracks,
     ...eightTracks,
   ];
+  // УЧАСТКИ. Страница ДЕМО задает raceSection (demoRaceSection): 'city' — городские трассы автодрома и «Складки», 'relief' — подъемы и спуски
+  // (холм, мост, горки, трамплин, «Гран-при»), 'shapes' — фигуры, 'rings-small' и 'rings-big' — малые (радиус до 96) и крупные кольца,
+  // 'eights-west' и 'eights-east' — восьмерки к западу и востоку от продольной дороги; без нее строится всё сразу. Остальные трассы, их
+  // покрышки, препятствия, земля и дороги не строятся: меньше объектов — больше кадров (участок — около 3–20 тысяч препятствий вместо 61 тысячи)
+  const raceSection = typeof demoRaceSection === 'string' ? demoRaceSection : 'all';
+  const SECTION_OF = { eight: 'city', oval: 'city', chicane: 'city', serpentine: 'city', dirt: 'city', folds: 'city', hill: 'relief', bridge: 'relief', coaster: 'relief', jump: 'relief', gp: 'relief' };
+  const sectionOf = (t) => {
+    if (SECTION_OF[t.id]) return SECTION_OF[t.id];
+    if (t.id.startsWith('shape_')) return 'shapes';
+    if (t.id.startsWith('ring_r')) return parseInt(t.id.split('_r')[1], 10) <= 96 ? 'rings-small' : 'rings-big';
+    const cx = t.pts.reduce((a, p) => a + p.x, 0) / t.pts.length; // восьмерки: по какую сторону от продольной дороги
+    return cx < -148 ? 'eights-west' : 'eights-east';
+  };
+  const wantSection = (sec) => raceSection === 'all' || raceSection === sec;
+  const TRACKS = TRACKS_ALL.filter((t) => wantSection(sectionOf(t)));
 
   // Линия старта — в начале осевой линии: сдвигаем начало на прямую, подальше от перекрестков и подъездов
   for (const t of TRACKS) {
@@ -702,7 +717,7 @@ let demoTreeBlocked = () => false;
   }
 
   // Подъезды: продольная дорога вдоль западного края площадки (выходит на дорогу ДЕМО), от нее — к каждой трассе
-  const ROADS = [
+  const ROADS_ALL = [
     { pts: line(-118, 0, spineX, 0), w: 12 }, // от дороги площадки
     { pts: line(spineX, -745, spineX, 385), w: 12 }, // продольная (на юг — к гоночному комплексу, на север — к «Гран-при»)
     { pts: line(spineX, -135, -160, -135), w: 12 }, // к восьмерке (ее восточный край)
@@ -735,6 +750,9 @@ let demoTreeBlocked = () => false;
     ...eightRoads,
     ...eightSpurs,
   ];
+  // Дороги — только те части, что лежат в круге мира этого участка (дальше — забор)
+  const insideRegion = (p) => raceSection === 'all' || Math.hypot(p.x - worldCenter.x, p.z - worldCenter.z) < worldRadius - 25;
+  const ROADS = ROADS_ALL.map((r) => ({ ...r, pts: r.pts.filter(insideRegion) })).filter((r) => r.pts.length >= 2);
 
   // Все полотна — один список: осевая линия, полуширина, замкнута ли
   const surfaces = [
@@ -857,24 +875,36 @@ let demoTreeBlocked = () => false;
 
   // ---------- Земля автодрома ----------
   const area = { x1: -630, x2: -125, z1: -220, z2: 270 };
-  flatRect(area.x2 - area.x1, area.z2 - area.z1, 0x46703e, 0.005, (area.x1 + area.x2) / 2, (area.z1 + area.z2) / 2);
-  mapObjects.push({ x: (area.x1 + area.x2) / 2, z: (area.z1 + area.z2) / 2, hx: (area.x2 - area.x1) / 2, hz: (area.z2 - area.z1) / 2, color: '#35583a', ground: true });
-  registerZone('autodrome', 'Автодром', area, { birds: 0.3 });
+  if (wantSection('city')) {
+    flatRect(area.x2 - area.x1, area.z2 - area.z1, 0x46703e, 0.005, (area.x1 + area.x2) / 2, (area.z1 + area.z2) / 2);
+    mapObjects.push({ x: (area.x1 + area.x2) / 2, z: (area.z1 + area.z2) / 2, hx: (area.x2 - area.x1) / 2, hz: (area.z2 - area.z1) / 2, color: '#35583a', ground: true });
+    registerZone('autodrome', 'Автодром', area, { birds: 0.3 });
+  }
   const area4 = driftBounds; // дрифт-полигон «Складки»
   const area6 = { x1: -1260, x2: -110, z1: -1375, z2: -925 }; // дрифт-полигон «Фигуры»
-  for (const [ar, id, name] of [[radArea, 'driftrings', 'Дрифт-полигон: кольца'], [eightArea, 'drifteights', 'Дрифт-полигон: восьмерки'], [area4, 'driftpark', 'Дрифт-полигон'], [area6, 'driftshapes', 'Дрифт-полигон: фигуры']]) {
+  for (const [ar, id, name, sec] of [
+    [{ ...radArea, x2: -100 }, 'driftrings_s', 'Дрифт-полигон: малые кольца', 'rings-small'],
+    [{ ...radArea, x1: -160 }, 'driftrings_b', 'Дрифт-полигон: крупные кольца', 'rings-big'],
+    [{ ...eightArea, x2: -100 }, 'drifteights_w', 'Дрифт-полигон: восьмерки (запад)', 'eights-west'],
+    [{ ...eightArea, x1: -160 }, 'drifteights_e', 'Дрифт-полигон: восьмерки (восток)', 'eights-east'],
+    [area4, 'driftpark', 'Дрифт-полигон', 'city'],
+    [area6, 'driftshapes', 'Дрифт-полигон: фигуры', 'shapes'],
+  ]) {
+    if (!wantSection(sec)) continue;
     flatRect(ar.x2 - ar.x1, ar.z2 - ar.z1, 0x46703e, 0.005, (ar.x1 + ar.x2) / 2, (ar.z1 + ar.z2) / 2);
     mapObjects.push({ x: (ar.x1 + ar.x2) / 2, z: (ar.z1 + ar.z2) / 2, hx: (ar.x2 - ar.x1) / 2, hz: (ar.z2 - ar.z1) / 2, color: '#35583a', ground: true });
     registerZone(id, name, ar, { birds: 0.3 });
   }
   const area2 = { x1: -790, x2: -125, z1: -900, z2: -220 }; // гоночный комплекс
   const area3 = { x1: -790, x2: -125, z1: 270, z2: 560 }; // «Гран-при»
-  flatRect(area3.x2 - area3.x1, area3.z2 - area3.z1, 0x46703e, 0.005, (area3.x1 + area3.x2) / 2, (area3.z1 + area3.z2) / 2);
-  mapObjects.push({ x: (area3.x1 + area3.x2) / 2, z: (area3.z1 + area3.z2) / 2, hx: (area3.x2 - area3.x1) / 2, hz: (area3.z2 - area3.z1) / 2, color: '#35583a', ground: true });
-  registerZone('grandprix', 'Гран-при', area3, { birds: 0.3 });
-  flatRect(area2.x2 - area2.x1, area2.z2 - area2.z1, 0x46703e, 0.005, (area2.x1 + area2.x2) / 2, (area2.z1 + area2.z2) / 2);
-  mapObjects.push({ x: (area2.x1 + area2.x2) / 2, z: (area2.z1 + area2.z2) / 2, hx: (area2.x2 - area2.x1) / 2, hz: (area2.z2 - area2.z1) / 2, color: '#35583a', ground: true });
-  registerZone('circuits', 'Гоночный комплекс', area2, { birds: 0.3 });
+  if (wantSection('relief')) {
+    flatRect(area3.x2 - area3.x1, area3.z2 - area3.z1, 0x46703e, 0.005, (area3.x1 + area3.x2) / 2, (area3.z1 + area3.z2) / 2);
+    mapObjects.push({ x: (area3.x1 + area3.x2) / 2, z: (area3.z1 + area3.z2) / 2, hx: (area3.x2 - area3.x1) / 2, hz: (area3.z2 - area3.z1) / 2, color: '#35583a', ground: true });
+    registerZone('grandprix', 'Гран-при', area3, { birds: 0.3 });
+    flatRect(area2.x2 - area2.x1, area2.z2 - area2.z1, 0x46703e, 0.005, (area2.x1 + area2.x2) / 2, (area2.z1 + area2.z2) / 2);
+    mapObjects.push({ x: (area2.x1 + area2.x2) / 2, z: (area2.z1 + area2.z2) / 2, hx: (area2.x2 - area2.x1) / 2, hz: (area2.z2 - area2.z1) / 2, color: '#35583a', ground: true });
+    registerZone('circuits', 'Гоночный комплекс', area2, { birds: 0.3 });
+  }
 
   // ---------- Полотно ----------
   // Лента по осевой линии. Вторая половина каждой трассы чуть выше: на перекрестке восьмерки не мерцает
@@ -1121,25 +1151,25 @@ let demoTreeBlocked = () => false;
   curbMesh.instanceColor.needsUpdate = true;
   cityGroup.add(curbMesh);
 
-  // ---------- Стоянка с машинами ----------
-  // У продольной дороги, к востоку от нее, на краю площадки: носом на север
+  // ---------- Стоянки с машинами ----------
+  // Стоянка у продольной дороги, к востоку от нее: носом на север (две колонки, ряды через 13)
+  const addLot = (x, z, ids, len) => {
+    flatRect(16, len, 0x505054, 0.011, x, z);
+    mapObjects.push({ x, z, hx: 8, hz: len / 2, color: '#56565c', ground: true });
+    ids.forEach((id, i) => addVehicle(id, x + (i % 2 ? 3.5 : -3.5), z - (len / 2 - 8) + Math.floor(i / 2) * 13, 0, { open: true }));
+  };
   const lotX = -133;
-  const lotZ = -36;
-  flatRect(16, 34, 0x505054, 0.011, lotX, lotZ);
-  mapObjects.push({ x: lotX, z: lotZ, hx: 8, hz: 17, color: '#56565c', ground: true });
-  addVehicle('race', lotX - 3.5, lotZ - 10, 0, { open: true });
-  addVehicle('jeep', lotX + 3.5, lotZ - 10, 0, { open: true });
-  addVehicle('tractor', lotX - 3.5, lotZ + 6, 0, { open: true });
-  addVehicle('apc', lotX + 3.5, lotZ + 6, 0, { open: true });
-
-  // Гоночный парк — севернее, на своей стоянке у продольной дороги: восемь машин с разной ездой
-  // (VEHICLE_KINDS: gt, rally, muscle, drift, proto, kart, hyper — до 350 км/ч, bugatti — до 400). Садятся без ключей
-  const pitZ = -88;
-  flatRect(16, 57, 0x505054, 0.011, lotX, pitZ + 6.5);
-  mapObjects.push({ x: lotX, z: pitZ + 6.5, hx: 8, hz: 28.5, color: '#56565c', ground: true });
-  ['gt', 'rally', 'muscle', 'drift', 'proto', 'kart', 'hyper', 'bugatti'].forEach((id, i) => {
-    addVehicle(id, lotX + (i % 2 ? 3.5 : -3.5), pitZ - 13 + Math.floor(i / 2) * 13, 0, { open: true });
-  });
+  if (wantSection('city')) {
+    // Городские трассы: болид, джип, трактор и БТР; севернее — гоночный парк из восьми машин (VEHICLE_KINDS: gt, rally, muscle, drift,
+    // proto, kart, hyper — до 350 км/ч, bugatti — до 400). Садятся без ключей
+    addLot(lotX, -36, ['race', 'jeep', 'tractor', 'apc'], 34);
+    addLot(lotX, -81.5, ['gt', 'rally', 'muscle', 'drift', 'proto', 'kart', 'hyper', 'bugatti'], 57);
+  }
+  // Остальные участки — своя стоянка у входа с гоночными машинами
+  if (raceSection === 'relief') addLot(lotX, -690, ['race', 'gt', 'rally', 'jeep'], 34);
+  if (raceSection === 'shapes') addLot(lotX, -1100, ['race', 'drift', 'kart', 'gt'], 34);
+  if (raceSection === 'rings-small' || raceSection === 'rings-big') addLot(lotX, -1530, ['race', 'drift', 'kart', 'gt'], 34);
+  if (raceSection === 'eights-west' || raceSection === 'eights-east') addLot(lotX, 1120, ['race', 'drift', 'kart', 'proto'], 34);
 
   // ---------- Секундомер круга ----------
   // Где машина на трассе: ближайшая точка осевой линии. Ищем рядом с прошлой (на перекрестке восьмерки

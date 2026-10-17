@@ -442,7 +442,17 @@ renderInventory();
 renderEquipHud();
 
 // Старт: на площадке локации (у дороги), в гоночных трассах — у стоянки машин
-const demoStart = inRaces ? { x: -130, z: -8 } : inLab ? { x: 0, z: 48 } : { x: 0, z: 8 };
+// Гоночные трассы: у стоянки своего участка (demoRaceSection: city, relief, shapes, rings-small, rings-big, eights-west, eights-east)
+const RACE_STARTS = {
+  city: { x: -130, z: -8 },
+  relief: { x: -133, z: -662 },
+  shapes: { x: -118, z: -1100 },
+  'rings-small': { x: -118, z: -1522 },
+  'rings-big': { x: -118, z: -1522 },
+  'eights-west': { x: -118, z: 1112 },
+  'eights-east': { x: -118, z: 1112 },
+};
+const demoStart = inRaces ? RACE_STARTS[typeof demoRaceSection === 'string' ? demoRaceSection : 'city'] : inLab ? { x: 0, z: 48 } : { x: 0, z: 8 };
 showToast(
   inRaces
     ? 'Гоночные трассы: стоянки с машинами — рядом (болид, джип, трактор, БТР; гоночный парк — севернее); трассы — по дороге на запад, фигуры, кольца и восьмерки — по продольной дороге на север и юг'
