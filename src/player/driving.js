@@ -9,12 +9,13 @@ const exitMaxSpeed = 0.03; // выйти можно, только когда м�
 const carAccel = 0.02;
 const carBrake = 0.04;
 const carDrag = 0.006;
+const kmhPerSpeed = 250 / 1.5; // скорость за кадр → км/ч: самая быстрая машина (1,5, прототип) — 250 км/ч
 const carMaxSpeed = 0.8;
 const carMaxReverse = -0.3;
 const carTurnRate = 0.045;
 // Езда обычной легковушки; у гоночной, джипа, трактора и БТР — свои числа (VEHICLE_KINDS, src/world/vehicles.js)
 // drift — насколько машину заносит на ручнике (1 — как гоночную)
-const carDrive = { accel: carAccel, brake: carBrake, drag: carDrag, maxSpeed: carMaxSpeed, maxReverse: carMaxReverse, turnRate: carTurnRate, drift: 0.6 };
+const carDrive = { acc: [100, 10], accel: carAccel, brake: carBrake, drag: carDrag, maxSpeed: carMaxSpeed, maxReverse: carMaxReverse, turnRate: carTurnRate, drift: 0.6 };
 
 // ЗАНОС. Space на компьютере (на телефоне — кнопка «ручник», src/engine/touch-drive.js) на ходу — ручник: задние колеса скользят, тормозит он слабее обычного тормоза,
 // руль поворачивает кузов сильнее, а машина по инерции едет прежним курсом — ее заносит (car.slip — угол
@@ -182,7 +183,9 @@ function updateDriving(c) {
   const k = {
     ...base,
     maxSpeed: base.maxSpeed * Math.max(0.45, 1 - 2 * Math.max(0, slope) + 1.5 * Math.max(0, -slope)),
-    accel: base.accel * settings.accelSharp * launchFactor(base, car.speed) * (car.airborne ? 0 : 1),
+    // Обычная езда — кривая разгона машины (accelAt); дрифт и спецслучаи — прежнее ровное ускорение (driftAccel)
+    accel: (base.acc ? accelAt(base, car.speed) : base.accel * launchFactor(base, car.speed)) * settings.accelSharp * (car.airborne ? 0 : 1),
+    driftAccel: base.accel * settings.accelSharp * launchFactor(base, car.speed) * (car.airborne ? 0 : 1),
     brake: base.brake * settings.brakeSharp,
     turnRate: base.turnRate * settings.steerSens,
   };
@@ -202,12 +205,12 @@ function updateDriving(c) {
   if (powerDrift && car.speed > 0) {
     // Мотор почти держит скорость; потерю на боковом скольжении восполняет газ
     const top = k.maxSpeed * 0.8;
-    if (car.speed < top) car.speed = Math.min(top, car.speed + k.accel * 0.9);
+    if (car.speed < top) car.speed = Math.min(top, car.speed + k.driftAccel * 0.9);
     else car.speed -= k.drag;
   } else if (powerDrift) {
     // Задом: так же, но к пределу заднего хода
     const top = k.maxReverse * 0.9;
-    if (car.speed > top) car.speed = Math.max(top, car.speed - k.accel * 0.7);
+    if (car.speed > top) car.speed = Math.max(top, car.speed - k.driftAccel * 0.7);
   } else if (onTouch && typeof touchDriveStep === 'function' && touchDriveStep(car, k, hasFuel)) {
     // На телефоне — педали и коробка передач (src/engine/touch-drive.js), на компьютере — клавиши
     // скорость уже посчитана
@@ -216,7 +219,10 @@ function updateDriving(c) {
   else car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.drag);
   // Ручник тормозит; у гоночных с газом — нет: с места это старт с пробуксовкой, на скорости — дрифт
   if ((keys['Space'] || handLever) && !(engineOn && handLever)) car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.brake * (handbrake ? handbrakeBrake : 1));
-  car.speed -= slope * slopeGravity; // склон тянет вниз — и вперед, и задним ходом
+  // Склон тянет вниз — и вперед, и задним ходом. Тянет настолько же, насколько мощна машина: у слабой по разгону (легковушка,
+  // джип, трактор) тяга склона меньше, иначе она не въехала бы на холм (peakAccel — разгон с места по кривой)
+  const hillPull = base.acc ? (accelScale(base) * accelShapeAt(base, 0)) / base.accel : 1;
+  car.speed -= slope * slopeGravity * hillPull;
   // Отскок быстрее заднего хода: пока гаснет, предел заднего хода не режет скорость (car.recoil)
   car.speed = Math.min(Math.max(car.speed, Math.min(k.maxReverse, car.recoil || 0)), Math.max(k.maxSpeed, base.maxSpeed));
   if (car.speed > k.maxSpeed) car.speed -= Math.min(car.speed - k.maxSpeed, k.accel + k.drag * 2); // в гору быстро не едет
@@ -337,6 +343,38 @@ function updateCarHeight(car) {
   // Нос по склону, в полете — по траектории
   const pitch = car.airborne ? Math.atan2(car.vy, Math.abs(car.speed) + 0.01) * Math.sign(car.speed || 1) : Math.atan(slopeAt(car));
   car.pitch = (car.pitch || 0) + (pitch - (car.pitch || 0)) * 0.3;
+}
+
+// РАЗГОН. У каждой машины своя динамика: kind.acc = [км/ч, секунд] — за сколько секунд она разгоняется с места
+// до этой скорости (обычная легковушка — до 100 за 10 с, джип — за 7, гоночные — за 3–4,5). Разгон не линейный:
+// сильный с места, слабеет с ростом скорости (1 − s³, s — доля максимальной скорости) и «пилой» по передачам —
+// на каждой передаче тяга сначала выше, к переключению слабеет. Множитель кривой подбирается один раз так,
+// чтобы время до заданной скорости сошлось (accelScale). У машины без kind.acc — прежнее ровное ускорение
+const accelShape = 3;
+const gearTops = [0.18, 0.34, 0.5, 0.66, 0.82, 1]; // верхние границы передач — доли максимальной скорости
+function accelShapeAt(kind, speed) {
+  const s = Math.max(0, speed) / kind.maxSpeed;
+  if (s >= 1) return 0;
+  let lo = 0;
+  for (const top of gearTops) {
+    if (s < top) return (1 - Math.pow(s, accelShape)) * (1.12 - 0.24 * ((s - lo) / (top - lo)));
+    lo = top;
+  }
+  return 0;
+}
+function accelScale(kind) {
+  if (!kind.accScale) {
+    const to = Math.min(kind.acc[0] / kmhPerSpeed, kind.maxSpeed * 0.97);
+    const steps = 400;
+    let frames = 0;
+    for (let i = 0; i < steps; i++) frames += to / steps / accelShapeAt(kind, ((i + 0.5) * to) / steps);
+    kind.accScale = frames / (kind.acc[1] * 60);
+  }
+  return kind.accScale;
+}
+// Ускорение за кадр на скорости speed (юниты за кадр²)
+function accelAt(kind, speed) {
+  return accelScale(kind) * accelShapeAt(kind, speed);
 }
 
 // Плавный старт: доля разгона на скорости speed (1 — полный). launch — доля с места, launchUntil — к какой доле
@@ -578,15 +616,18 @@ const fuelEl = document.getElementById('fuel');
 const fuelFill = document.getElementById('fuelFill');
 // СПИДОМЕТР рядом с топливом: скорость за кадр (car.speed) в км/ч. Самая быстрая машина (maxSpeed 1,5 — прототип)
 // на пределе дает 250 км/ч, остальные — свои максимумы: обычная легковушка ~133, трактор ~53
+// Скорость машины в км/ч (спидометр здесь и на телефоне, src/engine/touch-drive.js)
+function carSpeedKmh(car) {
+  return Math.min(250, Math.round(Math.abs(car.speed) * kmhPerSpeed));
+}
 const speedoEl = document.getElementById('speedo');
 const speedoValue = document.getElementById('speedoValue');
-const kmhPerSpeed = 250 / 1.5;
 let speedoShown = -1;
 function updateFuelHud() {
   fuelEl.style.display = drivingCar ? 'flex' : 'none';
   speedoEl.style.display = drivingCar ? 'flex' : 'none';
   if (!drivingCar) return;
-  const kmh = Math.min(250, Math.round(Math.abs(drivingCar.speed) * kmhPerSpeed));
+  const kmh = carSpeedKmh(drivingCar);
   if (kmh !== speedoShown) {
     speedoShown = kmh;
     speedoValue.textContent = kmh;

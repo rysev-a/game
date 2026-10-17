@@ -180,8 +180,7 @@ if (touchUI) {
       touchDrive.steer = 0;
       showGear();
     }
-    // Скорость: юниты мира — метры, движение считается за кадр при 60 кадрах в секунду
-    const kmh = drivingCar ? Math.round(Math.abs(drivingCar.speed) * 60 * 3.6) : 0;
+    const kmh = drivingCar ? carSpeedKmh(drivingCar) : 0; // та же шкала 0–250, что у спидометра на компьютере (src/player/driving.js)
     if (kmh !== speedShown) speedEl.textContent = speedShown = kmh;
     document.body.classList.toggle('noTilt', !(typeof gyroTiltReady === 'function' && gyroTiltReady()));
     requestAnimationFrame(updateTouchDrive);

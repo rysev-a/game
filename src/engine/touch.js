@@ -109,8 +109,7 @@ if (touchUI) {
     body.touch #infoPanel #ipName { font-size: 12px; letter-spacing: 0; }
     body.touch #infoPanel.empty, body.touch.armed #infoPanel { display: none; }
     body.touch #fuel { bottom: 34px; left: 12px; font-size: 13px; padding: 4px 8px; }
-    body.touch #speedo { bottom: 74px; left: 12px; font-size: 12px; padding: 2px 8px; }
-    body.touch #speedo b { font-size: 20px; }
+    body.touch #speedo { display: none !important; } /* на телефоне скорость — над педалями (touch-drive.js) */
     /* Разговор на телефоне — на весь экран, ответы — крупные кнопки; без ответов — коснуться, чтобы продолжить */
     body.touch #dialogue {
       position: fixed; inset: 0; width: auto; max-width: none; transform: none; z-index: 45; border: none; border-radius: 0;
