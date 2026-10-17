@@ -245,13 +245,15 @@ function updateCamera() {
   if (firstPersonBlend < 0.002) firstPersonBlend = 0;
   if (firstPersonBlend > 0.998) firstPersonBlend = 1;
   const k = firstPersonBlend;
-  const fov = 60 + (firstPersonFov - 60) * k;
-  const near = k > 0.5 ? 0.1 : 0.5; // оружие у самой камеры не обрезается
+  const ck = typeof cockpitBlend === 'number' ? cockpitBlend : 0; // вид из салона (src/player/driving.js)
+  const fov = 60 + (firstPersonFov - 60) * k + (cockpitFov - 60) * ck;
+  const near = k > 0.5 || ck > 0.5 ? 0.1 : 0.5; // оружие и руль у самой камеры не обрезаются
   if (camera.fov !== fov || camera.near !== near) {
     camera.fov = fov;
     camera.near = near;
     camera.updateProjectionMatrix();
   }
+  if (ck) cockpitCamera();
   if (!k) return;
   const eye = firstPersonEye + player.position.y;
   const ty = 1 + mouseLookBlend * 1.5;

@@ -610,6 +610,10 @@ function moveCarWithCollisions(car, turn, grip = 1, maxSlip = 1) {
 // как есть, а остаток (после посадки или ручного вращения колесом мыши/стрелками) плавно доворачиваем к нулю
 function followCamera(car, appliedTurn) {
   worldRotation -= appliedTurn;
+  if (cockpitOn()) {
+    worldRotation = -car.heading; // из салона мир вращается вместе с кузовом жестко: нос всегда «вперед» на экране
+    return;
+  }
   if (viewDragging || cameraHoldFrames > 0) return; // вид крутят мышью или стрелками
   const offset = worldRotation + car.heading;
   worldRotation -= Math.atan2(Math.sin(offset), Math.cos(offset)) * cameraFollowEase;
@@ -740,6 +744,7 @@ function updateCarMeshes() {
     if (c.update) c.update(c); // дым подбитого БТР и т. п. (src/world/vehicles.js)
   }
   if (typeof updateVehicleFx === 'function') updateVehicleFx();
+  updateCockpit();
 }
 
 // F — выйти из машины или отпустить толкаемую (E у колонки заправляет, поэтому выходим по F)
@@ -782,3 +787,125 @@ function updateFuelHud() {
   fuelFill.style.width = Math.round(f * 100) + '%';
   fuelFill.style.background = f <= fuelLow ? '#d23c3c' : f < 0.4 ? '#e0a82a' : '#3fa35b';
 }
+
+
+// ---------- Вид от первого лица за рулем ----------
+// Настройка «Вид от первого лица» (settings.cockpitView, вкладка «Вождение»; V — переключить за рулем): камера на месте водителя, смотрит
+// по ходу машины (мир вращается вместе с кузовом жестко, без плавного догона), кузов скрыт, чтобы не мешал обзору. Перед камерой — руль и
+// руки героя: руль поворачивается вслед за рулем машины (car.steerVis, видны и контрруль в заносе), предплечья идут от плеч к кистям на ободе.
+// Положение глаз — kind.cockpit = [x, y, z] в координатах кузова (x < 0 — слева, нос — в −Z); без него — по размерам кузова.
+const cockpitFov = 76;
+const cockpitSteerLock = 2.4; // на сколько радиан поворачивается руль при полном повороте колес (steerMaxAngle)
+const carCockpit = [-0.4, 1.28, 0.35]; // обычная легковушка: водитель слева
+let cockpitBlend = 0; // 0..1: камера въезжает на место водителя (updateCamera в src/player/player.js)
+let cockpitHiddenCar = null; // машина, чей кузов сейчас скрыт
+const cockpitOn = () => !!settings.cockpitView && !!drivingCar;
+function cockpitSeat(car) {
+  if (car.kind && car.kind.cockpit) return car.kind.cockpit;
+  if (!car.kind) return carCockpit;
+  return [-car.half.w * 0.35, 1.2, 0.2];
+}
+
+// Руль и руки: на камере, в ее координатах (вправо, вверх, к зрителю — +Z)
+const cockpitRig = new THREE.Group();
+cockpitRig.visible = false;
+const cockpitWheel = new THREE.Group(); // наклон: верх руля дальше от водителя
+const cockpitSpin = new THREE.Group(); // вращение руля вокруг его оси
+const cockpitArms = [];
+{
+  const rimMat = new LitMaterial({ color: 0x1b1b1f });
+  const metal = new LitMaterial({ color: 0x6a6f78 });
+  const skin = new LitMaterial({ color: 0xd9a066 });
+  const sleeve = new LitMaterial({ color: 0x3a4a6a });
+  const R = 0.17;
+  cockpitSpin.add(new THREE.Mesh(new THREE.TorusGeometry(R, 0.022, 8, 24), rimMat)); // обод
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.03, 12), metal);
+  hub.rotation.x = Math.PI / 2;
+  cockpitSpin.add(hub);
+  for (const a of [Math.PI / 2 + 2.1, Math.PI / 2 - 2.1, -Math.PI / 2]) { // три спицы
+    const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.03, R, 0.02), rimMat);
+    spoke.position.set(Math.cos(a) * R * 0.5, Math.sin(a) * R * 0.5, 0);
+    spoke.rotation.z = a - Math.PI / 2;
+    cockpitSpin.add(spoke);
+  }
+  // Кисти — на ободе в положении «десять и два» (вращаются вместе с рулем); к ним тянутся предплечья от плеч (cockpitArms)
+  for (const side of [-1, 1]) {
+    const hand = new THREE.Group();
+    const a = Math.PI / 2 - side * 1.05; // 60° от верха к своей стороне
+    hand.position.set(Math.cos(a) * R, Math.sin(a) * R, 0);
+    hand.add(new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.055, 0.1), skin)); // ладонь
+    const thumb = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.06), skin);
+    thumb.position.set(-side * 0.045, 0.01, -0.01);
+    hand.add(thumb);
+    cockpitSpin.add(hand);
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.075, 1), sleeve); // предплечье: растягивается от плеча до кисти
+    cockpitRig.add(arm);
+    cockpitArms.push({ arm, hand, side });
+  }
+  cockpitWheel.add(cockpitSpin);
+  cockpitWheel.position.set(0, -0.3, -0.62);
+  cockpitWheel.rotation.x = -0.5;
+  cockpitRig.add(cockpitWheel);
+  // Панель приборов внизу кадра: темная полоса, чтобы руль не «висел» над землей
+  const dash = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.16, 0.5), new LitMaterial({ color: 0x1a1c22 }));
+  dash.position.set(0, -0.52, -0.45);
+  cockpitRig.add(dash);
+}
+const cockpitShoulder = new THREE.Vector3();
+const cockpitHandPos = new THREE.Vector3();
+const cockpitMid = new THREE.Vector3();
+function updateCockpit() {
+  cockpitBlend += ((cockpitOn() ? 1 : 0) - cockpitBlend) * 0.25;
+  if (cockpitBlend < 0.002) cockpitBlend = 0;
+  if (cockpitBlend > 0.998) cockpitBlend = 1;
+  const inside = cockpitBlend > 0.5;
+  // Кузов скрыт, пока мы в салоне (иначе камера видит изнутри его детали); при выходе — возвращаем
+  const car = inside ? drivingCar : null;
+  if (cockpitHiddenCar && cockpitHiddenCar !== car) {
+    cockpitHiddenCar.mesh.visible = true;
+    cockpitHiddenCar = null;
+  }
+  if (car && !cockpitHiddenCar) {
+    car.mesh.visible = false;
+    cockpitHiddenCar = car;
+  }
+  if (inside && !camera.parent) scene.add(camera); // вещи на камере рисуются, только если она в сцене
+  if (inside !== !!cockpitRig.parent) {
+    if (inside) camera.add(cockpitRig);
+    else if (cockpitRig.parent) cockpitRig.parent.remove(cockpitRig);
+  }
+  cockpitRig.visible = inside;
+  if (!inside || !drivingCar) return;
+  // Руль: угол колес на экране (steerVis) → поворот руля; кисти на ободе, предплечья — от плеч (внизу по краям кадра)
+  cockpitSpin.rotation.z = (drivingCar.steerVis || 0) * (cockpitSteerLock / steerMaxAngle);
+  cockpitRig.updateMatrixWorld(true);
+  for (const a of cockpitArms) {
+    cockpitHandPos.setFromMatrixPosition(a.hand.matrixWorld);
+    cockpitRig.worldToLocal(cockpitHandPos);
+    cockpitShoulder.set(a.side * 0.42, -0.62, 0.15);
+    cockpitMid.addVectors(cockpitHandPos, cockpitShoulder).multiplyScalar(0.5);
+    a.arm.position.copy(cockpitMid);
+    a.arm.scale.set(1, 1, cockpitHandPos.distanceTo(cockpitShoulder));
+    a.arm.lookAt(cockpitRig.localToWorld(cockpitHandPos.clone()));
+  }
+}
+// Положение и взгляд камеры из салона (зовет updateCamera, src/player/player.js): глаза водителя в системе кузова, взгляд — по носу с наклоном
+// по склону и легким доворотом головы в сторону поворота
+function cockpitCamera() {
+  const k = cockpitBlend;
+  if (!k || !drivingCar) return;
+  const [sx, sy, sz] = cockpitSeat(drivingCar);
+  const pitch = drivingCar.pitch || 0;
+  const turn = -(drivingCar.steerVis || 0) * 0.12;
+  const px = camera.position.x + (sx - camera.position.x) * k;
+  const py = camera.position.y + (sy - camera.position.y) * k;
+  const pz = camera.position.z + (sz - camera.position.z) * k;
+  camera.position.set(px, py, pz);
+  const ty = 1 + (py + Math.sin(pitch) * 10 - 1) * k;
+  camera.lookAt(px + Math.sin(turn) * 10 * k, ty, pz - Math.cos(pitch) * Math.cos(turn) * 10 * k);
+}
+window.addEventListener('keydown', (e) => {
+  if (e.code !== 'KeyV' || e.repeat || !drivingCar || settingsOpen || dialogueOpen) return;
+  setSetting('cockpitView', !settings.cockpitView);
+  showToast(settings.cockpitView ? 'Вид из салона (V — вернуть обычный)' : 'Обычный вид', 1500);
+});

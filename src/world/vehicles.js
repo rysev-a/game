@@ -30,6 +30,7 @@ const VEHICLE_KINDS = {
     id: 'race', name: 'Болид', make: createRaceCar, color: 0xd8282a,
     desc: 'Болид для трека: очень быстрый и резкий в поворотах. Газ с ручником — дрифт. На телефоне на трассах автодрома рулят наклоном телефона.',
     half: { w: 1.25, l: 2.6 },
+    cockpit: [0, 1.05, 0.3], // глаза водителя в салоне (вид от первого лица, src/player/driving.js)
     acc: [100, 3.2], accel: 0.03, brake: 0.05, drag: 0.005, maxSpeed: 1.35, maxReverse: -0.3, turnRate: 0.05, drift: 1,
     launch: 0.12, launchUntil: 0.6, powerDrift: true, gyro: true, sound: 'race',
   },
@@ -37,6 +38,7 @@ const VEHICLE_KINDS = {
     id: 'gt', name: 'Купе GT', make: createGtCar, color: 0x1f5fd0,
     desc: 'Закрытое гоночное купе: ровный разгон, хорошие тормоза, послушно в заносе. Газ с ручником — дрифт.',
     half: { w: 1.15, l: 2.35 },
+    cockpit: [-0.4, 1.0, 0.4], // глаза водителя в салоне (вид от первого лица, src/player/driving.js)
     acc: [100, 4], accel: 0.026, brake: 0.055, drag: 0.005, maxSpeed: 1.28, maxReverse: -0.3, turnRate: 0.048, drift: 0.85,
     launch: 0.18, launchUntil: 0.55, powerDrift: true, gyro: true, sound: 'race', pitch: 0.95,
   },
@@ -44,6 +46,7 @@ const VEHICLE_KINDS = {
     id: 'rally', name: 'Раллийный хэтчбек', make: createRallyCar, color: 0xf0f0ea,
     desc: 'Короткий и юркий: резво трогается, быстро поворачивает, охотно идет боком, но максималка ниже. Газ с ручником — дрифт.',
     half: { w: 1.05, l: 2.0 },
+    cockpit: [-0.4, 1.3, 0.4], // глаза водителя в салоне (вид от первого лица, src/player/driving.js)
     acc: [100, 3.8], accel: 0.032, brake: 0.05, drag: 0.006, maxSpeed: 1.1, maxReverse: -0.32, turnRate: 0.056, drift: 1.15,
     launch: 0.32, launchUntil: 0.4, powerDrift: true, gyro: true, sound: 'race', pitch: 1.1,
   },
@@ -51,6 +54,7 @@ const VEHICLE_KINDS = {
     id: 'muscle', name: 'Маслкар', make: createMuscleCar, color: 0xe07a12,
     desc: 'Тяжелый и мощный: долго раскачивается, а потом летит. Тормоза слабые, задок срывается легко. Газ с ручником — дрифт.',
     half: { w: 1.1, l: 2.5 },
+    cockpit: [-0.4, 1.2, 0.5], // глаза водителя в салоне (вид от первого лица, src/player/driving.js)
     acc: [100, 4.6], accel: 0.033, brake: 0.038, drag: 0.005, maxSpeed: 1.4, maxReverse: -0.3, turnRate: 0.042, drift: 1.3,
     launch: 0.08, launchUntil: 0.7, powerDrift: true, gyro: true, sound: 'race', pitch: 0.82,
   },
@@ -58,6 +62,7 @@ const VEHICLE_KINDS = {
     id: 'drift', name: 'Дрифт-купе', make: createDriftCar, color: 0x8a2be0,
     desc: 'Построено для дрифта: заносит сильнее всех и держит угол, руль острый. Газ с ручником — дрифт.',
     half: { w: 1.15, l: 2.25 },
+    cockpit: [-0.4, 1.1, 0.5], // глаза водителя в салоне (вид от первого лица, src/player/driving.js)
     acc: [100, 4.2], accel: 0.027, brake: 0.048, drag: 0.005, maxSpeed: 1.2, maxReverse: -0.3, turnRate: 0.058, drift: 1.6,
     launch: 0.2, launchUntil: 0.5, powerDrift: true, gyro: true, sound: 'race', pitch: 1.04,
   },
@@ -65,6 +70,7 @@ const VEHICLE_KINDS = {
     id: 'proto', name: 'Прототип', make: createProtoCar, color: 0x14a35a,
     desc: 'Самый быстрый и с лучшими тормозами: прижимается к трассе и неохотно идет боком. Газ с ручником — дрифт.',
     half: { w: 1.1, l: 2.6 },
+    cockpit: [0, 0.85, 0.3], // глаза водителя в салоне (вид от первого лица, src/player/driving.js)
     acc: [100, 3], accel: 0.028, brake: 0.065, drag: 0.004, maxSpeed: 1.5, maxReverse: -0.28, turnRate: 0.047, drift: 0.55,
     launch: 0.12, launchUntil: 0.65, powerDrift: true, gyro: true, sound: 'race', pitch: 1.15,
   },
@@ -72,6 +78,7 @@ const VEHICLE_KINDS = {
     id: 'kart', name: 'Карт', make: createKart, color: 0xffd21e,
     desc: 'Крошечный карт: мгновенный старт, поворачивает на пятачке, но едет медленнее всех. Газ с ручником — дрифт.',
     half: { w: 0.85, l: 1.2 },
+    cockpit: [0, 0.95, 0.15], // глаза водителя в салоне (вид от первого лица, src/player/driving.js)
     acc: [100, 3.5], accel: 0.035, brake: 0.06, drag: 0.007, maxSpeed: 0.95, maxReverse: -0.25, turnRate: 0.066, drift: 0.9,
     launch: 0.4, launchUntil: 0.35, powerDrift: true, gyro: true, sound: 'race', pitch: 1.3,
   },
@@ -79,6 +86,7 @@ const VEHICLE_KINDS = {
     id: 'hyper', name: 'Гиперкар', make: createHyperCar, color: 0xf0a010,
     desc: 'Гиперкар до 350 км/ч: рвет с места, на скорости руль вялый — поворачивать надо заранее. Газ с ручником — дрифт.',
     half: { w: 1.2, l: 2.5 },
+    cockpit: [-0.4, 0.95, 0.3], // глаза водителя в салоне (вид от первого лица, src/player/driving.js)
     acc: [100, 2.9], accShape: 6, accel: 0.03, brake: 0.075, drag: 0.004, maxSpeed: 2.1, maxReverse: -0.3, turnRate: 0.04, drift: 0.5,
     launch: 0.12, launchUntil: 0.6, powerDrift: true, gyro: true, sound: 'race', pitch: 1.2,
   },
@@ -86,6 +94,7 @@ const VEHICLE_KINDS = {
     id: 'bugatti', name: 'Бугатти', make: createBugatti, color: 0x0f2a6b,
     desc: 'Бугатти: до 400 км/ч, сотня за 2,4 секунды. Тяжелый и очень быстрый: тормозить и входить в поворот надо заранее. Газ с ручником — дрифт.',
     half: { w: 1.25, l: 2.7 },
+    cockpit: [-0.4, 1.2, 0.4], // глаза водителя в салоне (вид от первого лица, src/player/driving.js)
     acc: [100, 2.4], accShape: 6, accel: 0.034, brake: 0.08, drag: 0.004, maxSpeed: 2.4, maxReverse: -0.3, turnRate: 0.036, drift: 0.45,
     launch: 0.1, launchUntil: 0.65, powerDrift: true, gyro: true, sound: 'race', pitch: 0.9,
   },
@@ -93,18 +102,21 @@ const VEHICLE_KINDS = {
     id: 'jeep', name: 'Джип', make: createJeep, color: 0x5d6e3c,
     desc: 'Внедорожник на больших колесах: быстрый разгон, тяжелый руль.',
     half: { w: 1.1, l: 2.15 },
+    cockpit: [-0.4, 1.95, 0.25], // глаза водителя в салоне (вид от первого лица, src/player/driving.js)
     acc: [100, 7], accel: 0.022, brake: 0.04, drag: 0.006, maxSpeed: 0.9, maxReverse: -0.35, turnRate: 0.04, drift: 0.7,
   },
   tractor: {
     id: 'tractor', name: 'Трактор', make: createTractor, color: 0x2f8a3a,
     desc: 'Медленный, зато разворачивается почти на месте.',
     half: { w: 1.3, l: 2.0 },
+    cockpit: [0, 2.5, 0.95], // глаза водителя в салоне (вид от первого лица, src/player/driving.js)
     acc: [30, 6], accel: 0.008, brake: 0.03, drag: 0.008, maxSpeed: 0.32, maxReverse: -0.18, turnRate: 0.06, drift: 0.25,
   },
   apc: {
     id: 'apc', name: 'БТР', make: createApc, color: 0x55603e,
     desc: 'Бронетранспортер: давит биосуществ, клыки и плевки его не берут. Но роботы пробивают броню за пару попаданий: подбитый БТР дымит, и приходится выбираться.',
     half: { w: 1.45, l: 3.15 },
+    cockpit: [-0.5, 2.1, 0.0], // глаза водителя в салоне (вид от первого лица, src/player/driving.js)
     acc: [50, 7], accel: 0.012, brake: 0.035, drag: 0.007, maxSpeed: 0.6, maxReverse: -0.25, turnRate: 0.032, drift: 0.35,
     crush: true, armored: true, hp: 30,
   },
