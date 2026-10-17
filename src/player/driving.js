@@ -193,6 +193,9 @@ function updateDriving(c) {
     driftAccel: base.accel * settings.accelSharp * launchFactor(base, car.speed) * (car.airborne ? 0 : 1),
     brake: base.brake * settings.brakeSharp,
     turnRate: base.turnRate * settings.steerSens,
+    // Задний ход гоночных быстрее: предел и ускорение — на множитель настройки «Скорость заднего хода» (reverseSpeed)
+    revMul: base.powerDrift ? settings.reverseSpeed : 1,
+    maxReverse: base.maxReverse * (base.powerDrift ? settings.reverseSpeed : 1),
   };
   const hasFuel = car.fuel > 0;
   const onTouch = touchUI && typeof touchDrive !== 'undefined';
@@ -215,12 +218,12 @@ function updateDriving(c) {
   } else if (powerDrift) {
     // Задом: так же, но к пределу заднего хода
     const top = k.maxReverse * 0.9;
-    if (car.speed > top) car.speed = Math.max(top, car.speed - k.driftAccel * 0.7);
+    if (car.speed > top) car.speed = Math.max(top, car.speed - k.driftAccel * 0.7 * k.revMul);
   } else if (onTouch && typeof touchDriveStep === 'function' && touchDriveStep(car, k, hasFuel)) {
     // На телефоне — педали и коробка передач (src/engine/touch-drive.js), на компьютере — клавиши
     // скорость уже посчитана
   } else if (c.up && hasFuel && (!handbrake || engineOn)) car.speed += car.speed < 0 ? k.brake : k.accel; // на ручнике газ не тянет (кроме гоночных)
-  else if (c.down && hasFuel) car.speed -= car.speed > 0 ? k.brake : k.accel * 0.7;
+  else if (c.down && hasFuel) car.speed -= car.speed > 0 ? k.brake : k.accel * 0.7 * k.revMul;
   else car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.drag);
   // Ручник тормозит; у гоночных с газом — нет: с места это старт с пробуксовкой, на скорости — дрифт
   if ((keys['Space'] || handLever) && !(engineOn && handLever)) car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.brake * (handbrake ? handbrakeBrake : 1));

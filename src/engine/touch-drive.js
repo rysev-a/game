@@ -156,7 +156,7 @@ if (touchUI) {
       else if (hasFuel && s < touchDriveCreep) toward(touchDriveCreep, k.accel * 0.3); // ползет сама
       else slow(k.drag);
     } else if (g === 'R') {
-      if (gas) car.speed = s > 0 ? s - k.brake : Math.max(s - k.accel * 0.7, k.maxReverse);
+      if (gas) car.speed = s > 0 ? s - k.brake : Math.max(s - k.accel * 0.7 * (k.revMul || 1), k.maxReverse);
       else if (hasFuel && s > -touchDriveCreepBack) toward(-touchDriveCreepBack, k.accel * 0.2);
       else slow(k.drag);
     } else {
