@@ -11,6 +11,8 @@
 //   talk:denis.police              дошел до этого узла диалога
 //   inspected:body                 осмотрел объект (событие inspect)
 //   puzzle:2.05.elixir             головоломка решена
+//   fight:2.11.flash               бой выигран
+//   elixir:>=20                    на шкале эликсира герою достаточно
 //   at:bridge.scene  near:place    игрок в месте (или в зоне) / в радиусе места
 //   inside  driving                игрок в здании / за рулем
 //   time:22:00-06:00  night  day   игровое время (через полночь тоже)
@@ -90,6 +92,11 @@
     talk: (arg, g) => !!g.state.nodes[arg],
     inspected: (arg, g) => !!g.state.inspected[arg],
     puzzle: (arg, g) => !!g.state.puzzles[arg],
+    fight: (arg, g) => !!g.state.fights[arg],
+    elixir: (arg, g) => {
+      const c = Core.parseCompare('e' + arg);
+      return Core.compare(g.host.elixir ? g.host.elixir() : 0, c.op, c.value);
+    },
     at: (arg, g) => {
       if (g.registry.places[arg]) return g.nearPlace(arg);
       return !!g.host.zone && g.host.zone() === arg;

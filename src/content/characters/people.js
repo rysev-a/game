@@ -78,3 +78,20 @@ defineDialog('semyon', {
     },
   },
 });
+
+defineCharacter({
+  id: 'vera',
+  name: 'Вера',
+  title: 'девушка из лаборатории',
+  desc: 'Веселая, мечтательная, смелая. Появляется живой только в финале, когда герой возвращается в прошлое.',
+  gender: 'female',
+});
+defineDialog('vera', {
+  start: [{ goto: 'hub' }],
+  nodes: {
+    hub: {
+      text: 'Ты меня наконец-то узнал, профессор.',
+      options: [{ text: 'Узнал.', end: true }],
+    },
+  },
+});

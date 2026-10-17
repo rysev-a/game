@@ -44,6 +44,7 @@
       else if ((kind === 'quest' || kind === 'done') && !registry.quests[arg]) bad(where, 'нет квеста «' + arg + '»');
       else if (kind === 'step' && !stepRefOk(arg)) bad(where, 'нет шага «' + arg + '»');
       else if (kind === 'puzzle' && !Core.resolvePuzzle(registry, arg)) bad(where, 'нет головоломки «' + arg + '»');
+      else if (kind === 'fight' && !(Core.resolveFight && Core.resolveFight(registry, arg))) bad(where, 'нет боя «' + arg + '»');
       else if (kind === 'fact' && !registry.facts[arg]) bad(where, 'нет факта «' + arg + '»');
       else if (kind === 'talked' && !registry.characters[arg]) bad(where, 'нет персонажа «' + arg + '»');
       else if (kind === 'talk' && !registry.characters[arg.split('.')[0]]) bad(where, 'нет персонажа в «' + cond + '»');
@@ -76,8 +77,16 @@
           bad(where, 'нет факта «' + arg + '»');
         } else if (key === 'puzzle' && !Core.resolvePuzzle(registry, arg)) {
           bad(where, 'нет головоломки «' + arg + '»');
-        } else if (key === 'elixir' && typeof arg !== 'number') {
-          bad(where, 'elixir: нужно число');
+        } else if ((key === 'elixir' || key === 'heal') && typeof arg !== 'number') {
+          bad(where, key + ': нужно число');
+        } else if (key === 'wait') {
+          try {
+            Core.parseDuration(arg);
+          } catch (err) {
+            bad(where, 'wait: ' + err.message);
+          }
+        } else if (key === 'teleport' && !registry.places[arg]) {
+          bad(where, 'нет места «' + arg + '» в teleport');
         } else if (key === 'dialog' && !Core.resolveNodeRef(registry, arg, null)) {
           bad(where, 'нет узла диалога «' + arg + '»');
         } else if ((key === 'give' || key === 'take') && opts.items) {
@@ -139,6 +148,16 @@
         lintEffects(list, where);
       }
       if (q.next && !registry.quests[q.next]) bad(where, 'нет следующего квеста «' + q.next + '»');
+      for (const [name, f] of Object.entries(q.fights || {})) {
+        const fw = where + ', бой ' + name;
+        lintCond(f.when, fw);
+        lintEffects(f.onWin, fw);
+        if (!(f.foes || []).length) bad(fw, 'нет foes');
+        for (const foe of f.foes || []) {
+          if (!Core.foeKinds.includes(foe.kind)) bad(fw, 'неизвестный вид врага «' + foe.kind + '»');
+          if (!registry.places[foe.at]) bad(fw, 'нет места «' + foe.at + '»');
+        }
+      }
       for (const [name, pz] of Object.entries(q.puzzles || {})) {
         const kind = Core.puzzleKinds[pz.kind];
         if (!kind) bad(where + ', головоломка ' + name, 'неизвестный вид «' + pz.kind + '»');
@@ -177,6 +196,7 @@
     for (const sp of Object.values(registry.spots)) {
       const where = 'объект ' + sp.id;
       if (!registry.places[sp.at]) bad(where, 'нет места «' + sp.at + '» в at');
+      if (sp.solid && sp.yaw) bad(where, 'у твердого объекта (solid) не бывает yaw');
       if (!(sp.parts || []).length) bad(where, 'нет parts');
       for (const part of sp.parts || []) if (!Array.isArray(part) || part.length !== 7) bad(where, 'часть: [w, h, d, цвет, x, y, z]');
       lintCond(sp.if, where);

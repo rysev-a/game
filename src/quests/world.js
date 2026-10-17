@@ -53,9 +53,18 @@
     group.position.set(x, 0, z);
     group.rotation.y = sp.yaw || 0;
     cityGroup.add(group);
+    // solid: true — части выше метра твердые для героя и машин (прямоугольники по осям, поворота у такого объекта нет)
+    const solids = [];
+    if (sp.solid) {
+      for (const [w, h, d, , px, , pz] of sp.parts) {
+        if (h < 1) continue;
+        const ob = { x: x + px, z: z + pz, hx: w / 2, hz: d / 2 };
+        solids.push({ ob, shape: addObstacle(ob) });
+      }
+    }
     if (sp.name) addHoverInfo(group, { kind: 'Объект', name: sp.name, desc: sp.desc || '' });
     const reach = sp.r || 3.2;
-    const it = addInteractable({
+    const it = sp.noInteract ? null : addInteractable({
       priority: 2,
       near: () => !insideBuilding() && !drivingCar && !dialogueOpen && Math.hypot(playerWorldX - x, playerWorldZ - z) < reach,
       prompt: () => sp.label || 'E — осмотреть: ' + (sp.name || ''),
@@ -66,7 +75,13 @@
     return {
       remove() {
         cityGroup.remove(group);
-        removeInteractable(it);
+        if (it) removeInteractable(it);
+        for (const { ob, shape } of solids) {
+          const i = obstacles.indexOf(ob);
+          if (i >= 0) obstacles.splice(i, 1);
+          const j = obstacleShapes.indexOf(shape);
+          if (j >= 0) obstacleShapes.splice(j, 1);
+        }
       },
     };
   }

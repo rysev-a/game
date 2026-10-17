@@ -280,6 +280,23 @@ const PIXEL_ART = {
       '............',
     ],
   },
+  artifact: {
+    palette: { p: '#4a2a7a', P: '#8a5fc4', W: '#f1ede2', b: '#15202e', y: '#ffd84a' },
+    rows: [
+      '............',
+      '....pppp....',
+      '...pPPPPp...',
+      '..pPWWWWPp..',
+      '.pPWbbbbWPp.',
+      '.pPWbyybWPp.',
+      '.pPWbyybWPp.',
+      '.pPWbbbbWPp.',
+      '..pPWWWWPp..',
+      '...pPPPPp...',
+      '....pppp....',
+      '............',
+    ],
+  },
   canister: {
     palette: { g: '#9aa0a8', y: '#e0c341', r: '#8a1c1c', R: '#d23c3c', W: '#f1ede2' },
     rows: [

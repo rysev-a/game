@@ -32,3 +32,17 @@ definePlace('village.denis', { x: villageX - 18, z: 7, r: 24, name: 'Сосно�
 definePlace('yard.forge', { x: gasX - 10, z: -27, r: 12, name: 'Кузница Михалыча' });
 definePlace('yard.garage', { x: gasX + 12, z: -27, r: 12, name: 'Автомастерская Рустама' });
 definePlace('yard.nikolai', { x: gasX + 11, z: -18, r: 10, name: 'Заправка' });
+
+// Сосновка: старая голубятня (тайник Веры) и домашний сервер героя, оба на краю улицы (квест 3.04)
+definePlace('village.loft', { x: villageX + 62, z: 9, r: 8, name: 'Старая голубятня' });
+definePlace('village.server', { x: villageX + 42, z: 9, r: 8, name: 'Домашний сервер' });
+
+// Лаборатория (src/locations/lab/lab.js): территория, потайной люк, подвал с залом капсул, сборочный зал и кабинет Штерна
+definePlace('lab.gate', { x: labX, z: labZ - 40, r: 14, name: 'Ворота лаборатории' });
+definePlace('lab.desk', { x: labX - 14, z: labZ - 12, r: 6, name: 'Рабочий стол Веры' });
+definePlace('lab.hatch', { x: labX + 14, z: labZ - 12, r: 6, name: 'Потайной люк' });
+definePlace('lab.basement', { x: labX, z: labBasementZ1 + 8, r: 10, name: 'Подвал лаборатории' });
+definePlace('lab.arsenal', { x: labX - 30, z: labBasementZ1 + 24, r: 8, name: 'Арсенал цеха' });
+definePlace('lab.hall', { x: labX, z: labBasementZ1 + 40, r: 22, name: 'Зал капсул' });
+definePlace('lab.assembly', { x: labX, z: labWallZ + 30, r: 22, name: 'Сборочный зал' });
+definePlace('lab.office', { x: labX + 30, z: labWallZ + 50, r: 8, name: 'Кабинет Штерна' });

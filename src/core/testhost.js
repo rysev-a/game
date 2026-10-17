@@ -11,7 +11,7 @@
       items: {},
       pos: null, // { x, z }
       zoneId: null,
-      elixir: 0,
+      elixirAmount: 0,
       toasts: [],
       dialogs: [],
     };
@@ -21,7 +21,11 @@
     h.takeItem = (id, n = 1) => (h.items[id] = Math.max(0, (h.items[id] || 0) - n));
     h.playerPos = () => h.pos;
     h.zone = () => h.zoneId;
-    h.addElixir = (n) => (h.elixir += n);
+    h.elixir = () => h.elixirAmount;
+    h.addElixir = (n) => (h.elixirAmount = Math.max(0, h.elixirAmount + n));
+    h.advanceTime = (min) => (h.time += min);
+    h.teleport = (id) => (h.teleported = id);
+    h.heal = (n) => (h.healed = (h.healed || 0) + n);
     h.openPuzzle = (session) => h.dialogs.push(session);
     h.toast = (text) => h.toasts.push(text);
     h.openDialog = (node) => h.dialogs.push(node);

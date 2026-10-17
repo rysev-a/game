@@ -13,6 +13,7 @@
 //       { zone: 'treehouse' },                          // игрок в зоне (здании) с таким id
 //       { interact: 'station:laptop' },                 // взаимодействие с объектом, которое перехватывает квест
 //       { puzzle: '2.05.elixir', picks: ['water', …] }, // головоломка: выбрать части по порядку (expect — после)
+//       { fight: '2.11.flash' },                        // бой выигран (если он идет: when истинно)
 //       { do: [{ give: 'copper' }] },                   // любые действия
 //       { wait: '8h' },                                 // потратить игровое время (минуты, '90m', '8h')
 //       { emit: 'name' },                               // событие
@@ -57,6 +58,10 @@
           const session = game.puzzleSession(step.puzzle);
           if (!session) fail('нет головоломки ' + step.puzzle);
           else for (const id of step.picks || []) session.pick(id);
+        }
+        if (step.fight) {
+          if (!game.activeFights().some((f) => f.ref === step.fight)) fail('бой «' + step.fight + '» не идет (when ложно или он уже выигран)');
+          else game.winFight(step.fight);
         }
         if (step.wait) host.time += Core.parseDuration(step.wait);
         if (step.inspect) game.emit('inspect', { id: step.inspect });

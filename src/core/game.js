@@ -33,6 +33,7 @@
     nodes: {},
     inspected: {},
     puzzles: {}, // решенные головоломки: { '2.05.elixir': true }
+    fights: {}, // выигранные бои: { '2.11.flash': true }
     once: {},
     messages: [],
     tracked: null,
@@ -150,6 +151,17 @@
         }
       }
       return false;
+    };
+
+    // Бой выигран (все враги боя побеждены): запоминаем и выполняем onWin. Сами бои — в квесте: fights (src/core/fights.js)
+    game.winFight = (ref) => {
+      if (game.state.fights[ref]) return false;
+      game.state.fights[ref] = true;
+      game.bump();
+      const found = Core.resolveFight && Core.resolveFight(registry, ref);
+      game.run(found && found.def.onWin);
+      game.settle();
+      return true;
     };
 
     // ---------- Факты и сообщения ----------

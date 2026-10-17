@@ -20,6 +20,15 @@ function questShowNextToast() {
   setTimeout(questShowNextToast, 3300);
 }
 
+// Короткое затемнение экрана (перенос героя, ночь у сервера): тот же слой, что у перемещения по карте
+function questFade() {
+  travelFadeEl.style.transition = 'none';
+  travelFadeEl.style.opacity = '0.85';
+  void travelFadeEl.offsetWidth;
+  travelFadeEl.style.transition = 'opacity 0.8s';
+  travelFadeEl.style.opacity = '0';
+}
+
 const questHost = {
   now: () => gameMinutes,
   hour: () => gameHour(),
@@ -37,8 +46,27 @@ const questHost = {
   },
   openDialog: (node) => startDialogue(questNarrator, node),
   openPuzzle: (session) => session && openPuzzleUi(session), // окно головоломки: src/quests/puzzle-ui.js
+  elixir: () => heroStats.elixir,
+  advanceTime: (min) => {
+    advanceGameTime(min);
+    clockShown = '';
+    questFade();
+  },
+  teleport: (placeId) => {
+    const p = Core.registry.places[placeId];
+    if (!p) return;
+    questFade();
+    playerWorldX = p.x;
+    playerWorldZ = p.z;
+    walkAmp = 0;
+    if (typeof clickMoveStop === 'function') clickMoveStop();
+  },
+  heal: (n) => {
+    heroStats.hp = Math.min(heroStats.maxHp, heroStats.hp + n);
+    renderEquipHud();
+  },
   addElixir: (n) => {
-    heroStats.elixir = Math.min(heroStats.maxElixir, heroStats.elixir + n);
+    heroStats.elixir = Math.max(0, Math.min(heroStats.maxElixir, heroStats.elixir + n));
     renderEquipHud();
   },
 };

@@ -12,7 +12,10 @@
 //   { phone: { from: 'denis', text: '…' } }           сообщение на телефон (попадает и в журнал)
 //   { dialog: '1.03.flash' }                          открыть узел диалога
 //   { puzzle: '2.05.elixir' }                         открыть головоломку (src/core/puzzles.js)
-//   { elixir: 60 }                                    добавить эликсир герою (шкала снаряжения)
+//   { elixir: 60 }                                    добавить эликсир герою (шкала снаряжения); отрицательное число — потратить
+//   { wait: '8h' }                                    промотать игровое время ('90m', '8h', '1d')
+//   { teleport: 'lab.basement' }                      перенести героя в место (с затемнением)
+//   { heal: 40 }                                      вылечить героя
 //   { emit: 'name' } { emit: { name, ...данные } }    событие
 //   { script: 'name' }                                именованный сценарий из кода (Core.scripts)
 //   { if: 'has:x', then: [...], else: [...] }         ветвление
@@ -66,6 +69,9 @@
     dialog: (arg, g) => g.host.openDialog && g.host.openDialog(g.dialogueNode(arg)),
     puzzle: (arg, g) => g.host.openPuzzle && g.host.openPuzzle(g.puzzleSession(arg)),
     elixir: (arg, g) => g.host.addElixir && g.host.addElixir(arg),
+    wait: (arg, g) => g.host.advanceTime && g.host.advanceTime(Core.parseDuration(arg)),
+    teleport: (arg, g) => g.host.teleport && g.host.teleport(arg),
+    heal: (arg, g) => g.host.heal && g.host.heal(arg),
     emit: (arg, g) => (typeof arg === 'string' ? g.emit(arg, {}) : g.emit(arg.name, arg)),
     script: (arg, g) => {
       const fn = Core.scripts[arg];

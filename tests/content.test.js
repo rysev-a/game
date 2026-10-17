@@ -20,10 +20,17 @@ definePlace('city.library', { x: 220, z: -20, r: 34, name: 'Библиотека
 definePlace('yard.forge', { x: -150, z: -27, r: 12, name: 'Кузница Михалыча' });
 definePlace('yard.garage', { x: -128, z: -27, r: 12, name: 'Автомастерская Рустама' });
 definePlace('yard.nikolai', { x: -129, z: -18, r: 10, name: 'Заправка' });
+definePlace('village.loft', { x: -1238, z: 9, r: 8, name: 'Старая голубятня' });
+definePlace('village.server', { x: -1258, z: 9, r: 8, name: 'Домашний сервер' });
+for (const [id, x, z] of [
+  ['lab.gate', -330, 90], ['lab.desk', -344, 118], ['lab.hatch', -316, 118], ['lab.basement', -330, 218], ['lab.arsenal', -360, 234],
+  ['lab.hall', -330, 250], ['lab.assembly', -330, 302], ['lab.office', -300, 322],
+]) definePlace(id, { x, z, r: 10, name: id });
 require('./scenarios/1-03-bridge.js');
 require('./scenarios/1-06-treehouse.js');
 require('./scenarios/2-05-elixir.js');
 require('./scenarios/2-act2.js');
+require('./scenarios/act-3-5.js');
 
 const reg = Core.registry;
 
