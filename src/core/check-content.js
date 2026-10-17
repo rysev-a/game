@@ -156,7 +156,9 @@
           lintEffects(s.timer.onExpire, where + ', таймер шага ' + s.id);
           for (const list of Object.values(s.timer.warn || {})) lintEffects(list, where + ', таймер шага ' + s.id);
         }
-        if (s.marker && !registry.places[s.marker]) bad(where, 'у шага «' + s.id + '» нет места «' + s.marker + '»');
+        for (const m of s.marker ? (typeof s.marker === 'object' ? Object.values(s.marker) : [s.marker]) : []) {
+          if (!registry.places[m]) bad(where, 'у шага «' + s.id + '» нет места «' + m + '»');
+        }
       }
       if (q.timer) {
         try {
@@ -232,6 +234,12 @@
     for (const c of Object.values(registry.characters)) {
       if (!c.name) bad('персонаж ' + c.id, 'нет name');
       if (c.at && !registry.places[c.at]) bad('персонаж ' + c.id, 'нет места «' + c.at + '» в at');
+    }
+    for (const po of Object.values(registry.portals)) {
+      const where = 'переход ' + po.id;
+      if (!registry.places[po.at]) bad(where, 'нет места «' + po.at + '» в at');
+      if (!registry.places[po.to]) bad(where, 'нет места «' + po.to + '» в to');
+      lintCond(po.if, where);
     }
     for (const sp of Object.values(registry.spots)) {
       const where = 'объект ' + sp.id;

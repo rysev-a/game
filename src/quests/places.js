@@ -37,16 +37,6 @@ definePlace('yard.nikolai', { x: gasX + 11, z: -18, r: 10, name: 'Заправк
 definePlace('village.loft', { x: villageX + 62, z: 9, r: 8, name: 'Старая голубятня' });
 definePlace('village.server', { x: villageX + 42, z: 9, r: 8, name: 'Домашний сервер' });
 
-// Лаборатория (src/locations/lab/lab.js): территория, потайной люк, подвал с залом капсул, сборочный зал и кабинет Штерна
-definePlace('lab.gate', { x: labX, z: labZ - 40, r: 14, name: 'Ворота лаборатории' });
-definePlace('lab.desk', { x: labX - 14, z: labZ - 12, r: 6, name: 'Рабочий стол Веры' });
-definePlace('lab.hatch', { x: labX + 14, z: labZ - 12, r: 6, name: 'Потайной люк' });
-definePlace('lab.basement', { x: labX, z: labBasementZ1 + 8, r: 10, name: 'Подвал лаборатории' });
-definePlace('lab.arsenal', { x: labX - 30, z: labBasementZ1 + 24, r: 8, name: 'Арсенал цеха' });
-definePlace('lab.hall', { x: labX, z: labBasementZ1 + 40, r: 22, name: 'Зал капсул' });
-definePlace('lab.assembly', { x: labX, z: labWallZ + 30, r: 22, name: 'Сборочный зал' });
-definePlace('lab.office', { x: labX + 30, z: labWallZ + 50, r: 8, name: 'Кабинет Штерна' });
-
 // Погоня (квест 2.12): старт на трассе западнее заправки и пять заграждений-шикан, которые не проехать без заноса
 definePlace('chase.start', { x: -700, z: 3, r: 10, name: 'Старт погони' });
 for (let i = 0; i < 5; i++) definePlace('chase.b' + (i + 1), { x: -600 + i * 70, z: 0, r: 6, name: 'Заграждение' });
@@ -58,15 +48,3 @@ definePlace('mall.stalls', { x: 40, z: -18, r: 12, name: 'Прилавки у т
 definePlace('tower.base', { x: towerX, z: towerZ, r: 40, name: 'Башня' });
 definePlace('tower.door', { x: towerX, z: towerZ - 14, r: 8, name: 'Вход в башню' });
 definePlace('tower.pad', { x: towerX + 20, z: towerZ - 16, r: 8, name: 'Площадка вертолетика' });
-for (let i = 1; i <= 9; i++) definePlace('tower.f' + i, { x: towerFloorX(i), z: towerFloorZ, r: 16, name: i + ' этаж башни' });
-
-// Гоночный трек (src/locations/track/track.js): старт и финиш, восемь контрольных точек по кольцу по часовой стрелке (квест 3.05)
-definePlace('track.start', { x: trackX, z: trackZ - trackHalfD, r: 16, name: 'Старт и финиш трека' });
-{
-  const x1 = trackX - trackHalfW;
-  const x2 = trackX + trackHalfW;
-  const z1 = trackZ - trackHalfD;
-  const z2 = trackZ + trackHalfD;
-  const points = [[x1 + 100, z1], [x2, z1 + 40], [x2, z2 - 40], [x2 - 50, z2], [trackX, z2], [x1 + 50, z2], [x1, z2 - 40], [x1, z1 + 40]];
-  points.forEach(([x, z], i) => definePlace('track.cp' + (i + 1), { x, z, r: 16, name: 'Контрольная точка ' + (i + 1) }));
-}

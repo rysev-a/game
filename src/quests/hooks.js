@@ -3,8 +3,7 @@
 // глобальные, и вызовы идут по имени, поэтому обертка начинает действовать сразу). Это временная мера:
 // когда старые файлы можно будет править, каждая обертка превращается в обычную правку на месте:
 //
-//   captureGame / applyGame    src/player/saves.js     в слот пишется и читается story (questGame.snapshot / restore)
-//   rootDialogue, personTitle  src/player/talk.js      разговор с именованным персонажем берется из данных
+// Обертки, нужные на всех страницах (сохранения, разговоры), — в src/quests/common-hooks.js. Здесь — только основной мир (файл main:):
 //   spawnIncident, despawnIncident, updateIncident, updateOfficers   src/locations/bridge/incident.js
 //                              Денис у ленты, осмотр тела, сцена живет, пока идет квест «У моста»
 //   drawMapView                src/engine/minimap.js   метка текущего шага квеста на миникарте и карте
@@ -13,34 +12,6 @@
 
 (function () {
   const g = questGame;
-
-  // ---------- Сохранения: story едет в слоте вместе с игрой ----------
-  // Версия сохранения прежняя: слот без story (старый) просто начинает историю заново
-  const origCaptureGame = captureGame;
-  captureGame = function () {
-    const data = origCaptureGame();
-    data.story = g.snapshot();
-    return data;
-  };
-  const origApplyGame = applyGame;
-  applyGame = function (data) {
-    origApplyGame(data);
-    g.restore(data.story);
-    if (g.state.playerCar) questSwapPlayerCar(g.state.playerCar); // подаренная машина после загрузки сохранения
-    if (garage.car) garage.car.fuelEconomy = g.state.fuelEconomy || 1; // и настроенный расход
-  };
-
-  // ---------- Разговоры с именованными персонажами ----------
-  const origRootDialogue = rootDialogue;
-  rootDialogue = function (person) {
-    if (person.charId && g.hasDialog(person.charId)) {
-      const node = g.dialogue(person.charId);
-      if (node) return node;
-    }
-    return origRootDialogue(person);
-  };
-  const origPersonTitle = personTitle;
-  personTitle = (p) => p.title || origPersonTitle(p);
 
   // ---------- Сцена у реки: Денис и тело ----------
   // Денис стоит за лентой лицом к телу, как полицейские; встает в список officers, чтобы сцена убирала его сама

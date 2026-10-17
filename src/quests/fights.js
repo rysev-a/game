@@ -279,6 +279,7 @@
       for (const foe of f.foes) {
         if (foe.dead || foe.obj || (foe.spec.wave || 0) > wave) continue;
         const place = reg.places[foe.spec.at];
+        if (!place || (place.location || 'main') !== GAME_LOCATION) continue; // враги этого боя стоят в другой локации
         const kind = FOES[foe.spec.kind];
         foe.obj = createFoe(foe.spec, kind, place.x + (foe.spec.dx || 0), place.z + (foe.spec.dz || 0), () => (foe.dead = true));
       }

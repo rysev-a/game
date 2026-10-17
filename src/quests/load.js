@@ -16,6 +16,8 @@
   (async () => {
     await load('src/quests/manifest.js');
     const m = window.QUEST_MANIFEST;
-    for (const file of [...m.core, ...m.content, ...m.adapter]) await load(file);
+    // main:… — только в основном мире; в локациях (locations/*.html) большого мира нет (GAME_LOCATION задает страница)
+    const adapter = m.adapter.filter((f) => !f.startsWith('main:') || GAME_LOCATION === 'main').map((f) => f.replace(/^main:/, ''));
+    for (const file of [...m.core, ...m.content, ...m.contentBrowser, ...adapter]) await load(file);
   })().catch((err) => console.error('Квесты не запустились:', err));
 })();

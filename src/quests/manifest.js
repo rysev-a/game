@@ -4,7 +4,9 @@
 //
 //   core     ядро (src/core): чистая логика, работает и в Node
 //   content  содержание: факты, персонажи, квесты — только данные
-//   adapter  подключение к игре: только в браузере, после движка
+//   contentBrowser  данные, которым нужны координаты локаций (src/locations/shared/coords.js): только в браузере, после content
+//   adapter  подключение к игре: только в браузере, после движка; файлы с приставкой main: — только на странице основного мира
+//            (на страницах-локациях locations/*.html, GAME_LOCATION != 'main', их нет: там нет большого мира)
 
 (function (root) {
   const manifest = {
@@ -29,6 +31,7 @@
       'src/content/characters/lyudmila.js',
       'src/content/characters/people.js',
       'src/content/world.js',
+      'src/content/portals.js',
       'src/content/quests/1-03-bridge.js',
       'src/content/quests/1-06-treehouse.js',
       'src/content/quests/2-02-case.js',
@@ -48,18 +51,22 @@
       'src/content/quests/4-11-artifact.js',
       'src/content/quests/5-02-stern.js',
     ],
+    contentBrowser: ['src/content/places-locations.js'],
     adapter: [
       'src/quests/host.js',
-      'src/quests/places.js',
-      'src/quests/hooks.js',
+      'src/quests/common-hooks.js',
+      'main:src/quests/places.js',
+      'main:src/quests/hooks.js',
       'src/quests/world.js',
       'src/models/creatures.js',
       'src/quests/fights.js',
       'src/quests/heli.js',
       'src/quests/practice.js',
+      'src/quests/portals.js',
       'src/quests/journal-ui.js',
       'src/quests/timers-ui.js',
       'src/quests/puzzle-ui.js',
+      'src/quests/transit.js',
       'src/quests/start.js',
     ],
   };

@@ -4,16 +4,13 @@
 // проехать круг за отведенное время и пройти все контрольные точки по порядку (места track.cp1…cp8 и track.start — src/quests/places.js).
 //
 //   trackX, trackZ — центр; старт и финиш — на северной стороне посередине (trackX, trackZ − 90), гонка идет на восток по часовой стрелке.
+//   Координаты — src/locations/shared/coords.js. Это отдельная локация (страница locations/track.html): в основной мир с нее выезжают
+//   по подъездной дороге на север (переход track.exit → основной мир), а в основном мире у съезда с трассы стоит вход (src/locations/entrances).
 //
-// Подключается после src/locations/tower/tower.js, до src/world/world.js (дороги копятся и строятся один раз в world.js).
+// Подключается только на странице locations/track.html: после src/locations/shared/location.js, до location-finish.js (дороги строятся там).
 
-const trackX = -620;
-const trackZ = 280;
-const trackHalfW = 150;
-const trackHalfD = 90;
-const trackRoadW = 22;
 {
-  const rect = { x1: trackX - trackHalfW - 30, x2: trackX + trackHalfW + 30, z1: 9, z2: trackZ + trackHalfD + 30 };
+  const rect = { x1: trackX - trackHalfW - 30, x2: trackX + trackHalfW + 30, z1: -60, z2: trackZ + trackHalfD + 30 };
   registerZone('track', 'Гоночный трек', { x1: rect.x1, x2: rect.x2, z1: trackZ - trackHalfD - 20, z2: rect.z2 }, {});
   clearZones.push(rect); // и сам трек, и подъездная дорога к трассе
 
@@ -32,8 +29,8 @@ const trackRoadW = 22;
   for (const [cx, cz] of [[x1, z1], [x2, z1], [x1, z2], [x2, z2]]) {
     pushQuad(roadBatches.asphalt.verts, cx, cz, trackRoadW / 2, trackRoadW / 2, 0.02);
   }
-  // Подъезд от трассы к стартовой прямой
-  roadV(9, z1 - trackRoadW / 2, trackX, 'asphalt', []);
+  // Подъезд: от стартовой прямой на север до выезда из локации (в основной мир)
+  roadV(-40, z1 - trackRoadW / 2, trackX, 'asphalt', []);
   // Внутри и вокруг кольца — утоптанная земля, а не лес
   flatRect(trackHalfW * 2 - trackRoadW, trackHalfD * 2 - trackRoadW, 0x4f6a3c, 0.012, trackX, trackZ);
   mapObjects.push({ x: trackX, z: trackZ, hx: trackHalfW, hz: trackHalfD, color: '#4f6a3c', ground: true });

@@ -29,6 +29,48 @@ function questFade() {
   travelFadeEl.style.opacity = '0';
 }
 
+// Перенос героя (и машины) в место этой же страницы
+function questTeleportLocal(placeId, opts = {}) {
+  const p = Core.registry.places[placeId];
+  if (!p) return;
+  questFade();
+  if (opts.car && garage.car) {
+    if (drivingCar && drivingCar !== garage.car) releaseCar();
+    const car = garage.car;
+    car.x = p.x;
+    car.z = p.z;
+    car.heading = opts.heading === undefined ? -Math.PI / 2 : opts.heading;
+    car.speed = 0;
+    car.slip = 0;
+    car.fuel = Math.max(car.fuel, 0.6);
+    enterCar(car);
+  } else {
+    if (drivingCar) exitCar(true);
+    playerWorldX = p.x;
+    playerWorldZ = p.z;
+  }
+  walkAmp = 0;
+  if (typeof clickMoveStop === 'function') clickMoveStop();
+}
+
+// Переход в другую локацию: состояние игры (как сохранение) кладется в sessionStorage и открывается страница локации; она восстановит его
+// (src/quests/transit.js) и поставит героя в место payload.to. payload: { to, opts, extra } или { load: данные слота }
+let questTraveling = false;
+function questTravelToLocation(loc, payload) {
+  if (questTraveling || !LOCATIONS[loc]) return;
+  questTraveling = true;
+  const data = payload.load || captureGame();
+  try {
+    sessionStorage.setItem('game.transit', JSON.stringify({ ...payload, load: !!payload.load, data }));
+  } catch (e) {
+    questTraveling = false;
+    showToast('Не удалось перейти в другую локацию: хранилище браузера недоступно');
+    return;
+  }
+  questFade();
+  setTimeout(() => (window.location.href = LOCATIONS[loc].page), 450);
+}
+
 const questHost = {
   now: () => gameMinutes,
   hour: () => gameHour(),
@@ -70,29 +112,19 @@ const questHost = {
     clockShown = '';
     questFade();
   },
-  // opts.car — вместе с машиной героя: она встает на место лицом к opts.heading (по умолчанию на восток), герой садится за руль
+  // opts.car — вместе с машиной героя: она встает на место лицом к opts.heading (по умолчанию на восток), герой садится за руль.
+  // Место в другой локации — переход на ее страницу (машина едет с героем, если он за рулем или просит car)
   teleport: (placeId, opts = {}) => {
     const p = Core.registry.places[placeId];
     if (!p) return;
-    questFade();
-    if (opts.car && garage.car) {
-      if (drivingCar && drivingCar !== garage.car) releaseCar();
-      const car = garage.car;
-      car.x = p.x;
-      car.z = p.z;
-      car.heading = opts.heading === undefined ? -Math.PI / 2 : opts.heading;
-      car.speed = 0;
-      car.slip = 0;
-      car.fuel = Math.max(car.fuel, 0.6);
-      enterCar(car);
-    } else {
-      if (drivingCar) exitCar(true);
-      playerWorldX = p.x;
-      playerWorldZ = p.z;
+    const loc = p.location || 'main';
+    if (loc !== GAME_LOCATION) {
+      questTravelToLocation(loc, { to: placeId, opts: { car: opts.car !== undefined ? opts.car : !!drivingCar, heading: opts.heading }, extra: opts.extra });
+      return;
     }
-    walkAmp = 0;
-    if (typeof clickMoveStop === 'function') clickMoveStop();
+    questTeleportLocal(placeId, opts);
   },
+  location: () => GAME_LOCATION,
   heal: (n) => {
     heroStats.hp = Math.min(heroStats.maxHp, heroStats.hp + n);
     renderEquipHud();

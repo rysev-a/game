@@ -4,20 +4,13 @@
 // площадка со стенами; лестница на этаже переносит героя на следующий. Сама башня снаружи — высокая коробка с бомбой на крыше
 // (objects: src/content/world.js), до крыши добирается радиоуправляемый вертолетик (src/quests/heli.js).
 //
-//   towerX, towerZ — башня; towerFloorX(i), towerFloorZ — центр площадки i-го этажа (i от 1 до 9).
+//   towerFloorX(i), towerFloorZ — центр площадки i-го этажа (i от 1 до 9); координаты — src/locations/shared/coords.js. Это отдельная
+//   локация (страница locations/tower.html): сюда переносит дверь башни из основного мира, аварийный выход с девятого этажа ведет обратно.
+//   Сама башня снаружи (высокая коробка с бомбой) и площадка вертолетика — в основном мире (src/locations/entrances/entrances.js).
 //
-// Подключается после src/locations/lab/lab.js, до src/world/world.js.
+// Подключается только на странице locations/tower.html: после src/locations/shared/location.js, до location-finish.js.
 
-const towerX = 70;
-const towerZ = 70;
-const towerFloorZ = 250;
-const towerFloorX = (i) => -130 + (i - 1) * 38;
 {
-  registerZone('tower', 'Башня', { x1: towerX - 34, x2: towerX + 34, z1: towerZ - 30, z2: towerZ + 30 }, {});
-  clearZones.push({ x1: towerX - 34, x2: towerX + 34, z1: towerZ - 30, z2: towerZ + 30 });
-  flatRect(60, 56, 0x6a6e72, 0.012, towerX, towerZ);
-  mapObjects.push({ x: towerX, z: towerZ, hx: 30, hz: 28, color: '#6a6e72', ground: true });
-
   const strip = { x1: towerFloorX(1) - 24, x2: towerFloorX(9) + 24, z1: towerFloorZ - 22, z2: towerFloorZ + 22 };
   registerZone('tower_floors', 'Башня: этажи', strip, {});
   clearZones.push(strip);

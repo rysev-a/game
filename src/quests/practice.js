@@ -81,19 +81,31 @@
     pick.classList.add('on');
   }
 
+  // Выбрана машина: сохраняем, как все было (положение, машина, время), и идем на трек. Трек — отдельная локация, поэтому переход
+  // на другую страницу: «как все было» едет вместе с героем (extra.practice) и вернется браслетом (extra.restore)
   function begin(opts, id) {
     closeChooser();
     const place = Core.registry.places[opts.at];
     const own = garage.car;
-    practice = {
-      spawned: null,
-      saved: {
-        minutes: gameMinutes,
-        px: playerWorldX, pz: playerWorldZ, heading: playerHeading, rotation: worldRotation,
-        drivingOwn: drivingCar === own,
-        car: { x: own.x, z: own.z, heading: own.heading, fuel: own.fuel },
-      },
+    const saved = {
+      location: GAME_LOCATION,
+      minutes: gameMinutes,
+      px: playerWorldX, pz: playerWorldZ, heading: playerHeading, rotation: worldRotation,
+      drivingOwn: drivingCar === own,
+      car: { x: own.x, z: own.z, heading: own.heading, fuel: own.fuel },
     };
+    if ((place.location || 'main') !== GAME_LOCATION) {
+      questTravelToLocation(place.location, { to: opts.at, opts: { car: id === 'own', heading: -Math.PI / 2 }, extra: { practice: { saved, carId: id, at: opts.at } } });
+      return;
+    }
+    startHere(opts.at, id, saved);
+  }
+
+  // Тренировка начинается здесь: герой и выбранная машина на месте at, вечер, браслет под рукой
+  function startHere(at, id, saved) {
+    const place = Core.registry.places[at];
+    const own = garage.car;
+    practice = { spawned: null, saved };
     if (drivingCar && drivingCar !== own) releaseCar();
     let car = own;
     if (id === 'own') {
@@ -123,19 +135,29 @@
     hud.style.display = 'block';
   }
 
+  // Браслет: все возвращается как было. Если тренировка в другой локации, чем началась, — сначала переход назад
   function end() {
     if (!practice) return;
     const { saved, spawned } = practice;
     practice = null;
     hud.style.display = 'none';
-    questFade();
-    const own = garage.car;
     if (spawned) {
       if (drivingCar === spawned) drivingCar = null;
       cityGroup.remove(spawned.mesh);
       const i = cars.indexOf(spawned);
       if (i >= 0) cars.splice(i, 1);
     }
+    g.run({ unflag: 'practicing' });
+    if (saved.location !== GAME_LOCATION) {
+      questTravelToLocation(saved.location, { extra: { restore: saved } });
+      return;
+    }
+    restore(saved);
+  }
+
+  function restore(saved) {
+    questFade();
+    const own = garage.car;
     if (drivingCar) drivingCar = null;
     Object.assign(own, saved.car, { speed: 0, slip: 0 });
     gameMinutes = saved.minutes; // браслет возвращает и время
@@ -146,7 +168,6 @@
     worldRotation = saved.rotation;
     player.visible = true;
     if (saved.drivingOwn) enterCar(own);
-    g.run({ unflag: 'practicing' });
     showToast('Браслет вернул вас назад: тренировки как будто не было.', 3500);
   }
 
@@ -171,4 +192,7 @@
 
   questHost.startPractice = openChooser;
   questHost.endPractice = end;
+  // Страница трека приняла героя (src/quests/transit.js): тренировка начинается; основной мир принял героя обратно: все как было
+  window.questPracticeArrive = ({ saved, carId, at }) => startHere(at, carId, saved);
+  window.questPracticeRestore = restore;
 })();

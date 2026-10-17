@@ -6,18 +6,15 @@
 //   подвал (за люком, дальше на юг): зал капсул — арсенал и ряды капсул, за внутренней стеной — сборочный зал и кабинет Штерна.
 //   Люк переносит героя вниз: квест 4.09 (src/content/quests/4-09-lab.js). Предметы и места — src/content/world.js, src/quests/places.js.
 //
-//   labX, labZ — центр территории; labBasementZ1/Z2 — край подвала; labWallZ — внутренняя стена между залами.
+//   labX, labZ — центр территории; labBasementZ1/Z2 — край подвала; labWallZ — внутренняя стена между залами (src/locations/shared/coords.js).
+//   Это отдельная локация (страница locations/lab.html): сюда переносит переход из основного мира (дорога к лаборатории), обратно —
+//   выезд на север (переход lab.exit).
 //
-// Подключается после src/locations/bridge/incident.js, до src/world/world.js.
+// Подключается только на странице locations/lab.html: после src/locations/shared/location.js, до location-finish.js.
 
-const labX = -330;
-const labZ = 130;
-const labHalfW = 30; // половина ширины главной территории
-const labBasementZ1 = labZ + 80;
-const labBasementZ2 = labZ + 200;
-const labWallZ = labZ + 142; // внутренняя стена подвала: зал капсул — сборочный зал
 {
-  const rect = { x1: labX - 56, x2: labX + 56, z1: labZ - 46, z2: labBasementZ2 + 10 };
+  const rect = { x1: labX - 56, x2: labX + 56, z1: labZ - 120, z2: labBasementZ2 + 10 };
+  roadV(labZ - 130, labZ - 34, labX, 'asphalt', []); // подъезд к воротам с севера
   registerZone('lab', 'Лаборатория: закрытая территория', rect, {});
   clearZones.push(rect);
 

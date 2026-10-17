@@ -1,0 +1,35 @@
+// src/content/places-locations.js
+// МЕСТА ОТДЕЛЬНЫХ ЛОКАЦИЙ (трек, лаборатория, этажи башни) и входы в них из основного мира. У места поле location: на какой странице оно
+// существует (по умолчанию 'main'); на другой странице расстояния до него нет (src/core/game.js). Координаты — src/locations/shared/coords.js.
+
+// ---- Гоночный трек (страница locations/track.html): старт и финиш, восемь контрольных точек по часовой стрелке (квест 3.05)
+definePlace('track.start', { location: 'track', x: trackX, z: trackZ - trackHalfD, r: 16, name: 'Старт и финиш трека' });
+{
+  const x1 = trackX - trackHalfW;
+  const x2 = trackX + trackHalfW;
+  const z1 = trackZ - trackHalfD;
+  const z2 = trackZ + trackHalfD;
+  const points = [[x1 + 100, z1], [x2, z1 + 40], [x2, z2 - 40], [x2 - 50, z2], [trackX, z2], [x1 + 50, z2], [x1, z2 - 40], [x1, z1 + 40]];
+  points.forEach(([x, z], i) => definePlace('track.cp' + (i + 1), { location: 'track', x, z, r: 16, name: 'Контрольная точка ' + (i + 1) }));
+}
+definePlace('track.gate', { location: 'track', x: trackX, z: 34, r: 10, name: 'Въезд на трек' }); // сюда приезжают из основного мира
+definePlace('track.exit', { location: 'track', x: trackX, z: -12, r: 12, name: 'Выезд с трека' }); // отсюда уезжают в основной мир
+// В основном мире: конец съезда с трассы (въезд на трек) и место, где выезжают с трека
+definePlace('track.entrance', { x: trackX, z: 58, r: 12, name: 'Съезд на гоночный трек' });
+definePlace('track.back', { x: trackX, z: 30, r: 8, name: 'Съезд с трека' });
+
+// ---- Лаборатория (страница locations/lab.html): территория, потайной люк, подвал с залом капсул, сборочный зал и кабинет Штерна (квесты 4.09, 4.11)
+definePlace('lab.gate', { location: 'lab', x: labX, z: labZ - 40, r: 14, name: 'Ворота лаборатории' });
+definePlace('lab.exit', { location: 'lab', x: labX, z: 8, r: 12, name: 'Выезд из лаборатории' });
+definePlace('lab.desk', { location: 'lab', x: labX - 14, z: labZ - 12, r: 6, name: 'Рабочий стол Веры' });
+definePlace('lab.hatch', { location: 'lab', x: labX + 14, z: labZ - 12, r: 6, name: 'Потайной люк' });
+definePlace('lab.basement', { location: 'lab', x: labX, z: labBasementZ1 + 8, r: 10, name: 'Подвал лаборатории' });
+definePlace('lab.arsenal', { location: 'lab', x: labX - 30, z: labBasementZ1 + 24, r: 8, name: 'Арсенал цеха' });
+definePlace('lab.hall', { location: 'lab', x: labX, z: labBasementZ1 + 40, r: 22, name: 'Зал капсул' });
+definePlace('lab.assembly', { location: 'lab', x: labX, z: labWallZ + 30, r: 22, name: 'Сборочный зал' });
+definePlace('lab.office', { location: 'lab', x: labX + 30, z: labWallZ + 50, r: 8, name: 'Кабинет Штерна' });
+definePlace('lab.entrance', { x: labX, z: 58, r: 12, name: 'Дорога к лаборатории' }); // основной мир
+definePlace('lab.back', { x: labX, z: 30, r: 8, name: 'Съезд от лаборатории' });
+
+// ---- Девять площадок-этажей башни (страница locations/tower.html, квест 4.12)
+for (let i = 1; i <= 9; i++) definePlace('tower.f' + i, { location: 'tower', x: towerFloorX(i), z: towerFloorZ, r: 16, name: i + ' этаж башни' });

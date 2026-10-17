@@ -13,7 +13,11 @@
   const reg = Core.registry;
   const live = new Map(); // ключ → { remove() }
 
-  const placeOf = (id) => reg.places[id];
+  // Место есть на этой странице, только если оно принадлежит ее локации (place.location, по умолчанию основной мир)
+  const placeOf = (id) => {
+    const p = reg.places[id];
+    return p && (p.location || 'main') === GAME_LOCATION ? p : null;
+  };
 
   function spawnPerson(who, at, dx, dz, yaw) {
     const place = placeOf(at);

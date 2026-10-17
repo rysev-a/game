@@ -58,10 +58,13 @@
     Core.attachEffects(game);
 
     // Расстояние от игрока до места (null, если положения или места нет)
+    // Место принадлежит локации (place.location, по умолчанию 'main'): в другой локации оно «далеко»: расстояния до него нет
+    game.location = () => (host.location ? host.location() : 'main');
     game.placeDistance = (id) => {
       const place = registry.places[id];
       const pos = host.playerPos && host.playerPos();
       if (!place || !pos) return null;
+      if ((place.location || 'main') !== game.location()) return null;
       return Math.hypot(pos.x - place.x, pos.z - place.z);
     };
     game.nearPlace = (id) => {
@@ -137,7 +140,10 @@
     // Метка текущего шага отслеживаемого квеста: место на карте или null
     game.currentMarker = () => {
       const step = game.state.tracked && game.currentStep(game.state.tracked);
-      const place = step && step.marker && registry.places[step.marker];
+      // marker — место или { main: 'место на карте мира', track: 'место на карте трека' }: у каждой локации своя карта
+      const id = step && step.marker && (typeof step.marker === 'object' ? step.marker[game.location()] : step.marker);
+      const place = id && registry.places[id];
+      if (place && (place.location || 'main') !== game.location()) return null;
       return place ? { id: place.id, x: place.x, z: place.z, r: place.r || 10, name: place.name || '' } : null;
     };
 
