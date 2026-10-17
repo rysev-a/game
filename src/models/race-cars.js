@@ -226,3 +226,30 @@ function createKart(options = {}) {
   k.exhaust.position.set(0.4, 0.4, 1.15);
   return k.root;
 }
+
+// МОТОРОЛЛЕР доставщика пиццы (квест 2.15): тонкий кузов, площадка для ног, щиток, руль, сиденье, красный термобокс сзади,
+// курьер в шлеме. Колеса поменьше, едет юрко; половина ширины кузова для столкновений — 0,5
+function createScooter(options = {}) {
+  const o = Object.assign({ bodyColor: 0xd8282a, frameColor: 0x2a2a2e }, options);
+  const k = vehicleKit({ shake: 0.02, shakeRate: 30 });
+  k.part(0.42, 0.08, 1.0, o.frameColor).position.set(0, 0.28, -0.05); // площадка для ног
+  k.part(0.52, 0.38, 0.8, o.bodyColor).position.set(0, 0.5, 0.6); // задний обтекатель над мотором
+  k.part(0.38, 0.72, 0.12, o.bodyColor).position.set(0, 0.62, -0.5); // щиток
+  k.part(0.7, 0.06, 0.07, o.frameColor).position.set(0, 1.0, -0.52); // руль
+  k.part(0.09, 0.45, 0.09, o.frameColor).position.set(0, 0.72, -0.55); // вилка
+  k.part(0.4, 0.1, 0.6, 0x1b1b1f).position.set(0, 0.76, 0.5); // сиденье
+  k.part(0.62, 0.48, 0.58, 0xf2f2f2).position.set(0, 1.12, 1.0); // термобокс
+  k.part(0.64, 0.12, 0.6, o.bodyColor).position.set(0, 1.4, 1.0); // красная крышка бокса
+  k.lamp(0, 0.82, -0.6, 0xfff2b0, 0.22, 0.14);
+  k.lamp(0, 0.5, 1.02, 0xe03030, 0.4, 0.1);
+  // Курьер: торс, шлем, ноги на площадке
+  k.part(0.4, 0.5, 0.26, 0x2f6fb0).position.set(0, 1.12, 0.35);
+  const helmet = new THREE.Mesh(new THREE.IcosahedronGeometry(0.19, 1), new LitMaterial({ color: o.bodyColor }));
+  helmet.position.set(0, 1.55, 0.3);
+  k.body.add(helmet);
+  for (const x of [-0.14, 0.14]) k.part(0.12, 0.12, 0.5, 0x2a3040).position.set(x, 0.42, 0.0);
+  k.wheel(0, -0.8, 0.26, 0.14, 0x151515, 0xd0d4da);
+  k.wheel(0, 0.8, 0.26, 0.16, 0x151515, 0xd0d4da);
+  k.exhaust.position.set(0.2, 0.3, 1.0);
+  return k.root;
+}

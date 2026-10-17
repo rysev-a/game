@@ -82,6 +82,14 @@ const VEHICLE_KINDS = {
     acc: [100, 3.5], accel: 0.035, brake: 0.06, drag: 0.007, maxSpeed: 0.95, maxReverse: -0.25, turnRate: 0.066, drift: 0.9,
     launch: 0.4, launchUntil: 0.35, powerDrift: true, gyro: true, sound: 'race', pitch: 1.3,
   },
+  scooter: {
+    id: 'scooter', name: 'Мотороллер', make: createScooter, color: 0xd8282a,
+    desc: 'Мотороллер доставщика пиццы с термобоксом сзади: юркий и неторопливый, бензина берет мало.',
+    half: { w: 0.5, l: 0.95 },
+    cockpit: [0, 1.65, 0.3], // глаза водителя в салоне (вид от первого лица, src/player/driving.js)
+    acc: [60, 3.5], accel: 0.03, brake: 0.05, drag: 0.007, maxSpeed: 0.62, maxReverse: -0.2, turnRate: 0.06, drift: 0.45,
+    launch: 0.5, launchUntil: 0.3, sound: 'race', pitch: 1.4,
+  },
   hyper: {
     id: 'hyper', name: 'Гиперкар', make: createHyperCar, color: 0xf0a010,
     desc: 'Гиперкар до 350 км/ч: рвет с места, на скорости руль вялый — поворачивать надо заранее. Газ с ручником — дрифт.',

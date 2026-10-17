@@ -15,6 +15,14 @@ definePlace('village.home', { x: garage.car ? garage.car.x : villageX, z: 0, r: 
 definePlace('road.city', { x: 200, z: 0, r: 14, name: 'Трасса у города' });
 definePlace('zarechye.road', { x: questBuildingAt('grandma_house').x, z: questBuildingAt('grandma_house').z - 26, r: 12, name: 'Грунтовка к Заречью' });
 
+// Пиццерия «Тесто» (квест 2.15) во дворе у заправки и пять адресов заказов (места на карте)
+definePlace('pizza.shop', { x: -104, z: -22, r: 14, name: 'Пиццерия «Тесто»' });
+definePlace('pizza.c1', { x: 0, z: -29, r: 14, name: 'Заказ 1: торговый центр' });
+definePlace('pizza.c2', { x: 70, z: 56, r: 12, name: 'Заказ 2: башня' });
+definePlace('pizza.c3', { x: 220, z: -20, r: 18, name: 'Заказ 3: библиотека' });
+definePlace('pizza.c4', { x: 350, z: -90, r: 20, name: 'Заказ 4: пристань' });
+definePlace('pizza.c5', { x: 398, z: -9, r: 14, name: 'Заказ 5: заправка «Заречье»' });
+
 // Заправка «Заречье» за мостом (src/locations/city/gas-station.js): колонки к северу от трассы
 definePlace('gas.zarechye', { x: 398, z: -9, r: 14, name: 'Заправка «Заречье»' });
 

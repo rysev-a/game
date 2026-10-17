@@ -15,6 +15,8 @@ definePlace('bridge.scene', { x: 329, z: 18, r: 60, name: 'Мост' });
 definePlace('village.home', { x: -1318, z: 0, r: 14, name: 'Дом, Сосновка' });
 definePlace('road.city', { x: 200, z: 0, r: 14, name: 'Трасса у города' });
 definePlace('zarechye.road', { x: 610, z: 84, r: 12, name: 'Грунтовка к Заречью' });
+definePlace('pizza.shop', { x: -104, z: -22, r: 14, name: 'Пиццерия' });
+for (const [i, [x, z]] of [[0, -29], [70, 56], [220, -20], [350, -90], [398, -9]].entries()) definePlace('pizza.c' + (i + 1), { x, z, r: 14, name: 'Заказ ' + (i + 1) });
 definePlace('gas.zarechye', { x: 398, z: -9, r: 14, name: 'Заправка «Заречье»' });
 definePlace('zarechye.house', { x: 400, z: 900, r: 34, name: 'Дом Анны Петровны' });
 definePlace('zarechye.tree', { x: 400, z: 950, r: 14, name: 'Дерево с домиком' });
@@ -53,6 +55,7 @@ require('./scenarios/4-12-tower.js');
 require('./scenarios/3-05-car.js');
 require('./scenarios/3-12-yacht.js');
 require('./scenarios/3-06-13-weather.js');
+require('./scenarios/2-15-pizza.js');
 
 const reg = Core.registry;
 

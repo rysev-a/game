@@ -17,7 +17,7 @@
 //   fuel:>=0.3                     в баке машины героя столько бензина (доля 0…1)
 //   dayssince:deal>=1              прошло столько суток (по полуночи) с отметки { markDay: 'deal' }
 //   at:bridge.scene  near:place    игрок в месте (или в зоне) / в радиусе места
-//   inside  driving                игрок в здании / за рулем
+//   inside  driving  driving:scooter  игрок в здании / за рулем (за рулем транспорта этого вида)
 //   time:22:00-06:00  night  day   игровое время (через полночь тоже)
 //   day:>=2                        идет такой-то день истории
 //   rain                           идет дождь
@@ -123,7 +123,7 @@
     },
     near: (arg, g) => g.nearPlace(arg),
     inside: (arg, g) => !!(g.host.inside && g.host.inside()),
-    driving: (arg, g) => !!(g.host.driving && g.host.driving()),
+    driving: (arg, g) => !!(g.host.driving && g.host.driving(arg || undefined)), // driving:scooter — за рулем именно этого вида транспорта
     rain: (arg, g) => !!(g.host.raining && g.host.raining()),
     night: (arg, g) => isNight(hourOf(g)),
     time: (arg, g) => {

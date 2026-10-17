@@ -2,6 +2,7 @@
 // МИР ИЗ ДАННЫХ. Люди и предметы местности — записи в содержании, код под каждый не нужен:
 //   defineCharacter({ ..., at: 'yard.forge', dx, dz, yaw, gender })    персонаж всегда стоит в этом месте
 //   defineQuest({ ..., world: { people: [{ who, at, dx, dz, yaw, if }] } })   персонаж только пока выполняется if
+//   defineQuest({ ..., world: { vehicles: [{ kind, at, dx, dz, heading, if }] } })   транспорт (VEHICLE_KINDS) стоит, пока выполняется if
 //   defineSpot({ id, at, dx, dz, name, desc, label, r, parts: [[w, h, d, цвет, x, y, z], ...], if })
 //       объект на улице из боксов (наковальня, горн, голубятня…); E рядом отдает взаимодействие квесту
 //       ('spot:<id>' в interactions, src/core/game.js), а если квесту не нужен — коротко описывает объект
@@ -102,6 +103,23 @@
     };
   }
 
+  // Транспорт квеста (мотороллер курьера 2.15): стоит на месте, пока выполняется if; сесть без ключей; бензина хватает надолго
+  function spawnVehicle(e) {
+    const place = placeOf(e.at);
+    const car = addVehicle(e.kind, place.x + (e.dx || 0), place.z + (e.dz || 0), e.heading || 0, { open: true, fuel: 1 });
+    if (!car) return null;
+    car.questVehicle = true;
+    car.fuelEconomy = e.economy || 4;
+    return {
+      remove() {
+        if (drivingCar === car) exitCar(true);
+        cityGroup.remove(car.mesh);
+        const i = cars.indexOf(car);
+        if (i >= 0) cars.splice(i, 1);
+      },
+    };
+  }
+
   function sync() {
     const wanted = new Map();
     // Запись quest.world.people с replace: true на время своего if убирает персонажа с обычного места (он «перебрался» сюда)
@@ -115,6 +133,11 @@
     for (const q of Object.values(reg.quests)) {
       for (const e of (q.world && q.world.people) || []) {
         if (placeOf(e.at) && g.check(e.if)) wanted.set('p:' + q.id + ':' + e.who, () => spawnPerson(e.who, e.at, e.dx || 0, e.dz || 0, e.yaw || 0));
+      }
+    }
+    for (const q of Object.values(reg.quests)) {
+      for (const [i, e] of ((q.world && q.world.vehicles) || []).entries()) {
+        if (placeOf(e.at) && g.check(e.if)) wanted.set('v:' + q.id + ':' + i, () => spawnVehicle(e));
       }
     }
     for (const sp of Object.values(reg.spots)) {

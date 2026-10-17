@@ -206,6 +206,10 @@
         else for (const msg of kind.check(pz)) bad(where + ', головоломка ' + name, msg);
         lintEffects(pz.onSolve, where + ', головоломка ' + name);
       }
+      for (const e of (q.world && q.world.vehicles) || []) {
+        if (!registry.places[e.at]) bad(where, 'world.vehicles: нет места «' + e.at + '»');
+        lintCond(e.if, where + ', world');
+      }
       for (const e of (q.world && q.world.people) || []) {
         if (!registry.characters[e.who]) bad(where, 'world.people: нет персонажа «' + e.who + '»');
         if (!registry.places[e.at]) bad(where, 'world.people: нет места «' + e.at + '»');

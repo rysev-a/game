@@ -37,15 +37,17 @@ function questTeleportLocal(placeId, opts = {}) {
   const p = Core.registry.places[placeId];
   if (!p) return;
   questFade();
+  // car: true — вместе с машиной героя; если он сейчас за рулем другого транспорта (мотороллер курьера, 2.15) — вместе с ним
   if (opts.car && garage.car) {
-    if (drivingCar && drivingCar !== garage.car) releaseCar();
-    const car = garage.car;
+    const ride = drivingCar && drivingCar !== garage.car && drivingCar.questVehicle ? drivingCar : null;
+    if (drivingCar && drivingCar !== garage.car && !ride) releaseCar();
+    const car = ride || garage.car;
     car.x = p.x;
     car.z = p.z;
     car.heading = opts.heading === undefined ? -Math.PI / 2 : opts.heading;
     car.speed = 0;
     car.slip = 0;
-    car.fuel = Math.max(car.fuel, 0.6);
+    car.fuel = Math.max(car.fuel, ride ? 0.4 : 0.6);
     enterCar(car);
   } else {
     if (drivingCar) exitCar(true);
@@ -92,7 +94,7 @@ const questHost = {
   playerPos: () => ({ x: playerWorldX, z: playerWorldZ }),
   zone: () => currentZone().id,
   inside: () => insideBuilding(),
-  driving: () => !!drivingCar,
+  driving: (kind) => (kind ? !!(drivingCar && drivingCar.kind && drivingCar.kind.id === kind) : !!drivingCar),
   raining: () => rainOn,
   toast: (text) => {
     questToasts.push(text);

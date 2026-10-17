@@ -46,7 +46,7 @@ defineQuest({
     { teleport: { to: 'chase.start', car: true } },
     { toast: 'Вы за рулем на трассе. До библиотеки в городе у вас меньше минуты. Ручник и занос — ваши друзья.' },
   ],
-  onDone: [{ unflag: 'mib' }, { toast: 'Чертежи у меня. Теперь можно собрать настоящее оружие.' }, { start: '2.13' }],
+  onDone: [{ unflag: 'mib' }, { toast: 'Чертежи у меня. Теперь можно собрать настоящее оружие.' }, { start: '2.15' }],
 
   starts: { semyon: [{ if: ['quest:2.12', 'step:2.12.drive'], goto: '2.12.grab' }] },
 

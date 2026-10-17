@@ -31,7 +31,7 @@
       if (place) h.pos = { x: place.x, z: place.z }; // герой действительно оказывается на месте
     };
     h.startHeli = (opts) => (h.heli = opts);
-    h.driving = () => h.isDriving;
+    h.driving = (kind) => (kind ? h.isDriving === kind : !!h.isDriving); // { drive: 'scooter' } в сценарии — за рулем мотороллера
     h.setCarLimp = (v) => (h.limp = v);
     h.swapPlayerCar = (kind) => (h.playerCarKind = kind);
     h.setFuelEconomy = (n) => (h.fuelEconomy = n);
