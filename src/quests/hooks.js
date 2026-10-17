@@ -27,6 +27,7 @@
     origApplyGame(data);
     g.restore(data.story);
     if (g.state.playerCar) questSwapPlayerCar(g.state.playerCar); // подаренная машина после загрузки сохранения
+    if (garage.car) garage.car.fuelEconomy = g.state.fuelEconomy || 1; // и настроенный расход
   };
 
   // ---------- Разговоры с именованными персонажами ----------

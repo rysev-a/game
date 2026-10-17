@@ -34,6 +34,7 @@
     h.driving = () => h.isDriving;
     h.setCarLimp = (v) => (h.limp = v);
     h.swapPlayerCar = (kind) => (h.playerCarKind = kind);
+    h.setFuelEconomy = (n) => (h.fuelEconomy = n);
     h.killHero = () => (h.killed = (h.killed || 0) + 1);
     h.startPractice = (opts) => (h.practice = opts);
     h.endPractice = () => (h.practice = null);

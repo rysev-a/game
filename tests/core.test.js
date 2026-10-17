@@ -481,3 +481,11 @@ test('checkContent: таймеры, rewind, heli и бои проверяютс�
     assert.ok(text.includes(piece), 'должно быть найдено: ' + piece + '\n' + text);
   }
 });
+
+test('fuelEconomy: расход запоминается в состоянии и передается хосту', () => {
+  const { game, host } = makeGame(() => {});
+  game.run({ fuelEconomy: 50 });
+  assert.equal(game.state.fuelEconomy, 50);
+  assert.equal(host.fuelEconomy, 50);
+  assert.equal(game.snapshot().fuelEconomy, 50, 'в сохранение попадает');
+});

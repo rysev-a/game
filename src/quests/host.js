@@ -52,6 +52,10 @@ const questHost = {
     showToast(on ? 'Мотор троит и дымит: машина еле едет. Нужен ремонт.' : 'Машина починена: едет как новая.', 4000);
   },
   swapPlayerCar: (kindId) => questSwapPlayerCar(kindId),
+  setFuelEconomy: (n) => {
+    if (garage.car) garage.car.fuelEconomy = n;
+    if (n > 1) showToast('Расход топлива настроен: бензина хватит надолго (в ' + n + ' раз).', 4000);
+  },
   killHero: () => {
     questFade();
     if (drivingCar) exitCar(true);
@@ -116,6 +120,7 @@ function questSwapPlayerCar(kindId) {
     return;
   }
   car.isPlayerCar = true;
+  car.fuelEconomy = questGame.state.fuelEconomy || 1;
   markPlayerCar(car);
   garage.car = car;
   if (wasDriving) enterCar(car);

@@ -20,6 +20,7 @@
 //   { markDay: 'deal' }                               запомнить сегодняшние сутки (условие dayssince:deal>=1 — прошла полночь)
 //   { breakCar: true } { repairCar: true }            машина героя хромает (еле едет) / починена
 //   { playerCar: 'hyper' }                            подарить герою машину этого вида вместо его (и запомнить в сохранении)
+//   { fuelEconomy: 50 }                               настроить расход: бензин машины героя кончается во столько раз медленнее
 //   { kill: true }                                    героя убили: затемнение, он выбирается из машины и приходит в себя
 //   { practice: { at, cars } }                        тренировка: выбрать машину и оказаться на месте at; { practiceEnd: true } — браслетом назад
 //   { rewind: '4.12.f1' }                             вернуть квест к шагу (шаги, таймеры, бои и головоломки квеста — заново)
@@ -98,6 +99,11 @@
       g.state.playerCar = arg;
       g.bump();
       if (g.host.swapPlayerCar) g.host.swapPlayerCar(arg);
+    },
+    fuelEconomy: (arg, g) => {
+      g.state.fuelEconomy = arg;
+      g.bump();
+      if (g.host.setFuelEconomy) g.host.setFuelEconomy(arg);
     },
     kill: (arg, g) => g.host.killHero && g.host.killHero(),
     practice: (arg, g) => g.host.startPractice && g.host.startPractice(arg),

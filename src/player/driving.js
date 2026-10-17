@@ -68,7 +68,7 @@ const steerMaxAngle = 0.7; // наибольший угол поворота п�
 const cameraFollowEase = 0.04; // как быстро камера возвращается за машину (0..1 за кадр)
 let carTime = 0;
 
-// ТОПЛИВО. Полного бака хватает на fuelRange юнитов пути. У машины игрока в начале 65%.
+// ТОПЛИВО. Полного бака хватает на fuelRange юнитов пути (умноженных на car.fuelEconomy, если машину настроили). У машины игрока в начале 65%.
 // Закончился бензин — мотор не тянет; заправиться можно у колонки на заправке (src/locations/city/gas-station.js)
 const fuelRange = 2800;
 const fuelLow = 0.15; // ниже — предупреждение
@@ -307,7 +307,7 @@ function updateDriving(c) {
   updateTireMarks(car, (handbrake || powerDrift) && !car.airborne);
   // Бензин расходуется на пройденный путь
   const travelled = Math.hypot(vx, vz);
-  car.fuel = Math.max(0, car.fuel - travelled / fuelRange);
+  car.fuel = Math.max(0, car.fuel - travelled / (fuelRange * (car.fuelEconomy || 1))); // fuelEconomy — настроенный расход: во столько раз бак держится дольше (квест 3.05)
   if (car.fuel > fuelLow) lowFuelWarned = false;
   if (car.fuel > 0) emptyFuelWarned = false;
   if (car.fuel <= fuelLow && !lowFuelWarned && car.fuel > 0) {
