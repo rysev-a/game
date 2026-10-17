@@ -284,7 +284,7 @@ function updateDriving(c) {
   grip = car.gripNow;
   // Инерция вращения: в заносе кузов не бросается в поворот и не замирает сразу — угловая скорость (car.yaw) догоняет руль не сразу
   const slideAmt = Math.min(1, Math.abs(car.slip || 0) / 0.25 + (handbrake || powerDrift ? 1 : 0));
-  const yawResp = 1 - slideAmt * (1 - Math.min(1, spinResponse / Math.max(0.2, settings.spinInertia)));
+  const yawResp = 1 - slideAmt * (1 - Math.min(1, spinResponse / Math.max(0.05, settings.spinInertia)));
   car.yaw = (car.yaw || 0) + (turn - (car.yaw || 0)) * yawResp;
   turn = car.yaw;
 

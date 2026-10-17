@@ -181,41 +181,43 @@ const settingsTabs = [
     id: 'drive',
     name: 'Вождение',
     items: [
-      { type: 'range', key: 'driftLevel', label: 'Глубина заноса', min: 0.01, max: 1, step: 0.01, show: pct,
+      { type: 'range', key: 'driftLevel', label: 'Глубина заноса', min: 0.01, max: 1, step: 0.01, log: true, show: pct,
         note: 'Ручник на ходу (Space) — машину заносит, на дороге остаются следы. На гоночных газ с ручником (W+Space) — дрифт: машина едет боком, задним ходом — задом' },
       { type: 'range', key: 'driftInertia', label: 'Инерция после дрифта', min: 0, max: 2, step: 0.05, show: pct,
         note: 'Вышли из заноса — машина еще катится, скорость затухает плавно; 0% — сразу теряет скорость. Обычное торможение (S) не меняется' },
-      { type: 'range', key: 'bounce', label: 'Жесткость отскока', min: 0, max: 2, step: 0.05, show: pct,
+      { type: 'range', key: 'bounce', label: 'Жесткость отскока', min: 0.05, max: 5, step: 0.05, log: true, show: pct,
         note: 'Врезались в покрышки или бочки — машина мягко отталкивается от них; чем жестче, тем дальше отбрасывает. 0% — не отбрасывает' },
       { type: 'check', key: 'tireKnock', label: 'Покрышки отлетают', note: 'Сильный удар выбивает покрышку: она отлетает и падает, а машина почти не тормозится. Без галочки покрышки — как вкопанные, машина отскакивает от них' },
       { type: 'range', key: 'bounceLoss', label: 'Потеря скорости при ударе', min: 0, max: 1, step: 0.05, show: pct,
         note: 'Сколько скорости гаснет при прямом ударе: 100% — машина встает у покрышек, 0% — отскакивает назад без потерь; скользящий удар теряет меньше' },
-      { type: 'range', key: 'bounceSoft', label: 'Мягкость отскока', min: 0.5, max: 2, step: 0.05, show: pct,
+      { type: 'range', key: 'bounceSoft', label: 'Мягкость отскока', min: 0.25, max: 4, step: 0.05, log: true, show: pct,
         note: 'Как долго длится отталкивание: больше — машина отплывает плавно и долго, меньше — резкий толчок' },
       { type: 'check', key: 'infiniteFuel', label: 'Бесконечный бензин', note: 'Бак всегда полный, бензин не кончается. То же — кнопка ⛽∞ над указателем топлива за рулем' },
-      { type: 'range', key: 'coastInertia', label: 'Накат (инерция без газа)', min: 0.3, max: 3, step: 0.1, show: pct,
+      { type: 'range', key: 'coastInertia', label: 'Накат (инерция без газа)', min: 0.1, max: 10, step: 0.1, log: true, show: pct,
         note: 'Отпустили газ — машина не встает сразу, а катится и плавно теряет скорость; больше — катится дольше. Тормоз (S) гасит скорость быстро, как раньше' },
-      { type: 'range', key: 'reverseSpeed', label: 'Скорость заднего хода гоночных', min: 0.5, max: 4, step: 0.1, show: pct,
+      { type: 'range', key: 'reverseSpeed', label: 'Скорость заднего хода гоночных', min: 0.25, max: 8, step: 0.1, log: true, show: pct,
         note: 'Предел и ускорение заднего хода гоночных машин (болид, купе, хэтчбек, маслкар, дрифт-купе, прототип, карт) относительно прежнего: 100% — как раньше, 200% — вдвое быстрее. У остальных машин не меняется' },
-      { type: 'range', key: 'brakeSharp', label: 'Резкость торможения', min: 0.5, max: 2, step: 0.05, show: pct },
-      { type: 'range', key: 'accelSharp', label: 'Резкость разгона', min: 0.5, max: 2, step: 0.05, show: pct },
-      { type: 'range', key: 'steerSens', label: 'Чувствительность поворота', min: 0.5, max: 2, step: 0.05, show: pct },
+      { type: 'range', key: 'brakeSharp', label: 'Резкость торможения', min: 0.1, max: 10, step: 0.05, log: true, show: pct },
+      { type: 'range', key: 'accelSharp', label: 'Резкость разгона', min: 0.1, max: 10, step: 0.05, log: true, show: pct },
+      { type: 'range', key: 'steerSens', label: 'Чувствительность поворота', min: 0.1, max: 10, step: 0.05, log: true, show: pct },
+      { type: 'setups' },
     ],
   },
   {
     id: 'physics',
     name: 'Физика',
     items: [
-      { type: 'range', key: 'tireGrip', label: 'Сцепление шин', min: 0.2, max: 2, step: 0.05, show: pct,
+      { type: 'range', key: 'tireGrip', label: 'Сцепление шин', min: 0.05, max: 5, step: 0.05, log: true, show: pct,
         note: 'Обычная езда: чем меньше, тем скользче шины — машину сильнее сносит в поворотах, а после заноса она выравнивается дольше. Больше — как на рельсах' },
-      { type: 'range', key: 'handbrakeGrip', label: 'Сцепление на ручнике', min: 0, max: 2, step: 0.05, show: pct,
+      { type: 'range', key: 'handbrakeGrip', label: 'Сцепление на ручнике', min: 0.02, max: 5, step: 0.05, log: true, show: pct,
         note: 'Задние колеса на ручнике и в дрифте. Мало — заносит до разворота: на ходу ручник и руль, кузов смотрит назад — едем задом (полицейский разворот)' },
-      { type: 'range', key: 'handbrakePower', label: 'Сила ручника', min: 0, max: 2, step: 0.05, show: pct,
+      { type: 'range', key: 'handbrakePower', label: 'Сила ручника', min: 0.05, max: 5, step: 0.05, log: true, show: pct,
         note: 'Сколько скорости съедает сам ручник: меньше — в заносе больше скорости остается' },
-      { type: 'range', key: 'slideLoss', label: 'Потеря скорости в заносе', min: 0, max: 3, step: 0.1, show: pct,
+      { type: 'range', key: 'slideLoss', label: 'Потеря скорости в заносе', min: 0.05, max: 10, step: 0.1, log: true, show: pct,
         note: 'Боком шины трутся и гасят скорость. 0% — скользит без потерь, как по льду' },
-      { type: 'range', key: 'spinInertia', label: 'Инерция вращения', min: 0.2, max: 3, step: 0.1, show: pct,
+      { type: 'range', key: 'spinInertia', label: 'Инерция вращения', min: 0.1, max: 10, step: 0.1, log: true, show: pct,
         note: 'В заносе кузов поворачивается не сразу и после руля еще докручивается: больше — тяжелее раскрутить и дольше крутится' },
+      { type: 'setups' },
     ],
   },
   {
@@ -258,6 +260,20 @@ settingsStyle.textContent = `
   #settingsMenu table.keys td:first-child { width: 40%; white-space: nowrap; padding-right: 8px; }
   #settingsMenu kbd { display: inline-block; padding: 1px 5px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.35);
     background: rgba(255, 255, 255, 0.08); font: 11px monospace; }
+  #settingsMenu .setups .setupSave { display: flex; gap: 6px; margin-top: 4px; }
+  #settingsMenu .setups input[type='text'] { flex: 1; min-width: 0; padding: 4px 6px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.3);
+    background: #1d222c; color: white; font: 13px sans-serif; }
+  #settingsMenu .setups button, .setupChip button { padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(143, 208, 255, 0.6);
+    background: rgba(143, 208, 255, 0.2); color: white; font: 12px sans-serif; cursor: pointer; }
+  .setupChips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .setupChip { display: inline-flex; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.3); background: rgba(0, 0, 0, 0.55); }
+  .setupChip button { border: none; border-radius: 0; background: transparent; }
+  .setupChip button:hover { background: rgba(143, 208, 255, 0.35); }
+  .setupChip .del { color: #ff9a8a; padding: 4px 7px; border-left: 1px solid rgba(255, 255, 255, 0.2); }
+  .setupChip.on { border-color: #8fe3a8; background: rgba(63, 163, 91, 0.45); }
+  #setupBar { position: fixed; left: 70px; bottom: 112px; z-index: 12; display: none; max-width: 52vw; align-items: center; gap: 6px; color: white; font: 12px sans-serif; }
+  #setupBar .label { opacity: 0.7; }
+  body.touch #setupBar { left: 12px; bottom: 112px; }
   #settingsMenu .foot { display: flex; align-items: flex-end; gap: 10px; margin-top: 12px; padding-top: 10px;
     border-top: 1px solid rgba(255, 255, 255, 0.2); }
   #settingsMenu .foot #settingsVersion { flex: 1; margin: 0; padding: 0; border: none; }
@@ -305,6 +321,87 @@ function showSettingsTab(id) {
   }
 }
 
+// ---------- Сетапы вождения ----------
+// Удачно настроенное вождение (занос, сцепление, резкость, накат, отскок) сохраняется под названием; список сетапов — в «Вождение» и
+// «Физика» и полосой внизу экрана за рулем: клик — применить. Хранятся в браузере (game.driveSetups).
+const SETUP_KEYS = ['driftLevel', 'driftInertia', 'brakeSharp', 'accelSharp', 'steerSens', 'reverseSpeed', 'coastInertia', 'tireGrip',
+  'handbrakeGrip', 'handbrakePower', 'slideLoss', 'spinInertia', 'bounce', 'bounceLoss', 'bounceSoft', 'tireKnock'];
+let driveSetups = [];
+try {
+  driveSetups = JSON.parse(localStorage.getItem('game.driveSetups') || '[]').filter((x) => x && typeof x.name === 'string' && x.v);
+} catch (e) {
+  driveSetups = [];
+}
+const setupListeners = []; // перерисовать списки сетапов
+const persistSetups = () => {
+  try {
+    localStorage.setItem('game.driveSetups', JSON.stringify(driveSetups));
+  } catch (e) {
+    // не запомнится — не страшно
+  }
+  for (const f of setupListeners) f();
+};
+function saveDriveSetup(name) {
+  name = name.trim().slice(0, 24);
+  if (!name) return false;
+  const v = {};
+  for (const k of SETUP_KEYS) v[k] = settings[k];
+  const i = driveSetups.findIndex((s) => s.name === name);
+  if (i >= 0) driveSetups[i] = { name, v };
+  else driveSetups.push({ name, v });
+  if (driveSetups.length > 24) driveSetups.shift();
+  persistSetups();
+  return true;
+}
+function applyDriveSetup(s) {
+  for (const k of SETUP_KEYS) if (k in s.v && typeof s.v[k] === typeof SETTINGS_DEFAULTS[k]) setSetting(k, s.v[k]);
+  refreshSettingsUI();
+  for (const f of setupListeners) f();
+}
+const setupIsActive = (s) => SETUP_KEYS.every((k) => !(k in s.v) || (typeof settings[k] === 'number' ? Math.abs(settings[k] - s.v[k]) < 1e-6 : settings[k] === s.v[k]));
+function fillSetupChips(box) {
+  box.textContent = '';
+  for (const s of driveSetups) {
+    const chip = document.createElement('span');
+    chip.className = 'setupChip' + (setupIsActive(s) ? ' on' : '');
+    const load = document.createElement('button');
+    load.textContent = s.name;
+    load.title = 'Применить сетап «' + s.name + '»';
+    load.addEventListener('click', () => {
+      applyDriveSetup(s);
+      load.blur();
+    });
+    chip.appendChild(load);
+    if (box.dataset.editable) {
+      const del = document.createElement('button');
+      del.className = 'del';
+      del.textContent = '×';
+      del.title = 'Удалить сетап';
+      del.addEventListener('click', () => {
+        driveSetups = driveSetups.filter((x) => x !== s);
+        persistSetups();
+      });
+      chip.appendChild(del);
+    }
+    box.appendChild(chip);
+  }
+}
+// Полоса внизу экрана за рулем: сетапы одним кликом
+const setupBar = document.createElement('div');
+setupBar.id = 'setupBar';
+document.body.appendChild(setupBar);
+const setupBarChips = document.createElement('div');
+setupBarChips.className = 'setupChips';
+setupBar.innerHTML = '<span class="label">Сетапы:</span>';
+setupBar.appendChild(setupBarChips);
+setupListeners.push(() => fillSetupChips(setupBarChips));
+onSettingChange(() => fillSetupChips(setupBarChips)); // подсветка активного
+fillSetupChips(setupBarChips);
+(function showSetupBar() {
+  setupBar.style.display = typeof drivingCar !== 'undefined' && drivingCar && driveSetups.length ? 'flex' : 'none';
+  requestAnimationFrame(showSetupBar);
+})();
+
 function buildSettingItem(it) {
   const el = document.createElement('div');
   el.className = 'item' + (it.desk ? ' desk' : '');
@@ -313,6 +410,34 @@ function buildSettingItem(it) {
     return el;
   }
   const note = it.note ? '<div class="note">' + it.note + '</div>' : '';
+  if (it.type === 'setups') {
+    el.className = 'item setups';
+    el.innerHTML = '<div class="row"><span>Сетапы вождения</span></div>' +
+      '<div class="setupSave"><input type="text" maxlength="24" placeholder="Название сетапа" /><button>Сохранить</button></div>' +
+      '<div class="setupChips"></div><div class="note">Сохраняет все настройки вождения и физики под названием; список — и внизу экрана за рулем. Такое же название — перезапишет</div>';
+    const input = el.querySelector('input');
+    const chips = el.querySelector('.setupChips');
+    chips.dataset.editable = '1';
+    const save = () => {
+      if (saveDriveSetup(input.value)) {
+        showToast('Сетап «' + input.value.trim().slice(0, 24) + '» сохранен', 2000);
+        input.value = '';
+      }
+      input.blur();
+    };
+    el.querySelector('button').addEventListener('click', save);
+    // Печать названия не должна ловиться игровыми клавишами (O — настройки, M — звук и т. д.)
+    input.addEventListener('keydown', (e) => {
+      if (e.code === 'Escape') return;
+      e.stopPropagation();
+      if (e.code === 'Enter') save();
+    });
+    const redraw = () => fillSetupChips(chips);
+    setupListeners.push(redraw);
+    onSettingChange(redraw);
+    redraw();
+    return el;
+  }
   if (it.type === 'check') {
     el.innerHTML = '<label class="check"><input type="checkbox" /> ' + it.label + '</label>' + note;
     const input = el.querySelector('input');
@@ -332,15 +457,22 @@ function buildSettingItem(it) {
     });
     settingsRefresh.push(() => (sel.value = settings[it.key]));
   } else if (it.type === 'range') {
+    // log: true — логарифмическая шкала (ползунок 0..1, значение = min · (max/min)^t): мелкие значения регулируются так же точно,
+    // как и крупные; у множителей (резкость, сцепление, инерция) шаг — доли процента около единицы и десятки процентов вдали от нее
+    const logK = it.log ? Math.log(it.max / it.min) : 0;
+    const toPos = (v) => (it.log ? Math.log(Math.max(it.min, Math.min(it.max, v)) / it.min) / logK : v);
+    const fromPos = (t) => (it.log ? Math.round(it.min * Math.exp(t * logK) * 1000) / 1000 : t);
     el.innerHTML =
       '<div class="row"><span>' + it.label + '</span><span class="val"></span>' +
       (it.mute ? '<button class="mute" title="Без звука"></button>' : '') + '</div>' +
-      '<input type="range" min="' + it.min + '" max="' + it.max + '" step="' + it.step + '" />' + note;
+      (it.log
+        ? '<input type="range" min="0" max="1" step="0.001" />'
+        : '<input type="range" min="' + it.min + '" max="' + it.max + '" step="' + it.step + '" />') + note;
     const input = el.querySelector('input');
     const val = el.querySelector('.val');
     const mute = el.querySelector('.mute');
     const show = () => {
-      input.value = settings[it.key];
+      input.value = toPos(settings[it.key]);
       val.textContent = it.show(settings[it.key]);
       if (mute) {
         const on = settings[it.mute];
@@ -350,7 +482,7 @@ function buildSettingItem(it) {
       }
     };
     input.addEventListener('input', () => {
-      setSetting(it.key, parseFloat(input.value));
+      setSetting(it.key, fromPos(parseFloat(input.value)));
       val.textContent = it.show(settings[it.key]);
     });
     input.addEventListener('change', () => input.blur()); // чтобы стрелки не двигали ползунок вместо игрока
