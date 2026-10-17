@@ -33,9 +33,11 @@ const carDrive = { acc: [100, 10], accel: carAccel, brake: carBrake, drag: carDr
 //
 // ПЛАВНЫЙ СТАРТ: у машины с kind.launch с места разгон слабее (launch — доля от полного), к launchUntil
 // доле максимальной скорости — полный (launchFactor).
-const handbrakeBrake = 0.3; // ручник тормозит слабее тормоза (доля от k.brake)
+const handbrakeBrake = 0.1; // ручник тормозит намного слабее тормоза (доля от k.brake): остановиться — педалью, а ручник — для заноса
 const handbrakeMinSpeed = 0.06; // медленнее — ручник просто держит машину
-const slideFriction = 0.025; // потеря скорости боком (на радиан заноса)
+const slideBaseLoss = 0.0025; // потеря скорости боком (за кадр при заносе на 90°), юнитов; множитель — настройка «Потеря скорости в заносе»
+const gripRecover = 0.08; // как быстро шины возвращают сцепление после ручника/дрифта (доля за кадр)
+const spinResponse = 0.18; // отклик кузова на руль в заносе (1 — мгновенно); настройка «Инерция вращения» делит его
 const driftScale = 0.2; // 100% на шкале «Глубина заноса» — это прежние 20%
 const powerDriftMinSpeed = 0.15; // медленнее — газ с ручником просто разгоняют (старт с пробуксовкой)
 // ИНЕРЦИЯ ДРИФТА. Вышли из заноса (отпустили ручник или газ) — машина еще катится: скорость не падает ниже
@@ -232,12 +234,18 @@ function updateDriving(c) {
   else if (c.down && hasFuel) car.speed -= car.speed > 0 ? k.brake : k.accel * 0.7 * k.revMul;
   else car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.coast);
   // Ручник тормозит; у гоночных с газом — нет: с места это старт с пробуксовкой, на скорости — дрифт
-  if ((keys['Space'] || handLever) && !(engineOn && handLever)) car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.brake * (handbrake ? handbrakeBrake : 1));
+  // Ручник тормозит слабее, чем сильнее машина уже скользит боком (в заносе скорость — энергия разворота, ее не гасим)
+  if ((keys['Space'] || handLever) && !(engineOn && handLever)) {
+    const side = Math.abs(Math.sin(car.slip || 0));
+    car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.brake * (handbrake ? handbrakeBrake * settings.handbrakePower * (1 - 0.75 * side) : 1));
+  }
   // Склон тянет вниз — и вперед, и задним ходом. Тянет настолько же, насколько мощна машина: у слабой по разгону (легковушка,
   // джип, трактор) тяга склона меньше, иначе она не въехала бы на холм (peakAccel — разгон с места по кривой)
   const hillPull = base.acc ? (accelScale(base) * accelShapeAt(base, 0)) / base.accel : 1;
   car.speed -= slope * slopeGravity * hillPull;
-  car.speed = Math.min(Math.max(car.speed, k.maxReverse), Math.max(k.maxSpeed, base.maxSpeed));
+  // Задом быстрее предела (после разворота в заносе — машина едет задом на остатке скорости): излишек гаснет плавно, а не обрубается
+  if (car.speed < k.maxReverse) car.speed += Math.min(k.maxReverse - car.speed, 0.003 + (k.maxReverse - car.speed) * 0.02);
+  car.speed = Math.min(car.speed, Math.max(k.maxSpeed, base.maxSpeed));
   if (car.speed > k.maxSpeed) car.speed -= Math.min(car.speed - k.maxSpeed, k.accel + k.drag * 2); // в гору быстро не едет
 
   // Поворачивать можно только в движении; задним ходом руль работает наоборот.
@@ -247,23 +255,46 @@ function updateDriving(c) {
   if (!steer && typeof gyroSteer === 'function') steer = gyroSteer(car) || 0;
   // Выше 1,5 за кадр (250 км/ч) руль тупеет: у гиперкара и Бугатти на предельной скорости поворот в разы слабее
   const fastSteer = 1 / (1 + Math.max(0, Math.abs(car.speed) - 1.5) * 1.6);
+  // Куда руль крутит кузов: задним ходом — наоборот. Считаем по скорости вдоль носа (vf): при развороте боком в заносе она плавно
+  // меняет знак, и руль не «перекидывается» посреди разворота; почти боком (vf ~ 0) остается прежнее направление
+  const vf = car.speed * Math.cos(car.slip || 0);
+  if (Math.abs(vf) > 0.03) car.steerDir = vf > 0 ? 1 : -1;
   car.steerInput = steer; // для анимации поворота колес (updateCarMeshes)
-  let turn = steer * k.turnRate * fastSteer * Math.min(1, Math.abs(car.speed) / 0.15) * Math.sign(car.speed) * (car.airborne ? 0.15 : 1);
+  let turn = steer * k.turnRate * fastSteer * Math.min(1, Math.abs(car.speed) / 0.15) * (car.steerDir || 1) * (car.airborne ? 0.15 : 1);
   // На ручнике кузов поворачивает резче, а шины держат слабо — заносит тем сильнее, чем больше глубина заноса.
   // Без ручника шины цепляются почти сразу (у гоночной на большой глубине — чуть скользит и в обычных поворотах)
   if (handbrake) turn *= 1 + 1.3 * depth;
-  let grip = handbrake ? 0.12 - 0.1 * depth : 0.55 - 0.3 * depth;
-  let maxSlip = 0.35 + 0.9 * depth;
+  // Сцепление: доля занося, что шины «забирают» за кадр (slip *= 1 − grip); настройки «Сцепление шин» и «Сцепление на ручнике».
+  // На ручнике задние колеса заблокированы: сцепление почти нет, и кузов уходит в занос до разворота (полицейский разворот: газ → ручник
+  // и руль → ручник отпустить, когда кузов смотрит назад → едем задом на остатке скорости)
+  let grip = handbrake ? Math.max(0.01, 0.12 - 0.1 * depth) * 0.25 * settings.handbrakeGrip : (0.55 - 0.3 * depth) * settings.tireGrip;
+  let maxSlip = handbrake ? Math.PI - 0.02 : 0.35 + 0.9 * depth; // на ручнике — до полного разворота (больше 90° — движение уже задом)
   // Дрифт: кузов поворачивает резче, шины почти не держат — машина идет боком (до ~70° на полной глубине)
   if (powerDrift) {
     const d = Math.min(1.2, 0.15 + driftLevel);
     turn *= 1.2 + 0.8 * d;
-    grip = Math.max(0.004, 0.04 - 0.04 * d);
+    grip = Math.max(0.004, 0.04 - 0.04 * d) * settings.handbrakeGrip;
     maxSlip = 0.45 + 0.7 * d;
   }
+  grip = Math.min(0.95, grip);
+  // Шины возвращают сцепление не мгновенно: после ручника или дрифта занос еще держится, пока сцепление растет (инерция заноса)
+  if (car.gripNow === undefined || grip < car.gripNow) car.gripNow = grip;
+  else car.gripNow += (grip - car.gripNow) * gripRecover * settings.tireGrip;
+  grip = car.gripNow;
+  // Инерция вращения: в заносе кузов не бросается в поворот и не замирает сразу — угловая скорость (car.yaw) догоняет руль не сразу
+  const slideAmt = Math.min(1, Math.abs(car.slip || 0) / 0.25 + (handbrake || powerDrift ? 1 : 0));
+  const yawResp = 1 - slideAmt * (1 - Math.min(1, spinResponse / Math.max(0.2, settings.spinInertia)));
+  car.yaw = (car.yaw || 0) + (turn - (car.yaw || 0)) * yawResp;
+  turn = car.yaw;
 
   const { appliedTurn, blockedX, blockedZ, vx, vz, hitShape } = moveCarWithCollisions(car, turn, grip, maxSlip);
-  car.speed *= 1 - slideFriction * (powerDrift ? 0.6 : 1) * Math.abs(Math.sin(car.slip)); // боком машина быстро теряет скорость
+  // Занос больше 90° — машина уже едет задом: переворачиваем знак скорости и угол (то же самое движение, но «вперед» — по носу)
+  if (Math.abs(car.slip) > Math.PI / 2) {
+    car.slip -= Math.sign(car.slip) * Math.PI;
+    car.speed = -car.speed;
+  }
+  // Боком машина теряет скорость (шины трутся): потеря на кадр постоянная, а не доля скорости — скорость уходит в тепло, не в ноль
+  car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), slideBaseLoss * settings.slideLoss * (powerDrift ? 0.5 : 1) * Math.abs(Math.sin(car.slip)));
   car.drifting = powerDrift;
   applyDriftCoast(car, base, powerDrift, brakingHard(c, car, onTouch, powerDrift));
   updateCarHeight(car);
