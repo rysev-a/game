@@ -20,6 +20,8 @@
 //   8. «Горки» — кольцо с тремя горбами: на скорости машина взлетает
 //   9. «Трамплин» — быстрая трасса с трамплином на прямой
 //   10. «Гран-при» — длинная трасса как настоящий автодром, пологие подъемы
+//   11–17. «Змейки 1–7» — дрифт-полигон к западу от гоночного комплекса: широкая дорога (44 → 28) волнами туда и обратно
+//   18–20. «Змейки 8–10» — самые узкие (26 → 22) и длинные, южнее «Гран-при»
 // Все трассы — внутри круга мира (забор, src/engine/layout.js).
 //
 // Каждая трасса — замкнутая осевая линия (точки через ~2 юнита); полотно, поребрики и стенки из покрышек
@@ -82,6 +84,115 @@ let onRaceTrack = () => false;
     for (let i = 0; i <= n; i++) pts.push({ x: x1 + ((x2 - x1) * i) / n, z: z1 + ((z2 - z1) * i) / n, y: 0 });
     return pts;
   };
+
+  // ---------- Дрифт-полигон: десять змеек ----------
+  // Широкая дорога волнами (змейка) туда и обратно: вторая полоса — та же волна, сдвинутая в сторону, концы замыкают развороты
+  // в полукруг. Ширина полотна — от 22 до 44 юнитов, наибольший угол пути — от ~20° (широкая пологая синусоида, два изгиба) до ~40° (узкий
+  // зигзаг, девять изгибов); заданные в таблице угол и число волн — верхняя граница, итог подбирается (snakePts).
+  // Для змейки задают ширину w, наибольший угол пути theta (градусов), число волн (полуволн) n и форму: 'sine' — плавная
+  // синусоида, 'zig' — зигзаг с закругленными вершинами (длиннее прямые куски и резче углы). Чем шире дорога, тем плавнее она может
+  // изгибаться: поэтому число волн и угол подбираются (snakePts) — снаружи поворота должен остаться радиус больше половины ширины,
+  // иначе стенка из покрышек окажется на самой дороге. Расстояние между полосами — чтобы даже на самом крутом участке между
+  // краями оставалось 14 юнитов.
+  // Радиус поворота оси в точке i (по трем точкам через step), юнитов
+  const minRadius = (raw, step = 4) => {
+    let best = Infinity;
+    for (let i = step; i < raw.length - step; i += 2) {
+      const a = raw[i - step];
+      const b = raw[i];
+      const c = raw[i + step];
+      const ab = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      const bc = Math.hypot(c[0] - b[0], c[1] - b[1]);
+      const ca = Math.hypot(a[0] - c[0], a[1] - c[1]);
+      const area = Math.abs((b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1])) / 2;
+      if (area > 1e-6) best = Math.min(best, (ab * bc * ca) / (4 * area));
+    }
+    return best;
+  };
+  const snakeBuild = ({ w, theta, n, shape, span }) => {
+    const th = (theta * Math.PI) / 180;
+    const gap = Math.min(120, (w + 14) / Math.cos(th)); // расстояние между осями полос
+    const L = span - gap - w; // длина волнистого участка
+    const env = (s) => smooth01(s / 18) * smooth01((L - s) / 18); // у разворотов дорога идет ровно
+    const wave1 = (s) => {
+      const a = Math.sin((Math.PI * n * s) / L);
+      return env(s) * (shape === 'zig' ? Math.asin(0.92 * a) / Math.asin(0.92) : a);
+    };
+    let peak = 0;
+    for (let s = 0; s < L; s += 0.5) peak = Math.max(peak, Math.abs(wave1(s + 0.5) - wave1(s)) / 0.5);
+    const amp = Math.tan(th) / peak; // амплитуда, при которой самый крутой участок идет под углом theta
+    // Ось змейки в локальных координатах: x от 0 до L (западный край), z от -gap/2 (прямая полоса) до +gap/2 (обратная)
+    const raw = [];
+    const R = gap / 2;
+    for (let s = 0; s <= L; s += 0.5) raw.push([s, -R + amp * wave1(s)]);
+    const lane = raw.slice();
+    for (let a = -Math.PI / 2; a < Math.PI / 2; a += 0.01) raw.push([L + R * Math.cos(a), R * Math.sin(a)]);
+    for (let s = L; s >= 0; s -= 0.5) raw.push([s, R + amp * wave1(s)]);
+    for (let a = Math.PI / 2; a < (3 * Math.PI) / 2; a += 0.01) raw.push([R * Math.cos(a), R * Math.sin(a)]);
+    return { raw, gap, L, amp, theta, n, minR: minRadius(lane), height: 2 * amp + gap + w + 4 };
+  };
+  // Змейка с наибольшим числом волн (не больше n) при заданном угле; не получается — угол убавляем
+  const snakePts = (spec) => {
+    for (let theta = spec.theta; theta >= 10; theta -= 2) {
+      for (let n = spec.n; n >= 1; n--) {
+        const sn = snakeBuild({ ...spec, theta, n });
+        if (sn.minR >= spec.w / 2 + 2.5) return sn;
+      }
+    }
+    return snakeBuild({ ...spec, theta: 10, n: 1 });
+  };
+  // Две площадки. «Север» (к западу от подъездной дороги x = -790) — семь змеек, «юг» (южнее «Гран-при», к западу от продольной
+  // дороги) — три самые узкие и самые длинные. Змейки ставятся друг под другом: восточным краем к дороге, разворотом к ней, а к
+  // этому развороту — подъезд. Длина змейки (span) — по X от края до края полотна
+  const driftRoadN = -790;
+  const driftParks = [
+    {
+      roadX: driftRoadN, span: 440, z0: -470, z1: 470, gapZ: 9,
+      specs: [
+        { id: 'snake1', name: 'Змейка 1 · Простор', w: 44, theta: 20, n: 4, shape: 'sine', desc: 'Самая широкая и самая пологая — для первого дрифта.' },
+        { id: 'snake2', name: 'Змейка 2 · Широкая', w: 40, theta: 24, n: 5, shape: 'sine', desc: 'Широкая дорога и мягкие волны.' },
+        { id: 'snake3', name: 'Змейка 3 · Ровная', w: 36, theta: 28, n: 5, shape: 'sine', desc: 'Ровная синусоида.' },
+        { id: 'snake4', name: 'Змейка 4 · Плавная', w: 34, theta: 32, n: 6, shape: 'sine', desc: 'Плавные волны средней ширины.' },
+        { id: 'snake5', name: 'Змейка 5 · Средняя', w: 32, theta: 36, n: 6, shape: 'sine', desc: 'Золотая середина: углы уже заметные.' },
+        { id: 'snake6', name: 'Змейка 6 · Резкая', w: 30, theta: 40, n: 6, shape: 'zig', desc: 'Зигзаг: между поворотами — прямые куски.' },
+        { id: 'snake7', name: 'Змейка 7 · Острая', w: 28, theta: 44, n: 7, shape: 'zig', desc: 'Острый зигзаг.' },
+      ],
+    },
+    {
+      roadX: -148, span: 600, z0: 592, z1: 1000, gapZ: 12,
+      specs: [
+        { id: 'snake8', name: 'Змейка 8 · Крутая', w: 26, theta: 50, n: 9, shape: 'zig', desc: 'Длинный крутой зигзаг.' },
+        { id: 'snake9', name: 'Змейка 9 · Шпильки', w: 24, theta: 55, n: 10, shape: 'zig', desc: 'Узкий зигзаг со шпильками.' },
+        { id: 'snake10', name: 'Змейка 10 · Экстрим', w: 22, theta: 60, n: 12, shape: 'zig', desc: 'Самая узкая и самая крутая.' },
+      ],
+    },
+  ];
+  const driftTracks = [];
+  const driftSpurs = [];
+  const driftRoads = [];
+  for (const park of driftParks) {
+    const built = park.specs.map((spec) => ({ spec, sn: snakePts({ ...spec, span: park.span }) }));
+    const total = built.reduce((acc, b) => acc + b.sn.height, 0) + park.gapZ * (built.length - 1);
+    let zTop = (park.z0 + park.z1) / 2 - total / 2; // змейки — друг под другом, стопка по центру площадки
+    for (const { spec, sn } of built) {
+      const zc = zTop + sn.height / 2;
+      zTop += sn.height + park.gapZ;
+      // Восточный край полотна — в 14 юнитах от края дороги (ее полуширина 6)
+      const x0 = park.roadX - 6 - 14 - spec.w / 2 - sn.gap / 2 - sn.L;
+      const pts = closedCurve((u) => {
+        const p = sn.raw[Math.min(sn.raw.length - 1, Math.floor(u * sn.raw.length))];
+        return [x0 + p[0], zc + p[1]];
+      });
+      driftTracks.push({
+        id: spec.id, name: spec.name, start: 0.04, w: spec.w,
+        desc: spec.desc + ' Ширина ' + spec.w + ', ' + sn.n + ' ' + (sn.n === 1 ? 'изгиб' : sn.n < 5 ? 'изгиба' : 'изгибов') + ' на полосе, наибольший угол пути ' + Math.round(sn.theta) + '°, самый тесный поворот — радиус ' + Math.round(sn.minR) + '.',
+        pts, snake: sn, zc,
+      });
+      // Подъезд — от дороги к крайней точке ближнего (восточного) разворота, по центру между полосами
+      driftSpurs.push({ pts: line(park.roadX, zc, x0 + sn.L + sn.gap / 2, zc), w: 12 });
+    }
+    driftRoads.push({ pts: line(park.roadX, park.z0 - 10, park.roadX, park.z1 + 10), w: 12 });
+  }
 
   // ---------- Трассы ----------
   const asphaltColor = 0x404044;
@@ -186,6 +297,7 @@ let onRaceTrack = () => false;
         [-770, 345, 1], [-740, 307, 1],
       ])),
     },
+    ...driftTracks,
   ];
 
   // Линия старта — в начале осевой линии: сдвигаем начало на прямую, подальше от перекрестков и подъездов
@@ -212,6 +324,12 @@ let onRaceTrack = () => false;
     { pts: line(-475, -740, -497, -740), w: 12 }, // к «Горкам»
     { pts: line(spineX, -740, -190, -740), w: 12 }, // к «Трамплину»
     { pts: line(spineX, 385, -192, 385), w: 12 }, // к «Гран-при»
+    // Дрифт-полигон: поперечная дорога на запад (от дороги на запад гоночного комплекса) к северной площадке, продолжение продольной дороги
+    // на юг к южной площадке, их дороги и подъезды к змейкам
+    { pts: line(-640, -250, driftRoadN, -250), w: 12 },
+    { pts: line(spineX, 385, spineX, 1010), w: 12 },
+    ...driftRoads,
+    ...driftSpurs,
   ];
 
   // Все полотна — один список: осевая линия, полуширина, замкнута ли
@@ -319,6 +437,13 @@ let onRaceTrack = () => false;
   flatRect(area.x2 - area.x1, area.z2 - area.z1, 0x46703e, 0.005, (area.x1 + area.x2) / 2, (area.z1 + area.z2) / 2);
   mapObjects.push({ x: (area.x1 + area.x2) / 2, z: (area.z1 + area.z2) / 2, hx: (area.x2 - area.x1) / 2, hz: (area.z2 - area.z1) / 2, color: '#35583a', ground: true });
   registerZone('autodrome', 'Автодром', area, { birds: 0.3 });
+  const area4 = { x1: -1300, x2: -785, z1: -495, z2: 495 }; // дрифт-полигон, север
+  const area5 = { x1: -830, x2: -120, z1: 575, z2: 1005 }; // дрифт-полигон, юг
+  for (const [ar, id, name] of [[area4, 'driftpark', 'Дрифт-полигон'], [area5, 'driftpark_south', 'Дрифт-полигон: длинные змейки']]) {
+    flatRect(ar.x2 - ar.x1, ar.z2 - ar.z1, 0x46703e, 0.005, (ar.x1 + ar.x2) / 2, (ar.z1 + ar.z2) / 2);
+    mapObjects.push({ x: (ar.x1 + ar.x2) / 2, z: (ar.z1 + ar.z2) / 2, hx: (ar.x2 - ar.x1) / 2, hz: (ar.z2 - ar.z1) / 2, color: '#35583a', ground: true });
+    registerZone(id, name, ar, { birds: 0.3 });
+  }
   const area2 = { x1: -790, x2: -125, z1: -900, z2: -220 }; // гоночный комплекс
   const area3 = { x1: -790, x2: -125, z1: 270, z2: 560 }; // «Гран-при»
   flatRect(area3.x2 - area3.x1, area3.z2 - area3.z1, 0x46703e, 0.005, (area3.x1 + area3.x2) / 2, (area3.z1 + area3.z2) / 2);
