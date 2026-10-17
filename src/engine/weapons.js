@@ -138,6 +138,7 @@ const heroWeapon = {
   cooldown: 0, // кадров до следующего выстрела
   sinceShot: 999, // кадров после последнего выстрела
   mouseHeld: false,
+  turbo: false, // ПКМ с оружием в руках — «турбо»: стреляет непрерывно, как будто ЛКМ зажата (повторный ПКМ — выключить)
   spin: 0, // раскрутка стволов 0..1 (оружие со spinUp)
   holdAt: 0, // когда зажали кнопку (оружие с beam)
   spinAt: 0,
@@ -182,6 +183,7 @@ function holsterWeapon(quiet = false) {
   heroWeapon.mesh = null;
   heroWeapon.id = null;
   heroWeapon.mouseHeld = false;
+  heroWeapon.turbo = false;
   heroWeapon.aimFrames = 0;
   stopCharge();
   heroWeapon.spin = 0;
@@ -749,6 +751,11 @@ function updateWeapons() {
   if (heroWeapon.id && (!heroEquip.weapons.includes(heroWeapon.id) || drivingCar || pushingCar)) holsterWeapon(true);
 
   const w = WEAPONS[heroWeapon.id];
+  // Турбо: ЛКМ как будто зажата всегда (у оружия с накоплением заряда турбо не работает: выстрел там — отпускание)
+  if (w && heroWeapon.turbo && !w.charge) {
+    if (!heroWeapon.mouseHeld) heroWeapon.holdAt = performance.now();
+    heroWeapon.mouseHeld = true;
+  }
   if (heroWeapon.cooldown > 0) heroWeapon.cooldown--;
   heroWeapon.sinceShot++;
   if (w && w.charge) updateCharge(w);
@@ -1202,7 +1209,23 @@ renderer.domElement.addEventListener('mousedown', (e) => {
   const w = WEAPONS[heroWeapon.id];
   if (!w.charge && !w.spinUp) fireWeapon(mouseAimPoint()); // с накоплением — выстрел, когда отпустят; пулемет — когда раскрутится
 });
-document.addEventListener('mouseup', (e) => {
-  if (e.button === 0) heroWeapon.mouseHeld = false;
+// ПКМ с оружием в руках — турбо: непрерывная стрельба (повторный ПКМ — выключить)
+renderer.domElement.addEventListener('mousedown', (e) => {
+  if (e.button !== 2 || !heroWeapon.id || drivingCar || settingsOpen || dialogueOpen) return;
+  e.preventDefault();
+  const w = WEAPONS[heroWeapon.id];
+  if (w.charge) {
+    showToast('Турбо не работает с этим оружием: заряд копится, пока зажата кнопка', 2500);
+    return;
+  }
+  heroWeapon.turbo = !heroWeapon.turbo;
+  if (!heroWeapon.turbo) heroWeapon.mouseHeld = false;
+  showToast(heroWeapon.turbo ? 'Турбо: стреляет без остановки (ПКМ — выключить)' : 'Турбо выключено', 1800);
 });
-window.addEventListener('blur', () => (heroWeapon.mouseHeld = false));
+renderer.domElement.addEventListener('contextmenu', (e) => {
+  if (heroWeapon.id) e.preventDefault(); // без меню браузера: правая кнопка — турбо
+});
+document.addEventListener('mouseup', (e) => {
+  if (e.button === 0) heroWeapon.mouseHeld = heroWeapon.turbo && !(heroWeapon.id && WEAPONS[heroWeapon.id].charge);
+});
+window.addEventListener('blur', () => (heroWeapon.mouseHeld = heroWeapon.turbo));
