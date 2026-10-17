@@ -75,7 +75,7 @@ defineQuest({
   ],
 
   onStart: [{ breakCar: true }, { toast: 'Мотор троит и дымит. Вот так и бывает: надо ехать к Рустаму в мастерскую, сам не починю.' }],
-  onDone: [{ toast: 'Оторвались. Отличная тачка, Рустам, спасибо.' }, { start: '4.09' }],
+  onDone: [{ toast: 'Оторвались. Отличная тачка, Рустам, спасибо.' }, { start: '3.12' }],
 
   world: {
     people: [{ who: 'rustam', at: 'track.start', dx: 16, dz: -5, yaw: Math.PI / 2, replace: true, if: ['quest:3.05', 'step:3.05.talk', '!step:3.05.win'] }],

@@ -365,6 +365,23 @@ const PIXEL_ART = {
       '............',
     ],
   },
+  chip: {
+    palette: { k: '#15202e', g: '#3fa35b', y: '#e0c341', s: '#9aa0a8' },
+    rows: [
+      '............',
+      '..s.s.s.s...',
+      '.kkkkkkkkk..',
+      '.kggggggkk.s',
+      's.kgyyygkk..',
+      '.kkgyyygkk.s',
+      's.kgyyygkk..',
+      '.kkggggggk.s',
+      '.kkkkkkkkk..',
+      '..s.s.s.s...',
+      '............',
+      '............',
+    ],
+  },
   canister: {
     palette: { g: '#9aa0a8', y: '#e0c341', r: '#8a1c1c', R: '#d23c3c', W: '#f1ede2' },
     rows: [

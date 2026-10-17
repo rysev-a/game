@@ -18,7 +18,7 @@ defineScenario('3.05', {
     ...raceSteps,
     { at: 'track.start', expect: ['count:cp>=9', 'step:3.05.race'] },
     { talk: 'rustam', pick: [0, 0], see: 'Это не езда, это танец', expect: ['step:3.05.win'] },
-    { at: 'mall.entrance', expect: ['step:3.05.chase', 'done:3.05', 'quest:4.09'] },
+    { at: 'mall.entrance', expect: ['step:3.05.chase', 'done:3.05', 'quest:3.12'] },
   ],
 });
 

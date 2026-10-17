@@ -36,6 +36,9 @@ for (let i = 1; i <= 9; i++) definePlace('tower.f' + i, { x: -130 + (i - 1) * 38
 for (const id of ['track.entrance', 'track.gate', 'track.exit', 'track.back', 'lab.entrance', 'lab.exit', 'lab.back']) definePlace(id, { x: 0, z: 0, r: 10, name: id });
 definePlace('track.start', { x: -620, z: 190, r: 16, name: 'Старт' });
 for (let i = 1; i <= 8; i++) definePlace('track.cp' + i, { x: -770 + i * 20, z: 200 + i, r: 16, name: 'КП ' + i });
+definePlace('river.yacht', { x: 350, z: -90, r: 24, name: 'Яхта' });
+definePlace('city.inc1', { x: 112, z: 9, r: 8, name: 'Оцепление 1' });
+definePlace('city.inc2', { x: 415, z: -9, r: 8, name: 'Оцепление 2' });
 require('./scenarios/1-03-bridge.js');
 require('./scenarios/1-06-treehouse.js');
 require('./scenarios/2-05-elixir.js');
@@ -44,6 +47,7 @@ require('./scenarios/act-3-5.js');
 require('./scenarios/act-2b.js');
 require('./scenarios/4-12-tower.js');
 require('./scenarios/3-05-car.js');
+require('./scenarios/3-12-yacht.js');
 
 const reg = Core.registry;
 

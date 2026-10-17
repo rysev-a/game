@@ -46,6 +46,7 @@
       'src/content/quests/2-11-flash.js',
       'src/content/quests/3-04-bracelet.js',
       'src/content/quests/3-05-car.js',
+      'src/content/quests/3-12-yacht.js',
       'src/content/quests/4-09-lab.js',
       'src/content/quests/4-12-tower.js',
       'src/content/quests/4-11-artifact.js',

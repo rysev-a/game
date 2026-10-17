@@ -48,3 +48,8 @@ definePlace('mall.stalls', { x: 40, z: -18, r: 12, name: 'Прилавки у т
 definePlace('tower.base', { x: towerX, z: towerZ, r: 40, name: 'Башня' });
 definePlace('tower.door', { x: towerX, z: towerZ - 14, r: 8, name: 'Вход в башню' });
 definePlace('tower.pad', { x: towerX + 20, z: towerZ - 16, r: 8, name: 'Площадка вертолетика' });
+
+// Река и яхта Барона (квест 3.12): стоянка у моста выше по течению, два места происшествий у трассы между городами
+definePlace('river.yacht', { x: riverX, z: -90, r: 24, name: 'Яхта Барона' });
+definePlace('city.inc1', { x: 112, z: 9, r: 8, name: 'Место происшествия у города' });
+definePlace('city.inc2', { x: 415, z: -9, r: 8, name: 'Место происшествия за рекой' });
