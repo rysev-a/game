@@ -43,6 +43,12 @@ const powerDriftMinSpeed = 0.15; // медленнее — газ с ручни�
 // Инерция — kind.inertia машины и настройка «Инерция после дрифта» (settings.driftInertia, 0 — выкл.)
 const coastDecay = 0.016;
 const coastMinSpeed = 0.15; // из заноса медленнее — планки нет
+// ОТСКОК. Врезались в упругое препятствие (покрышки трассы, shape.bouncy, src/engine/collisions.js) — машина
+// отскакивает: чем прямее удар, тем сильнее скорость меняет знак и тем меньше ее остается (bounceBase + bounceGain
+// на долю настройки «Жесткость отскока», settings.bounce: 0 — почти гасит удар, 2 — почти не теряет). Скользящий удар
+// теряет скорость мало. Остальные стены гасят скорость как раньше
+const bounceBase = 0.15;
+const bounceGain = 0.3;
 const cameraFollowEase = 0.04; // как быстро камера возвращается за машину (0..1 за кадр)
 let carTime = 0;
 
@@ -116,6 +122,7 @@ function enterCar(car) {
   drivingCar = car;
   car.slip = 0;
   car.coast = 0;
+  car.recoil = 0;
   playerWorldX = car.x;
   playerWorldZ = car.z;
   player.visible = false;
@@ -193,7 +200,9 @@ function updateDriving(c) {
   else car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.drag);
   // Ручник тормозит; у гоночных с газом — нет: с места это старт с пробуксовкой, на скорости — дрифт
   if ((keys['Space'] || handLever) && !(engineOn && handLever)) car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), k.brake * (handbrake ? handbrakeBrake : 1));
-  car.speed = Math.min(Math.max(car.speed, k.maxReverse), k.maxSpeed);
+  // Отскок быстрее заднего хода: пока гаснет, предел заднего хода не режет скорость (car.recoil)
+  car.speed = Math.min(Math.max(car.speed, Math.min(k.maxReverse, car.recoil || 0)), k.maxSpeed);
+  if (car.recoil) car.recoil = car.recoil > k.maxReverse || car.speed >= 0 ? 0 : Math.max(car.recoil, car.speed);
 
   // Поворачивать можно только в движении; задним ходом руль работает наоборот.
   // Руль на телефоне — кнопки ◀ ▶ (src/engine/touch-drive.js) или наклон телефона (src/engine/gyro-steer.js), −1..1
@@ -214,7 +223,7 @@ function updateDriving(c) {
     maxSlip = 0.45 + 0.7 * d;
   }
 
-  const { appliedTurn, blockedX, blockedZ, vx, vz } = moveCarWithCollisions(car, turn, grip, maxSlip);
+  const { appliedTurn, blockedX, blockedZ, vx, vz, hitBouncy } = moveCarWithCollisions(car, turn, grip, maxSlip);
   car.speed *= 1 - slideFriction * (powerDrift ? 0.6 : 1) * Math.abs(Math.sin(car.slip)); // боком машина быстро теряет скорость
   car.drifting = powerDrift;
   applyDriftCoast(car, base, powerDrift, brakingHard(c, car, onTouch, powerDrift));
@@ -232,7 +241,13 @@ function updateDriving(c) {
     emptyFuelWarned = true;
     showToast('Бензин закончился. F — выйти, потом E у машины — толкать', 6000);
   }
-  if (blockedX && blockedZ) car.speed *= -0.25;
+  if ((blockedX || blockedZ) && hitBouncy) {
+    // Доля скорости, упершаяся в препятствие: 1 — лоб в лоб, меньше — скользящий удар
+    const along = Math.hypot(vx, vz);
+    const share = along > 0 ? Math.hypot(blockedX ? vx : 0, blockedZ ? vz : 0) / along : 1;
+    car.speed *= 1 - share * (1 + bounceBase + bounceGain * settings.bounce);
+    car.recoil = car.speed < base.maxReverse ? car.speed : 0;
+  } else if (blockedX && blockedZ) car.speed *= -0.25;
   else if (blockedX || blockedZ) car.speed *= 0.85;
   if (blockedX || blockedZ) {
     car.slip *= 0.5; // ударились — занос гаснет
@@ -364,12 +379,13 @@ function moveCarWithCollisions(car, turn, grip = 1, maxSlip = 1) {
   const vz = -Math.cos(dir) * car.speed;
   let blockedX = false;
   let blockedZ = false;
+  carHitBouncy = false;
   if (carFree(car, car.x + vx, car.z, heading)) car.x += vx;
   else blockedX = true;
   if (carFree(car, car.x, car.z + vz, heading)) car.z += vz;
   else blockedZ = true;
   car.heading = heading;
-  return { appliedTurn, blockedX, blockedZ, vx, vz };
+  return { appliedTurn, blockedX, blockedZ, vx, vz, hitBouncy: carHitBouncy };
 }
 
 // Камера поворачивается вместе с машиной: нос смотрит вверх экрана. Поворот передаем камере

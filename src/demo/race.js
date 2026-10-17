@@ -317,7 +317,7 @@ let onRaceTrack = () => false;
     m4.makeTranslation(t.x, 0.475, t.z);
     tireMesh.setMatrixAt(i, m4);
     tireMesh.setColorAt(i, t.red ? red : black);
-    addObstacle({ x: t.x, z: t.z, hx: 0.5, hz: 0.5 });
+    addObstacle({ x: t.x, z: t.z, hx: 0.5, hz: 0.5, bouncy: true }); // покрышки упругие: машина отскакивает
   });
   tireMesh.instanceMatrix.needsUpdate = true;
   tireMesh.instanceColor.needsUpdate = true;

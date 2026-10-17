@@ -20,6 +20,7 @@ const obstacleShapes = [];
 function addObstacle(o) {
   obstacles.push(o);
   const shape = { x: o.x, z: o.z, ux: 1, uz: 0, vx: 0, vz: 1, hu: o.hx, hv: o.hz };
+  if (o.bouncy) shape.bouncy = true; // упругое: машина отскакивает (покрышки, бочки; carHitBouncy, src/player/driving.js)
   obstacleShapes.push(shape);
   return shape;
 }
@@ -82,6 +83,7 @@ function insideWorld(s) {
 
 // Можно ли поставить машину car в позу (x, z, heading). Препятствия, с которыми
 // она уже пересекается (например, при спавне), игнорируем — иначе не выехать
+let carHitBouncy = false; // последний carFree уперся в упругое препятствие (shape.bouncy)
 function carFree(car, x, z, heading) {
   const now = carShape(car.x, car.z, car.heading, car.half);
   const next = carShape(x, z, heading, car.half);
@@ -96,7 +98,10 @@ function carFree(car, x, z, heading) {
   }
   for (const s of obstacleShapes) {
     if (car.crush && s.creature === 'bio') continue; // БТР наезжает на биосущество (давит его, src/player/driving.js)
-    if (shapesOverlap(next, s) && !shapesOverlap(now, s)) return false;
+    if (shapesOverlap(next, s) && !shapesOverlap(now, s)) {
+      if (s.bouncy) carHitBouncy = true;
+      return false;
+    }
   }
   for (const o of cars) {
     if (o === car) continue;
