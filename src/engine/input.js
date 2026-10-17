@@ -8,7 +8,7 @@
 // после паузы камера сама встает за игрока (как после стрелок, cameraHoldFrames в src/player/player.js).
 let viewDragging = false;
 // За рулем двойное нажатие колеса мыши на сцене включает ручник (как Space), еще двойное — выключает (src/player/driving.js);
-// вращения вида колесом за рулем нет: камера и так едет за машиной
+// одиночное нажатие, как и пешком, — вид мышью
 let wheelHandbrake = false;
 let wheelLastDown = 0;
 const wheelDoubleMs = 350; // два нажатия колеса не дольше этого друг от друга — двойное
@@ -72,7 +72,8 @@ renderer.domElement.addEventListener('mousedown', (e) => {
         wheelLastDown = 0;
         showToast(wheelHandbrake ? 'Ручник включен (двойной клик колесом — выключить)' : 'Ручник выключен', 1500);
       } else wheelLastDown = now;
-    } else viewDragging = true;
+    }
+    viewDragging = true; // одиночное нажатие — вид мышью, как всегда
   } else if (e.button === 0 && !settingsOpen && !dialogueOpen) {
     pickHovered(); // клик по подсвеченной вещи — в инвентарь
   }

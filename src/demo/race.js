@@ -277,18 +277,32 @@ let onRaceTrack = () => false;
   };
   onRaceTrack = (x, z) => nearSegs(x, z).some((s) => surfaces[s.si].track && segDist(x, z, s) < s.hw + 1.5);
   // Высота полотна под точкой (groundHeightAt, src/player/driving.js): из полотен, что под ней, — самое высокое, но не выше y + 1,5 (на мосту — мост,
-  // под мостом — нижняя дорога). Вне полотна — земля (0)
+  // под мостом — нижняя дорога). Вне полотна — земля (0). Считаем только по отрезкам, рядом с которыми точка лежит «сбоку» (проекция
+  // внутри отрезка): иначе в круг попадали отрезки впереди по трассе, и на подъеме высота росла ступеньками — машина прыгала. Если сбоку
+  // ничего нет (внешняя сторона поворота, конец дороги) — берем ближайший отрезок целиком
   groundHeightAt = (x, z, y = 0) => {
     let best = 0;
+    let beside = false;
+    let nearH = 0;
+    let nearD = Infinity;
     for (const s of nearSegs(x, z)) {
-      if (segDist(x, z, s) > s.hw + 0.3) continue;
+      const d = segDist(x, z, s);
+      if (d > s.hw + 0.3) continue;
       const dx = s.b.x - s.a.x;
       const dz = s.b.z - s.a.z;
-      const t = Math.max(0, Math.min(1, ((x - s.a.x) * dx + (z - s.a.z) * dz) / (dx * dx + dz * dz || 1)));
+      const raw = ((x - s.a.x) * dx + (z - s.a.z) * dz) / (dx * dx + dz * dz || 1);
+      const t = Math.max(0, Math.min(1, raw));
       const h = s.a.y + (s.b.y - s.a.y) * t;
-      if (h > best && h <= y + 1.5) best = h;
+      if (h > y + 1.5) continue;
+      if (raw >= 0 && raw <= 1) {
+        beside = true;
+        if (h > best) best = h;
+      } else if (d < nearD) {
+        nearD = d;
+        nearH = h;
+      }
     }
-    return best;
+    return beside ? best : nearH;
   };
 
   // Нормаль к осевой линии в точке i
