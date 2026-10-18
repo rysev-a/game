@@ -9,7 +9,8 @@
 //   │  огород, яблони, сарай │   участок
 //   └──────── тропинка ──────┘
 //   ≈≈≈≈≈≈≈≈≈ овраг ═ бревно ═ ≈≈≈≈≈≈≈≈≈   перейти можно только по бревну
-//          ( огромное дерево )            в кроне — домик на дереве, лестница в дупле
+//          ( извилистая тропинка )        за оврагом тропинка петляет по лесу, ~150 юнитов
+//                 ( огромное дерево )     далеко в чаще, домик Веры спрятан в листве: издали его не видно
 //
 // Подключается после src/locations/city/city.js, до src/world/world.js.
 {
@@ -20,7 +21,8 @@
   const plotZ2 = houseZ + 32; // южный край участка
   const ravineZ = plotZ2 + 8; // ось оврага
   const ravineHalf = 4;
-  const treeZ = ravineZ + 18;
+  const treeX = gx - 70; // домик Веры далеко за оврагом, в стороне от дома: так просто не увидишь
+  const treeZ = ravineZ + 150;
   const fx1 = gx - 22;
   const fx2 = gx + 22;
 
@@ -124,6 +126,8 @@
     cityGroup.add(log);
     mapObjects.push({ x: gx, z: ravineZ, hx: 0.6, hz: ravineHalf + 2, color: '#8a6a3c' });
   }
+  globalThis.navLinks = globalThis.navLinks || [];
+  globalThis.navLinks.push({ a: { x: gx, z: ravineZ - ravineHalf - 1.5 }, b: { x: gx, z: ravineZ + ravineHalf + 1.5 } }); // бревно для поиска пути (src/quests/guide.js)
   // Кусты вдоль оврага
   for (let x = rx1 + 4; x < rx2; x += rand(5, 9)) {
     if (Math.abs(x - gx) < 3) continue;
@@ -134,12 +138,86 @@
     }
   }
 
-  // Огромное дерево с домиком в кроне: дупло с лестницей смотрит на овраг
-  flatRect(30, 26, 0x2f5233, 0.008, gx, treeZ);
-  placeBuilding('treehouse', { x: gx, z: treeZ, heading: Math.PI });
+  // Извилистая тропинка за оврагом: от конца бревна к поляне с огромным деревом. Идет по лесу, петляет; траву по ее краям лес не трогает
+  const trailPts = [
+    [gx, ravineZ + 5], [gx - 4, ravineZ + 16], [gx - 14, ravineZ + 25], [gx - 26, ravineZ + 31], [gx - 30, ravineZ + 43], [gx - 22, ravineZ + 55],
+    [gx - 12, ravineZ + 63], [gx - 14, ravineZ + 77], [gx - 26, ravineZ + 87], [gx - 40, ravineZ + 93], [gx - 50, ravineZ + 105],
+    [gx - 48, ravineZ + 119], [gx - 54, ravineZ + 131], [gx - 62, ravineZ + 138], [treeX, treeZ - 11],
+  ];
+  const trail = [];
+  {
+    // Кривая Катмулла — Рома через опорные точки, точки через ~1,5 юнита
+    const P = trailPts;
+    const at = (i) => P[Math.max(0, Math.min(P.length - 1, i))];
+    for (let i = 0; i < P.length - 1; i++) {
+      const [p0, p1, p2, p3] = [at(i - 1), at(i), at(i + 1), at(i + 2)];
+      const n = Math.max(2, Math.ceil(Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) / 1.5));
+      for (let k = 0; k < n; k++) {
+        const t = k / n;
+        const t2 = t * t;
+        const t3 = t2 * t;
+        const f = (a, b, c, d) => 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+        trail.push({ x: f(p0[0], p1[0], p2[0], p3[0]), z: f(p0[1], p1[1], p2[1], p3[1]) });
+      }
+    }
+    trail.push({ x: P[P.length - 1][0], z: P[P.length - 1][1] });
+    // Лента тропинки: полоса шириной 1,8 вдоль точек (как полотно дороги, src/world/roads.js, но по кривой)
+    const hw = 0.9;
+    const pos = [];
+    for (let i = 0; i < trail.length; i++) {
+      const a = trail[Math.max(0, i - 1)];
+      const b = trail[Math.min(trail.length - 1, i + 1)];
+      const len = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+      const nx = -(b.z - a.z) / len;
+      const nz = (b.x - a.x) / len;
+      pos.push(trail[i].x + nx * hw, 0.013, trail[i].z + nz * hw, trail[i].x - nx * hw, 0.013, trail[i].z - nz * hw);
+    }
+    const idx = [];
+    for (let i = 0; i < trail.length - 1; i++) {
+      const l = i * 2;
+      idx.push(l, l + 1, l + 2, l + 1, l + 3, l + 2);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setIndex(idx);
+    cityGroup.add(new THREE.Mesh(geo, new LitMaterial({ color: 0x9a7a52, side: THREE.DoubleSide })));
+    // Карта и поиск пути (src/quests/guide.js): отрезки тропинки — «дорога»
+    for (let i = 0; i < trail.length - 1; i += 2) {
+      const e = trail[Math.min(trail.length - 1, i + 2)];
+      mapRoads.push({ x1: trail[i].x, z1: trail[i].z, x2: e.x, z2: e.z, color: '#9a7a52', width: 1.8 });
+    }
+    // По краям тропинки лес не растет (узкий коридор), дальше стоит стеной
+    for (let i = 0; i < trail.length; i += 3) clearZones.push({ x1: trail[i].x - 2.4, x2: trail[i].x + 2.4, z1: trail[i].z - 2.4, z2: trail[i].z + 2.4 });
+  }
 
-  const rect = { x1: fx1 - 6, x2: fx2 + 6, z1: yardZ1 - 6, z2: treeZ + 14 };
+  // Поляна с огромным деревом: домик в кроне, дупло с лестницей смотрит на тропинку (на север). Вокруг стеной высокие густые деревья,
+  // а сам домик показывается, только когда подошел близко (листва закрывает его от глаз)
+  flatRect(30, 26, 0x2f5233, 0.008, treeX, treeZ);
+  const exteriorIndex = cityGroup.children.length;
+  placeBuilding('treehouse', { x: treeX, z: treeZ, heading: Math.PI });
+  const treehouseExterior = cityGroup.children[exteriorIndex];
+  setInterval(() => {
+    const d = Math.hypot(playerWorldX - treeX, playerWorldZ - treeZ);
+    treehouseExterior.visible = d < 30;
+  }, 250);
+  for (let i = 0; i < 16; i++) {
+    const ang = (i / 16) * Math.PI * 2 + rand(-0.15, 0.15);
+    if (Math.abs(ang - Math.PI * 1.5) < 0.3 || Math.abs(ang + Math.PI * 0.5) < 0.3) continue; // проход для тропинки с севера
+    const r = 15 + rand(0, 6);
+    const tx = treeX + Math.cos(ang) * r;
+    const tz = treeZ + Math.sin(ang) * r;
+    const tree = createLeafyTree(pick(leafyGreens));
+    tree.position.set(tx, 0, tz);
+    tree.scale.setScalar(rand(2, 2.7));
+    cityGroup.add(tree);
+    addTreeCollider(tx, tz, 2.2);
+  }
+
+  const rect = { x1: fx1 - 6, x2: fx2 + 6, z1: yardZ1 - 6, z2: ravineZ + 10 };
   registerZone('zarechye', 'Заречье: дом Анны Петровны', rect, { birds: 0.6, birds_2: 0.35 });
   clearZones.push(rect);
+  // Лес за оврагом с тропинкой и поляной: свой звук леса
+  registerZone('zarechye_woods', 'Лес за Заречьем', { x1: treeX - 40, x2: gx + 8, z1: ravineZ + 10, z2: treeZ + 24 }, { forest_birds: 0.6, birds: 0.25 });
+  clearZones.push({ x1: treeX - 15, x2: treeX + 15, z1: treeZ - 13, z2: treeZ + 13 }); // поляна
   clearZones.push({ x1: rx1, x2: rx2, z1: ravineZ - ravineHalf - 3, z2: ravineZ + ravineHalf + 3 }); // в овраге лес не растет
 }

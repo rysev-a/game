@@ -13,6 +13,7 @@
   const g = questGame;
   const reg = Core.registry;
   const live = new Map(); // ключ → { remove() }
+  window.questSpots = new Map(); // id объекта мира → { x, z }: где он стоит сейчас (подсветка цели квеста, src/quests/guide.js)
 
   // Место есть на этой странице, только если оно принадлежит ее локации (place.location, по умолчанию основной мир)
   const placeOf = (id) => {
@@ -76,6 +77,7 @@
       }
     }
     if (sp.name) addHoverInfo(group, { kind: 'Объект', name: sp.name, desc: sp.desc || '' });
+    window.questSpots.set(sp.id, { x, z });
     const reach = sp.r || 3.2;
     const it = sp.noInteract ? null : addInteractable({
       priority: 2,
@@ -87,6 +89,7 @@
     });
     return {
       remove() {
+        window.questSpots.delete(sp.id);
         cityGroup.remove(group);
         for (const f of fades) {
           const k = fadeBoxes.indexOf(f);

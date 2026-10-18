@@ -4,9 +4,11 @@
 //   showPath     «Показывать направление»: от героя до цели текущего шага идут небольшие зеленые стрелки прямо по земле, и такая же
 //                линия со стрелками лежит на миникарте и большой карте. Путь ищется заново поиском A*: не через здания, кусты, деревья
 //                и реку, а по дороге, улице, тропинке и тротуару (по ним дешевле), поэтому стрелки ведут по настоящему проходимому пути.
-//   Двери: любая дверь, в которую можно войти (вход в здание, выход, лестница, дверь гаража), мягко светится, а в сканере при наведении
-//   подписана («Вход в гараж»). Это не настройка: так игрок видит, куда можно пройти (клик по двери или E).
-//   showObjects  «Подсвечивать объекты»: то, к чему нужно подойти (человек, вход в здание, вещь, место), помечено покачивающимся
+//   Двери и кнопки: когда на дверь, лестницу или кнопку гаража наведена мышь, сам объект чуть ярчает (тянется к теплому цвету), а в сканере
+//   он подписан («Вход в гараж»). Это не настройка: так игрок видит, с чем можно взаимодействовать (клик или E). Пока так сделано для входа
+//   в гараж, кнопки гаража и лестницы дома; остальные входы без сеток объекта подсвечивать пока не начали (DOOR_FALLBACK_PANELS).
+//   showObjects  «Подсвечивать объекты»: то, к чему нужно подойти или применить действие (человек, вход в здание, вещь, место, а также объект, на который
+//                сейчас нацелено действие активного квеста: ноутбук Веры, верстак, горн — записи interactions квеста), помечено покачивающимся
 //                ромбом с кольцом на земле — так же, как ромб над машиной героя (src/player/driving.js).
 //
 // Цель берется из квеста: метка текущего шага (game.currentMarker), а вещь — из условия шага has:<вещь>. Поиск пути идет кусками по кадрам,
@@ -18,7 +20,7 @@
   // ---------- Проходимость ----------
   const CELL = 3; // клетка поиска, юнитов
   const BUCKET = 16; // корзина индекса препятствий
-  const R = 0.95; // запас от препятствий: радиус героя с зазором
+  const R = 0.45; // запас от препятствий: радиус героя; узкие калитки проходятся, а бревно через овраг — по navLinks
   let obsIndex = null;
   let obsCount = -1;
   let roadIndex = null;
@@ -165,6 +167,18 @@
       return b;
     };
     job.isBlocked = isBlocked;
+    // Узкие проходы, которые сетка не видит (бревно через овраг): записи navLinks [{ a, b }] — двусторонние «мостики» между клетками
+    job.links = new Map();
+    for (const l of globalThis.navLinks || []) {
+      const ca = [Math.floor(l.a.x / CELL), Math.floor(l.a.z / CELL)];
+      const cb = [Math.floor(l.b.x / CELL), Math.floor(l.b.z / CELL)];
+      const cost = Math.hypot(l.a.x - l.b.x, l.a.z - l.b.z) / 1;
+      for (const [from, to] of [[ca, cb], [cb, ca]]) {
+        const k = cellKey(from[0], from[1]);
+        if (!job.links.has(k)) job.links.set(k, []);
+        job.links.get(k).push([to[0], to[1], cost]);
+      }
+    }
     // Старт: ближайшая свободная клетка
     const si = Math.floor(from.x / CELL);
     const sj = Math.floor(from.z / CELL);
@@ -232,6 +246,16 @@
         job.came.set(nk, ck);
         job.open.push([ni, nj], gNew + (W * Math.hypot(nc.x - job.to.x, nc.z - job.to.z)) / CELL);
       }
+      for (const [ni, nj, c] of job.links.get(ck) || []) {
+        const nk = cellKey(ni, nj);
+        const gNew = gCur + c;
+        const old = job.cost.get(nk);
+        if (old !== undefined && old <= gNew) continue;
+        const nc = cellCenter(ni, nj);
+        job.cost.set(nk, gNew);
+        job.came.set(nk, ck);
+        job.open.push([ni, nj], gNew + (W * Math.hypot(nc.x - job.to.x, nc.z - job.to.z)) / CELL);
+      }
     }
     if (job.done && job.best && !job.path) {
       // Путь назад от лучшей клетки (до цели или самой близкой к ней)
@@ -282,9 +306,8 @@
     return cityGroup.worldToLocal(tmp.clone());
   };
 
-  let objectTarget = null; // { x, z, y } — что подсвечено ромбом
-  let objectKey = '';
-  function resolveObject() {
+  let objectTargets = []; // [{ x, z, y }] — что подсвечено ромбами (до четырех)
+  function resolveGoalObject() {
     const id = g.state.tracked;
     const step = id && g.currentStep(id);
     if (!step) return null;
@@ -324,6 +347,44 @@
     if (door) return { x: door.x, z: door.z, y: 4.6 };
     // 4. само место
     return { x: marker.x, z: marker.z, y: 3.2 };
+  }
+
+  // Объект, на который нацелено действие активного квеста (interactions: [{ on: 'station:laptop', if, do }]): станция здания или объект мира
+  function interactionTargets() {
+    const out = [];
+    for (const q of Object.values(Core.registry.quests)) {
+      if (!g.isActive(q.id)) continue;
+      for (const it of q.interactions || []) {
+        if (!it.on || !g.check(it.if)) continue;
+        let pos = null;
+        if (it.on.startsWith('station:')) {
+          const id = it.on.slice(8);
+          let bestD = 80;
+          for (const st of interactables) {
+            if (st.stationId !== id || !st.stationPos) continue;
+            const p = st.stationPos();
+            const d = Math.hypot(p.x - playerWorldX, p.z - playerWorldZ);
+            if (d < bestD) {
+              bestD = d;
+              pos = { x: p.x, z: p.z, y: 2.3 };
+            }
+          }
+        } else if (it.on.startsWith('spot:')) {
+          const sp = window.questSpots && window.questSpots.get(it.on.slice(5));
+          if (sp && Math.hypot(sp.x - playerWorldX, sp.z - playerWorldZ) < 80) pos = { x: sp.x, z: sp.z, y: 3.2 };
+        }
+        if (pos && !out.some((o) => Math.hypot(o.x - pos.x, o.z - pos.z) < 1.5)) out.push(pos);
+      }
+    }
+    return out;
+  }
+
+  function resolveObjects() {
+    const out = [];
+    const goal = resolveGoalObject();
+    if (goal) out.push(goal);
+    for (const t of interactionTargets()) if (!out.some((o) => Math.hypot(o.x - t.x, o.z - t.z) < 2)) out.push(t);
+    return out.slice(0, 4);
   }
 
   // ---------- Путь ----------
@@ -446,40 +507,54 @@
     arrows.visible = count > 0;
   }
 
-  // ---------- Подсвеченный объект ----------
-  const mark = new THREE.Group();
-  const diamond = new THREE.Mesh(new THREE.OctahedronGeometry(0.45, 0), new THREE.MeshBasicMaterial({ color: DESIGN.color.warm }));
-  diamond.scale.y = 1.4;
-  const ring = new THREE.Mesh(
-    new THREE.RingGeometry(0.9, 1.2, 28).rotateX(-Math.PI / 2),
-    new THREE.MeshBasicMaterial({ color: DESIGN.color.warm, transparent: true, opacity: 0.7, depthWrite: false, side: THREE.DoubleSide }),
-  );
-  mark.add(diamond, ring);
-  mark.visible = false;
-  cityGroup.add(mark);
-
-  function updateMark(t) {
-    if (!settings.showObjects || !objectTarget) {
-      mark.visible = false;
-      return;
-    }
-    const o = objectTarget;
-    mark.visible = true;
-    const gy = insideBuilding() ? 0 : groundHeightAt(o.x, o.z, 9);
-    mark.position.set(o.x, 0, o.z);
-    diamond.position.y = Math.max(gy, o.y > 2.5 ? gy : 0) + o.y + Math.sin(t * 3) * 0.2;
-    diamond.rotation.y = t * 1.5;
-    ring.position.y = gy + 0.15;
-    const pulse = 1 + 0.25 * Math.sin(t * 3);
-    ring.scale.set(pulse, 1, pulse);
-    ring.material.opacity = 0.45 + 0.3 * Math.sin(t * 3 + 1);
+  // ---------- Подсвеченные объекты ----------
+  // Пул из четырех меток: ромб над объектом и кольцо на земле
+  const marks = [];
+  for (let i = 0; i < 4; i++) {
+    const group = new THREE.Group();
+    const diamond = new THREE.Mesh(new THREE.OctahedronGeometry(0.45, 0), new THREE.MeshBasicMaterial({ color: DESIGN.color.warm }));
+    diamond.scale.y = 1.4;
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(0.9, 1.2, 28).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ color: DESIGN.color.warm, transparent: true, opacity: 0.7, depthWrite: false, side: THREE.DoubleSide }),
+    );
+    group.add(diamond, ring);
+    group.visible = false;
+    cityGroup.add(group);
+    marks.push({ group, diamond, ring });
   }
 
+  function updateMark(t) {
+    marks.forEach((m, i) => {
+      const o = settings.showObjects ? objectTargets[i] : null;
+      if (!o) {
+        m.group.visible = false;
+        return;
+      }
+      m.group.visible = true;
+      const gy = insideBuilding() ? 0 : groundHeightAt(o.x, o.z, 9);
+      m.group.position.set(o.x, 0, o.z);
+      m.diamond.position.y = (o.y > 2.5 ? gy : 0) + o.y + Math.sin(t * DESIGN.motion.bob) * 0.2;
+      m.diamond.rotation.y = t * DESIGN.motion.spin;
+      m.ring.position.y = gy + 0.15;
+      const pulse = 1 + 0.25 * Math.sin(t * DESIGN.motion.bob);
+      m.ring.scale.set(pulse, 1, pulse);
+      m.ring.material.opacity = 0.45 + 0.3 * Math.sin(t * DESIGN.motion.bob + 1);
+    });
+  }
 
-  // ---------- Подсветка входов ----------
-  // Дверь, лестница или кнопка, которыми можно воспользоваться сейчас, чуть подсвечиваются сами: цвет их сетки мягко тянется к теплому желтому
-  // и обратно (записи interactables с glowMeshes() — список сеток объекта). Если сетки объекта нет под рукой, рядом с точкой входа висит
-  // мягкая плашка в форме двери (или пятно на полу у лестницы). При наведении мыши сканер подписывает вход («Вход в гараж»).
+  // ---------- Подсветка входов при наведении ----------
+  // Дверь, лестница или кнопка, которыми можно воспользоваться сейчас, чуть ярчают, когда на них наведена мышь: цвет сетки объекта
+  // становится светлее и теплее и плавно возвращается (записи interactables с glowMeshes() — список сеток объекта). Сканер подписывает
+  // вход («Вход в гараж»). Запасная плашка для дверей без сеток отключена (DOOR_FALLBACK_PANELS): сначала проверяем на гараже.
+  const DOOR_FALLBACK_PANELS = false;
+  let lastMouse = null; // координаты мыши -1..1 из главного цикла (updateHoverInfo, src/engine/hoverinfo.js)
+  const origUpdateHoverInfo = updateHoverInfo;
+  updateHoverInfo = function (mouse) {
+    lastMouse = mouse;
+    origUpdateHoverInfo(mouse);
+  };
+  const glowRay = new THREE.Raycaster();
   const WARM = new THREE.Color(DESIGN.color.warm);
   const glows = new Map(); // interactable → { panel, tinted: Set }
   const doorWord = { 'войти': 'Вход', 'выйти': 'Выход', 'подняться': 'Подъем', 'спуститься': 'Спуск' };
@@ -540,7 +615,12 @@
           o.userData.glowBase = o.material.color.clone();
         }
         o.material.color.copy(o.userData.glowBase);
-        if (amount > 0) o.material.color.lerp(WARM, amount);
+        if (amount > 0) {
+          const c = o.material.color.lerp(WARM, amount * 0.6).multiplyScalar(1 + amount * 1.1); // светлее и чуть теплее
+          c.r = Math.min(1, c.r);
+          c.g = Math.min(1, c.g);
+          c.b = Math.min(1, c.b);
+        }
       });
     }
   }
@@ -558,12 +638,20 @@
       }
       if (!glow) continue;
       const meshes = near && it.glowMeshes ? it.glowMeshes().filter(Boolean) : null;
-      // Сетки объекта: подсвечиваем сами; к ним же привязана подпись сканера
+      // Сетки объекта: ярчают при наведении мыши; к ним же привязана подпись сканера
       if (it.glowMeshes) {
         if (glow.tinted && (!meshes || meshes.some((m) => !glow.tinted.includes(m)))) tint(glow.tinted, 0);
         glow.tinted = meshes;
+        let hovered = false;
+        if (meshes && lastMouse && !dialogueOpen && !settingsOpen) {
+          glowRay.setFromCamera(lastMouse, camera);
+          const hit = glowRay.intersectObjects(meshes, true).find((h) => h.object.isMesh && hoverShown(h.object));
+          hovered = !!hit;
+        }
+        glow.amt = (glow.amt || 0) + ((hovered ? 0.2 : 0) - (glow.amt || 0)) * 0.25; // плавно: туда и обратно
+        if (glow.amt < 0.005) glow.amt = 0;
         if (meshes) {
-          tint(meshes, 0.2 + 0.12 * Math.sin(t * 2.6));
+          tint(meshes, glow.amt);
           glow.reg = glow.reg || new Set();
           for (const m of meshes) {
             if (glow.reg.has(m)) continue;
@@ -573,7 +661,7 @@
         }
       }
       // Плашка — только когда сеток нет
-      const needPanel = near && !(it.glowMeshes && meshes && meshes.length);
+      const needPanel = DOOR_FALLBACK_PANELS && near && !(it.glowMeshes && meshes && meshes.length);
       if (needPanel && !glow.panel) glow.panel = makePanel(it);
       if (glow.panel) {
         glow.panel.visible = !!needPanel;
@@ -653,7 +741,7 @@
       updateArrows(sec);
       if (t - lastObject > 250) {
         lastObject = t;
-        objectTarget = settings.showObjects ? resolveObject() : null;
+        objectTargets = settings.showObjects ? resolveObjects() : [];
       }
       updateMark(sec);
       updateDoors(sec);
@@ -665,7 +753,7 @@
   nav.frame = (sec) => {
     updateNav();
     updateArrows(sec);
-    objectTarget = settings.showObjects ? resolveObject() : null;
+    objectTargets = settings.showObjects ? resolveObjects() : [];
     updateMark(sec);
     updateDoors(sec);
   };

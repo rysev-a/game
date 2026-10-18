@@ -90,6 +90,8 @@ function placeBuilding(id, { x, z, heading = 0, full = true } = {}) {
       const w = toWorld(st);
       addInteractable({
         priority: 2,
+        stationId: st.id, // для подсветки цели квеста (src/quests/guide.js)
+        stationPos: () => w,
         near: () =>
           !insideBuilding() && !drivingCar && Math.hypot(playerWorldX - w.x, playerWorldZ - w.z) < (st.radius || 2.6),
         prompt: () => (typeof st.label === 'function' ? st.label() : st.label),
@@ -202,6 +204,8 @@ function placeBuilding(id, { x, z, heading = 0, full = true } = {}) {
       for (const st of plan.stations || []) {
         addInteractable({
           priority: 2,
+          stationId: st.id,
+          stationPos: () => ({ x: st.x, z: floorZ[st.floor] + st.z }),
           near: () => !dialogueOpen && here(st.floor, st, st.radius || 2.4),
           prompt: () => (typeof st.label === 'function' ? st.label() : st.label),
           act: stationAct(st),

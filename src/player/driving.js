@@ -865,7 +865,7 @@ const cockpitSteerLock = 2.4; // на сколько радиан поворач
 const carCockpit = [-0.4, 1.28, 0.35]; // обычная легковушка: водитель слева
 let cockpitBlend = 0; // 0..1: камера въезжает на место водителя (updateCamera в src/player/player.js)
 let cockpitHiddenCar = null; // машина, чей кузов сейчас скрыт
-const cockpitOn = () => !!settings.cockpitView && !!drivingCar;
+const cockpitOn = () => (!!settings.cockpitView || !!settings.firstPerson) && !!drivingCar; // общая настройка «Вид от первого лица» (вкладка «Игра») включает и салон
 function cockpitSeat(car) {
   if (car.kind && car.kind.cockpit) return car.kind.cockpit;
   if (!car.kind) return carCockpit;
@@ -972,6 +972,7 @@ function cockpitCamera() {
 }
 window.addEventListener('keydown', (e) => {
   if (e.code !== 'KeyV' || e.repeat || !drivingCar || settingsOpen || dialogueOpen) return;
-  setSetting('cockpitView', !settings.cockpitView);
-  showToast(settings.cockpitView ? 'Вид из салона (V — вернуть обычный)' : 'Обычный вид', 1500);
+  setSetting('cockpitView', !(settings.cockpitView || settings.firstPerson));
+  if (settings.firstPerson && !settings.cockpitView) setSetting('firstPerson', false); // V возвращает обычный вид и при включенной общей настройке
+  showToast(settings.cockpitView || settings.firstPerson ? 'Вид из салона (V — вернуть обычный)' : 'Обычный вид', 1500);
 });
