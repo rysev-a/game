@@ -434,6 +434,39 @@ test('таймеры: предупреждение, срабатывание о�
   assert.equal(game.currentTimer(), null, 'шаг выполнен — таймера нет');
 });
 
+test('таймеры идут в реальных секундах, когда у хоста есть seconds: игровое время (оно идет как в жизни) им не мешает', () => {
+  const { game, host } = makeGame((reg) => {
+    reg.defineQuest({
+      id: 'q',
+      title: 'Q',
+      autoStart: true,
+      steps: [{ id: 'run', text: 'Бежать', done: 'flag:there', timer: { limit: '10m', onExpire: [{ add: { late: 1 } }] } }],
+    });
+  });
+  let sec = 100;
+  host.seconds = () => sec;
+  const run = (seconds) => {
+    for (let i = 0; i < seconds * 4; i++) {
+      sec += 0.25; // кадры: за один тик больше полусекунды не засчитывается (вкладка свернута)
+      game.settle();
+    }
+  };
+  game.settle(); // первый вызов запоминает секунды
+  host.time = 5000; // игровые часы убежали далеко (ждали ночь): таймер не трогаем
+  game.settle();
+  assert.ok(game.currentTimer().left > 9);
+  run(4);
+  assert.equal(Math.round(game.currentTimer().left), 6);
+  host.paused = () => true;
+  run(4);
+  assert.equal(Math.round(game.currentTimer().left), 6, 'на паузе секунды не идут');
+  host.paused = () => false;
+  run(3);
+  assert.equal(game.state.counters.late, undefined, 'после паузы осталось ~3 с');
+  run(4);
+  assert.equal(game.state.counters.late, 1);
+});
+
 test('таймер квеста: идет между start и until; rewind возвращает шаги, бои и головоломки', () => {
   const { game, host } = makeGame((reg) => {
     reg.defineQuest({

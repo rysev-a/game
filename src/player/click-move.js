@@ -1,10 +1,11 @@
 // src/player/click-move.js
-// ХОДЬБА КЛИКОМ ПО ЗЕМЛЕ (только компьютер, мирный режим, пешком). Клик левой кнопкой по земле — герой сам
-// идет туда: поворачивается к точке и шагает, камера идет за ним. Пока кнопка зажата, точку можно вести мышью.
+// КЛИК ПО МЕСТАМ, КОТОРЫЕ МЕНЯЮТ ЛОКАЦИЮ (только компьютер, мирный режим, пешком). Клик по земле ничего не делает: герой пешком
+// ходит клавишами, маркера «идем сюда» нет. Зато клик по зданию с дверью, по лестнице, по выходу из здания, по человеку или машине:
+//   герой полсекунды идет туда, и тут же меняется локация (вошел, поднялся, заговорил, сел), а время уходит так, будто он
+//   шел пешком (оставшийся путь / скорость, как при перемещении по карте, src/player/travel.js) — даже если вход далеко.
 // Любая из W/A/S/D, разговор, оружие в руках или машина — и герой останавливается. Уперся в стену — тоже стоп.
-//   Клик по зданию с дверью (запись в interactables с clickObject и walkTo, src/engine/interact.js): герой идет
-//   к двери; если не дошел за clickDoorFrames (2 секунды) — сразу оказывается внутри, а время уходит так,
-//   будто он дошел (оставшийся путь / скорость, как при перемещении по карте, src/player/travel.js).
+//   Клик по зданию с дверью (запись в interactables с clickObject и walkTo, src/engine/interact.js) и клик рядом с точкой
+//   записи с clickPoint() (лестница, выход из здания): идем clickDoorFrames (полсекунды), потом — сразу на месте.
 //   Клик по противнику (живая запись в combatTargets) — сразу боевой режим: герой достает оружие (последнее,
 //   что доставал, иначе из активной ячейки или первое) и разворачивается к нему вместе с камерой; мышь
 //   захватывается для прицела тем же кликом (src/engine/mouse-look.js).
@@ -15,7 +16,7 @@
 // Клик по вещи берет вещь (src/engine/input.js); в боевом режиме клик — огонь (src/engine/weapons.js).
 // clickMoveSteer() зовет updateWalking (src/player/player.js), updateClickMove() — главный цикл.
 
-const clickDoorFrames = 120; // 2 секунды идем к двери, потом — сразу внутрь
+const clickDoorFrames = 30; // полсекунды идем к двери, потом — сразу внутрь
 const clickArriveDist = 0.4;
 const clickTurnRate = 0.18; // поворот к точке за кадр (рад) — быстрее, чем A/D
 let clickTarget = null; // { x, z } — куда идем (мир)
@@ -48,8 +49,7 @@ function clickMoveStop() {
 function clickMoveTo(x, z) {
   clickTarget = { x, z };
   clickStuck = { d: Infinity, frames: 0 };
-  clickMarker.position.set(x, 0.06, z);
-  clickMarker.visible = true;
+  clickMarker.position.set(x, 0.06, z); // метки на земле нет: куда идем, не показываем
 }
 
 // Точка мира под курсором на земле (y = 0) или null
@@ -76,6 +76,16 @@ function clickDoorEntry() {
       const it = entries.find((en) => en.clickObject === o);
       if (it) return it;
     }
+  }
+  return null;
+}
+
+// Лестница или выход из здания рядом с кликом: запись с clickPoint() (возвращает { x, z, r } или null, если сейчас не подходит)
+function clickPointEntry(p) {
+  for (const it of interactables) {
+    if (!it.clickPoint) continue;
+    const cp = it.clickPoint();
+    if (cp && Math.hypot(p.x - cp.x, p.z - cp.z) < (cp.r || 2.2)) return { near: it.near, act: it.act, walkTo: { x: cp.x, z: cp.z } };
   }
   return null;
 }
@@ -154,9 +164,12 @@ renderer.domElement.addEventListener('mousedown', (e) => {
     clickDoor = { entry, frames: 0 };
     return;
   }
-  clickDoor = null;
-  clickMoveTo(p.x, p.z);
-  clickHeld = true;
+  const point = settings.clickInteract ? clickPointEntry(p) : null;
+  if (point) {
+    clickMoveTo(point.walkTo.x, point.walkTo.z);
+    clickDoor = { entry: point, frames: 0 };
+  }
+  // Клик по земле никуда не ведет
 });
 renderer.domElement.addEventListener('mousemove', (e) => {
   if (!clickHeld || !clickTarget || clickDoor) return;
@@ -226,7 +239,7 @@ function clickInteractFar(g) {
   advanceGameTime(minutes);
   clockShown = '';
   clickInteractNow(g);
-  if (minutes >= 1) showToast('Пешком: ' + Math.round(dist) + ' м, ушло ' + formatDuration(minutes) + '. Сейчас ' + formatGameTime() + '.', 4000);
+  if (minutes * 60 >= 10) showToast('Пешком: ' + Math.round(dist) + ' м, ушло ' + formatDuration(minutes) + '. Сейчас ' + formatGameTime() + '.', 4000);
 }
 
 // Раз в кадр: цель-человек ходит, поэтому точку обновляем; дошли — говорим или садимся
@@ -299,5 +312,5 @@ function clickEnterFar(it) {
   advanceGameTime(minutes);
   clockShown = '';
   it.act(); // если заперто — скажет и оставит у двери
-  if (minutes >= 1) showToast('Пешком до двери: ' + Math.round(dist) + ' м, ушло ' + formatDuration(minutes) + '. Сейчас ' + formatGameTime() + '.', 4000);
+  if (minutes * 60 >= 10) showToast('Пешком до двери: ' + Math.round(dist) + ' м, ушло ' + formatDuration(minutes) + '. Сейчас ' + formatGameTime() + '.', 4000);
 }

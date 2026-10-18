@@ -214,10 +214,7 @@ function updatePlayerBody(move) {
   playerYaw = playerHeading + worldRotation;
   player.rotation.y = playerYaw;
 
-  // ПРЫЖОК: импульс по Space, дальше гравитация
-  if (keys['Space'] && !drivingCar && player.position.y <= playerGroundY) {
-    jumpVelocity = jumpForce;
-  }
+  // Герой не прыгает (Space пешком ничего не делает); гравитация возвращает его на землю, когда она ниже (спуск с холма)
   jumpVelocity -= gravity;
   player.position.y += jumpVelocity;
   if (player.position.y < playerGroundY) {

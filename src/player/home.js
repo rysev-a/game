@@ -359,6 +359,7 @@ function buildHomeExterior(info) {
   cityGroup.add(innerDoor);
   addInteractable({
     priority: 3,
+    clickPoint: () => (insideBuilding() ? null : { x: garage.insidePoint.x, z: garage.insidePoint.z, r: 2.4 }),
     near: () => !insideBuilding() && Math.hypot(playerWorldX - garage.insidePoint.x, playerWorldZ - garage.insidePoint.z) < 2.3,
     prompt: () => 'E — войти в дом',
     act: () => {
@@ -369,6 +370,10 @@ function buildHomeExterior(info) {
   // И обратно — из дома в гараж
   addInteractable({
     priority: 3,
+    clickPoint: () => {
+      const ci = currentInterior();
+      return ci && ci.def === homeInterior && ci.floor === 0 ? { x: homeGaragePoint.x, z: homeFloorZ[0] + homeGaragePoint.z, r: 2.4 } : null;
+    },
     near: () => {
       const ci = currentInterior();
       return (

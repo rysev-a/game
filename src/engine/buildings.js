@@ -154,6 +154,10 @@ function placeBuilding(id, { x, z, heading = 0, full = true } = {}) {
     });
     addInteractable({
       priority: 1,
+      clickPoint: () => {
+        const ci = currentInterior();
+        return ci && ci.def === idef && ci.floor === 0 ? { x: plan.door.x, z: floorZ[0] + plan.door.z, r: 2.4 } : null;
+      },
       near: () => {
         const ci = currentInterior();
         return (
@@ -179,6 +183,10 @@ function placeBuilding(id, { x, z, heading = 0, full = true } = {}) {
     for (const st of plan.stairs || []) {
       addInteractable({
         priority: 1,
+        clickPoint: () => {
+          const ci = currentInterior();
+          return ci && ci.def === idef && ci.floor === st.floor ? { x: st.x, z: floorZ[st.floor] + st.z, r: 2.4 } : null;
+        },
         near: () => here(st.floor, st, doorRadius),
         prompt: () => st.label,
         act: () => {

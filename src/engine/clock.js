@@ -1,7 +1,7 @@
 // src/engine/clock.js
 // ИГРОВОЕ ВРЕМЯ И ДАТА. История начинается 18 сентября 2043 года: дата старта лежит в game.json
 // (поле gameStartDate), там же время старта и скорость хода времени (minutesPerSecond — сколько
-// игровых минут проходит за реальную секунду; сейчас 1, то есть сутки — это 24 минуты игры).
+// игровых минут проходит за реальную секунду; сейчас 1/60: время идет как в обычном мире, секунда игры — секунда жизни).
 // Время идет само, а еще тратится, когда перемещаешься кликом по карте (src/player/travel.js).
 // Время обязательно сохраняется вместе с игрой (src/player/saves.js: gameMinutes).
 //
@@ -11,7 +11,7 @@
 //   daylight(min)           — освещенность 0 (глубокая ночь) .. 1 (день)
 //   advanceGameTime(min)    — потратить время (перемещение по карте)
 
-const CLOCK_DEFAULTS = { gameStartDate: '2043-09-18', startTime: '09:00', minutesPerSecond: 1 };
+const CLOCK_DEFAULTS = { gameStartDate: '2043-09-18', startTime: '09:00', minutesPerSecond: 1 / 60 };
 let clockConfig = { ...CLOCK_DEFAULTS };
 let gameMinutes = 0;
 
@@ -51,11 +51,19 @@ const formatGameDate = (min = gameMinutes) =>
 const formatGameDateShort = (min = gameMinutes) =>
   gameDateTime(min).toLocaleDateString('ru-RU', { timeZone: 'UTC', day: 'numeric', month: 'long', year: 'numeric' });
 
+// «18.09.2043 11:24:54» — строка часов вверху экрана
+function formatGameClock(min = gameMinutes) {
+  const d = gameDateTime(min);
+  const p = (n) => String(n).padStart(2, '0');
+  return p(d.getUTCDate()) + '.' + p(d.getUTCMonth() + 1) + '.' + d.getUTCFullYear() + ' ' + p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()) + ':' + p(d.getUTCSeconds());
+}
+
 const formatGameTime = (min = gameMinutes) =>
   gameDateTime(min).toLocaleTimeString('ru-RU', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' });
 
 // «Сколько ушло»: 95 → «1 ч 35 мин»
 function formatDuration(minutes) {
+  if (minutes < 1) return Math.max(1, Math.round(minutes * 60)) + ' с';
   const m = Math.max(1, Math.round(minutes));
   if (m < 60) return m + ' мин';
   return Math.floor(m / 60) + ' ч' + (m % 60 ? ' ' + (m % 60) + ' мин' : '');
@@ -85,15 +93,11 @@ const clockIconEl = document.getElementById('clockIcon');
 let clockShown = '';
 function updateClock(dt) {
   gameMinutes += dt * clockConfig.minutesPerSecond;
-  const text = formatGameDate() + '|' + formatGameTime();
+  // Одна строка «18.09.2043 11:24:54»: без погоды и значка солнца, секунды идут как в жизни
+  const text = formatGameClock();
   if (text === clockShown) return;
   clockShown = text;
-  const [date, time] = text.split('|');
-  clockDateEl.textContent = date.charAt(0).toUpperCase() + date.slice(1);
-  clockTimeEl.textContent = time;
-  const day = daylight() > 0.5;
-  if (clockIconEl.dataset.icon !== (day ? 'sun' : 'moon')) {
-    clockIconEl.dataset.icon = day ? 'sun' : 'moon';
-    clockIconEl.replaceChildren(pixelIcon(day ? 'sun' : 'moon'));
-  }
+  clockTimeEl.textContent = text;
+  clockDateEl.style.display = 'none';
+  clockIconEl.style.display = 'none';
 }

@@ -83,7 +83,8 @@ updateMouseHint();
 
 function onFullscreenChange() {
   isFullscreen = Boolean(getFullscreenElement());
-  fullscreenBtn.textContent = isFullscreen ? '✕ Выйти из полного экрана' : '⛶ На весь экран';
+  fullscreenBtn.textContent = isFullscreen ? '✕' : '⛶';
+  fullscreenBtn.title = isFullscreen ? 'Выйти из полного экрана' : 'На весь экран';
 }
 document.addEventListener('fullscreenchange', onFullscreenChange);
 document.addEventListener('webkitfullscreenchange', onFullscreenChange);

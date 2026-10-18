@@ -149,26 +149,16 @@ document.body.appendChild(hoverPanel);
 const hoverStyle = document.createElement('style');
 hoverStyle.textContent = `
   #infoPanel {
-    position: fixed; right: 10px; top: 480px; /* top ставит placeHoverPanel: сразу под подсказками */ width: 300px; box-sizing: border-box; z-index: 15;
-    padding: 10px 12px 12px; pointer-events: none;
-    font: 14px/1.35 'Courier New', ui-monospace, monospace; color: #3cff7a;
-    text-shadow: 0 0 6px rgba(60, 255, 122, 0.55);
-    background:
-      repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 3px),
-      radial-gradient(ellipse at center, rgba(10, 46, 22, 0.92), rgba(3, 18, 8, 0.94));
-    border: 2px solid #2bd463; border-radius: 6px;
-    box-shadow: 0 0 12px rgba(43, 212, 99, 0.35), inset 0 0 18px rgba(43, 212, 99, 0.18);
+    position: fixed; right: 10px; bottom: 76px; width: 230px; box-sizing: border-box; z-index: 15;
+    padding: 7px 10px 8px; pointer-events: none; display: none;
+    font: 12px/1.35 sans-serif; color: #f1f3f5;
+    background: rgba(12, 16, 22, 0.78); border: 1px solid rgba(255, 255, 255, 0.28); border-radius: 8px;
   }
-  #infoPanel .ipTop {
-    display: flex; justify-content: space-between; text-transform: uppercase; letter-spacing: 2px;
-    font-size: 11px; opacity: 0.8; border-bottom: 1px solid rgba(60, 255, 122, 0.45);
-    padding-bottom: 4px; margin-bottom: 6px;
-  }
-  #infoPanel #ipName { font-size: 17px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
-  #infoPanel #ipDesc { margin-top: 4px; opacity: 0.9; }
-  #infoPanel.empty #ipName { font-size: 13px; font-weight: normal; opacity: 0.55; text-transform: none; }
-  #infoPanel .ipBlink { animation: ipBlink 1s steps(1) infinite; }
-  @keyframes ipBlink { 50% { opacity: 0; } }
+  #infoPanel.on { display: block; }
+  #infoPanel .ipTop { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.55; margin-bottom: 2px; }
+  #infoPanel .ipBlink { display: none; }
+  #infoPanel #ipName { font-size: 14px; font-weight: bold; }
+  #infoPanel #ipDesc { margin-top: 2px; opacity: 0.85; }
 `;
 document.head.appendChild(hoverStyle);
 const ipKind = hoverPanel.querySelector('#ipKind');
@@ -177,15 +167,12 @@ const ipDesc = hoverPanel.querySelector('#ipDesc');
 
 // Панель стоит под колонкой справа (миникарта, подсказки #hud), сколько бы строк там ни было
 const hoverHud = document.getElementById('hud');
-function placeHoverPanel() {
-  const below = hoverHud ? hoverHud.getBoundingClientRect().bottom : 470;
-  hoverPanel.style.top = Math.round(below + 10) + 'px';
-}
+function placeHoverPanel() {}
 
 function showHoverInfo(info) {
-  hoverPanel.classList.toggle('empty', !info);
-  ipKind.textContent = info ? info.kind || 'Объект' : 'Сканер';
-  ipName.textContent = info ? info.name : (touchUI ? 'Коснитесь объекта' : 'Наведите курсор на объект');
+  hoverPanel.classList.toggle('on', !!info); // панель видна, только пока курсор наведен на объект
+  ipKind.textContent = info ? info.kind || 'Объект' : '';
+  ipName.textContent = info ? info.name : '';
   ipDesc.textContent = info ? info.desc || '' : '';
 }
 showHoverInfo(null);

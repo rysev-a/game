@@ -67,6 +67,11 @@ function addInteriorDoor(def, { outside, door, enterLabel, exitLabel, object }) 
   });
   addInteractable({
     priority: 1,
+    // Клик по выходу изнутри: идем полсекунды и выходим (src/player/click-move.js)
+    clickPoint: () => {
+      const ci = currentInterior();
+      return ci && ci.def === def && ci.floor === 0 ? { x: door.x, z: def.floorZ[0] + door.z, r: 2.4 } : null;
+    },
     near: () => {
       const ci = currentInterior();
       return (
@@ -91,6 +96,10 @@ function addInteriorStairs(def, stairs) {
   for (const st of stairs) {
     addInteractable({
       priority: 1,
+      clickPoint: () => {
+        const ci = currentInterior();
+        return ci && ci.def === def ? { x: st.x, z: def.floorZ[ci.floor] + st.z, r: 2.4 } : null;
+      },
       near: () => here(st),
       prompt: () => (currentInterior().floor === 0 ? 'E — подняться на 2 этаж' : 'E — спуститься на 1 этаж'),
       act: () => {

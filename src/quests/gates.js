@@ -7,6 +7,8 @@
 //   здоровье и эликсир — прибор восстановления тканей (вещь regen): без него полос нет и любая рана смертельна
 //   телепорт по карте — телепорт (вещь artifact): без него перемещения по карте нет
 //   ключи            — лежат в нижней ячейке; машину открывают, применив ключи к машине (флаг carOpen)
+//   ячейки оружия    — пока оружия нет, внизу видны только занятые ячейки (ключи); все восемь появляются с первым оружием
+//   подсказки        — постоянных подсказок про управление нет вовсе; подсказки у предметов («E — взять…») появляются после первого квеста
 //
 // Все условия — данные сюжета (вещи и флаги questGame.state), здесь только то, что требует кода игры (на всех страницах).
 // Смерть без прибора: с браслетом загружается последнее сохранение, без него история начинается заново (первые два квеста).
@@ -26,6 +28,10 @@ const questUnlocked = {
     body.noNav #minimapWrap, body.noNav #mmInfo { display: none !important; }
     body.noInv #inventory, body.noInv #equipPanel { display: none !important; }
     body.noVitals #equipHud .stat { display: none !important; }
+    body.noWeapons #equipHud .slot.empty { display: none !important; }
+    body.emptyHud #equipHud { display: none !important; }
+    body.noPrompt #prompt { display: none !important; }
+    #mouseHint, #hud { display: none !important; }
   `;
   document.head.appendChild(css);
 
@@ -33,6 +39,9 @@ const questUnlocked = {
     document.body.classList.toggle('noNav', !questUnlocked.nav());
     document.body.classList.toggle('noInv', !questUnlocked.inventory());
     document.body.classList.toggle('noVitals', !questUnlocked.vitals());
+    document.body.classList.toggle('noWeapons', !(weaponSlotIds().length || inventory.items.some((id) => isWeapon(id))));
+    document.body.classList.toggle('noPrompt', g.isActive('1.03'));
+    document.body.classList.toggle('emptyHud', !questUnlocked.vitals() && heroEquip.weapons.every((id) => !id)); // внизу нечего показывать
   }
   setInterval(sync, 250);
   sync();
@@ -63,7 +72,6 @@ const questUnlocked = {
         takeFromGrid(id);
         heroEquip.weapons[i] = id;
         renderEquipHud();
-        showToast('Ключи лежат в нижней ячейке ' + (i + 1) + ': нажмите ' + (i + 1) + ' и кликните по машине', 5000);
       }
       return;
     }

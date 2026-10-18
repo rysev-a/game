@@ -189,7 +189,7 @@
   }
 
   const fmtTimer = (left) => {
-    const sec = Math.ceil(left / ((typeof clockConfig !== 'undefined' && clockConfig.minutesPerSecond) || 1));
+    const sec = Math.ceil(left);
     return String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0');
   };
 

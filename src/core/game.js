@@ -39,6 +39,7 @@
     messages: [],
     calls: [], // история звонков: { id, from, at, lines: [{ who, text, me }] } — «прослушать» показывает текст как диалог
     tracked: null,
+    storyClock: 0, // секунды таймеров квестов: идут по реальному времени, пока игра не на паузе (игровые часы идут как в жизни и таймерами не меряются)
     weatherMode: 'gloom', // погода сюжета: gloom — хмуро (до прибора), storm — ужасный ливень, sun — солнце, auto — солнце и редкие дожди, rain — призванный ливень, fog — туман
     fuelEconomy: 1, // во сколько раз машина героя тратит бензин медленнее (настроили у Рустама)
     playerCar: null, // вид машины, которую герою подарили вместо своей (id из VEHICLE_KINDS): она встает на место при загрузке
@@ -215,6 +216,18 @@
     // (погоня: не успели — вернули на старт и дали еще попытку). Предупреждения warn: { '60%': [действия] } — когда прошло столько времени.
     // В разговоре, журнале, головоломке и меню время таймера стоит (host.paused).
     let timerNow = null;
+    // Часы таймеров: если у хоста есть секунды (host.seconds — реальное время), считаем ими, и время игры (оно идет как в жизни) таймерам не мешает;
+    // иначе (тесты) — игровые минуты, где «минута» и «секунда» одно и то же
+    let lastSeconds = null;
+    function timerClock() {
+      if (!host.seconds) return game.now();
+      const t = host.seconds();
+      const dt = lastSeconds === null ? 0 : Math.min(0.5, Math.max(0, t - lastSeconds));
+      lastSeconds = t;
+      if (!(host.paused && host.paused())) game.state.storyClock += dt;
+      return game.state.storyClock;
+    }
+    const clockNow = () => (host.seconds ? game.state.storyClock : game.now());
     function timerList() {
       const out = [];
       for (const q of Object.values(registry.quests)) {
@@ -228,7 +241,7 @@
       return out;
     }
     function timers() {
-      const now = game.now();
+      const now = timerClock();
       const dt = timerNow === null ? 0 : now - timerNow;
       timerNow = now;
       const paused = host.paused && host.paused();
@@ -269,7 +282,7 @@
       list.sort((a, b) => (b.quest === game.state.tracked) - (a.quest === game.state.tracked));
       for (const { key, def, text } of list) {
         const end = game.state.timers[key];
-        if (end > 0) return { key, left: Math.max(0, end - game.now()), total: Core.parseDuration(def.limit), text };
+        if (end > 0) return { key, left: Math.max(0, end - clockNow()), total: Core.parseDuration(def.limit), text };
       }
       return null;
     };

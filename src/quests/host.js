@@ -87,6 +87,7 @@ function questFuelToRiver() {
 
 const questHost = {
   now: () => gameMinutes,
+  seconds: () => performance.now() / 1000, // таймеры квестов считают реальные секунды (src/core/game.js)
   hour: () => gameHour(),
   itemCount: (id) => (hasItem(id) ? 1 : 0),
   giveItem: (id) => addItem(id),
