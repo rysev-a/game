@@ -71,7 +71,7 @@
     for (const s of sidewalks) add({ x1: s.x1, z1: s.z1, x2: s.x2, z2: s.z2, hw: 2, cost: 1.15 });
   }
 
-  function blockedAt(x, z) {
+  function blockedAt(x, z, r = R) {
     if (!insideWorldCircle(x, z, 3)) return true;
     if (obstacleShapes.length !== obsCount) indexObstacles();
     const bucket = obsIndex.get(bucketKey(Math.floor(x / BUCKET), Math.floor(z / BUCKET)));
@@ -79,17 +79,17 @@
       for (const s of bucket) {
         const lu = (x - s.x) * s.ux + (z - s.z) * s.uz;
         const lv = (x - s.x) * s.vx + (z - s.z) * s.vz;
-        if (Math.abs(lu) < s.hu + R && Math.abs(lv) < s.hv + R) return true;
+        if (Math.abs(lu) < s.hu + r && Math.abs(lv) < s.hv + r) return true;
       }
     }
     for (const t of nearbyTrees(x, z)) {
-      if (Math.hypot(x - t.x, z - t.z) < R + 0.4 * t.s) return true;
+      if (Math.hypot(x - t.x, z - t.z) < r + 0.4 * t.s) return true;
     }
     return false;
   }
 
   // Цена шага по клетке: дорога и тротуар — 1, остальное — дороже (трава, лес)
-  const OFFROAD = 2.6;
+  const OFFROAD = 5; // вне дороги путь в разы дороже: идем по дорогам, улицам, тротуарам и тропинкам, а траву и лес пересекаем только когда иначе нельзя
   function stepCost(x, z) {
     if (mapRoads.length + sidewalks.length !== roadCount) indexRoads();
     const bucket = roadIndex.get(bucketKey(Math.floor(x / BUCKET), Math.floor(z / BUCKET)));
@@ -106,6 +106,9 @@
   }
 
   // ---------- Поиск пути A* (кусками по кадрам) ----------
+  // Путь не самый короткий, зато простой и предсказуемый: идет там, где можно пройти пешком (не через здания, воду, кусты и деревья),
+  // держится дорог и тропинок (трава и лес в несколько раз дороже), не жмется к стенам (рядом с препятствием штраф) и не виляет
+  // (за каждый поворот штраф, поэтому длинные прямые участки предпочтительнее зигзагов). Состояние поиска — клетка и направление.
   class Heap {
     constructor() {
       this.a = [];
@@ -148,12 +151,16 @@
 
   const OFF = 700;
   const cellKey = (i, j) => (i + OFF) * 2000 + (j + OFF);
+  const stateKey = (i, j, d) => cellKey(i, j) * 9 + d; // d: 0..7 направление, 8 — старт
   const cellCenter = (i, j) => ({ x: (i + 0.5) * CELL, z: (j + 0.5) * CELL });
-  const NEIGHBOURS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+  const NEIGHBOURS = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]]; // по кругу: соседние номера — поворот на 45°
+  const TURN_COST = [0, 1, 3, 6, 9]; // штраф за поворот на 0, 45, 90, 135, 180°: чем резче, тем дороже
+  const NEAR_WALL = 1.8; // ближе этого к препятствию — штраф
+  const WALL_COST = 1.2;
 
   function startJob(from, to, goalR) {
     const job = {
-      to, goalR, open: new Heap(), cost: new Map(), came: new Map(), blocked: new Map(),
+      to, goalR, open: new Heap(), cost: new Map(), came: new Map(), blocked: new Map(), tight: new Map(),
       expansions: 0, done: false, path: null, best: null, bestD: Infinity,
     };
     const isBlocked = (i, j) => {
@@ -166,17 +173,28 @@
       }
       return b;
     };
+    const isTight = (i, j) => {
+      const k = cellKey(i, j);
+      let b = job.tight.get(k);
+      if (b === undefined) {
+        const c = cellCenter(i, j);
+        b = blockedAt(c.x, c.z, NEAR_WALL);
+        job.tight.set(k, b);
+      }
+      return b;
+    };
     job.isBlocked = isBlocked;
+    job.isTight = isTight;
     // Узкие проходы, которые сетка не видит (бревно через овраг): записи navLinks [{ a, b }] — двусторонние «мостики» между клетками
     job.links = new Map();
     for (const l of globalThis.navLinks || []) {
       const ca = [Math.floor(l.a.x / CELL), Math.floor(l.a.z / CELL)];
       const cb = [Math.floor(l.b.x / CELL), Math.floor(l.b.z / CELL)];
-      const cost = Math.hypot(l.a.x - l.b.x, l.a.z - l.b.z) / 1;
-      for (const [from, to] of [[ca, cb], [cb, ca]]) {
-        const k = cellKey(from[0], from[1]);
+      const cost = Math.hypot(l.a.x - l.b.x, l.a.z - l.b.z);
+      for (const [fr, to2] of [[ca, cb], [cb, ca]]) {
+        const k = cellKey(fr[0], fr[1]);
         if (!job.links.has(k)) job.links.set(k, []);
-        job.links.get(k).push([to[0], to[1], cost]);
+        job.links.get(k).push([to2[0], to2[1], cost]);
       }
     }
     // Старт: ближайшая свободная клетка
@@ -199,22 +217,31 @@
       return job;
     }
     job.start = start;
-    job.cost.set(cellKey(start[0], start[1]), 0);
-    job.open.push(start, 0);
+    job.cost.set(stateKey(start[0], start[1], 8), 0);
+    job.open.push([start[0], start[1], 8], 0);
     return job;
   }
 
   // Шаг поиска: до budget расширений за вызов
   function stepJob(job, budget) {
-    const W = 1.25; // чуть жадный поиск: путь почти кратчайший, а ищется быстрее
+    const W = 1.6 + Math.min(0.8, Math.hypot(job.to.x - job.start[0] * CELL, job.to.z - job.start[1] * CELL) / 2500); // жадный поиск: путь не самый короткий, но находится быстро и ведет прямо к цели; чем дальше цель, тем жаднее
+    const relax = (cur, ni, nj, nd, add) => {
+      const nk = stateKey(ni, nj, nd);
+      const g = job.cost.get(stateKey(cur[0], cur[1], cur[2])) + add;
+      const old = job.cost.get(nk);
+      if (old !== undefined && old <= g) return;
+      job.cost.set(nk, g);
+      job.came.set(nk, stateKey(cur[0], cur[1], cur[2]));
+      const nc = cellCenter(ni, nj);
+      job.open.push([ni, nj, nd], g + (W * Math.hypot(nc.x - job.to.x, nc.z - job.to.z)) / CELL);
+    };
     for (let n = 0; n < budget && !job.done; n++) {
       if (!job.open.size) {
         job.done = true;
         break;
       }
       const cur = job.open.pop();
-      const [ci, cj] = cur;
-      const ck = cellKey(ci, cj);
+      const [ci, cj, cd] = cur;
       const cc = cellCenter(ci, cj);
       const dGoal = Math.hypot(cc.x - job.to.x, cc.z - job.to.z);
       if (dGoal < job.bestD) {
@@ -227,53 +254,74 @@
         job.done = true;
         break;
       }
-      if (++job.expansions > 90000) {
+      if (++job.expansions > 700000) {
         job.done = true;
         break;
       }
-      const gCur = job.cost.get(ck);
-      for (const [di, dj] of NEIGHBOURS) {
+      for (let nd = 0; nd < 8; nd++) {
+        const [di, dj] = NEIGHBOURS[nd];
         const ni = ci + di;
         const nj = cj + dj;
         if (job.isBlocked(ni, nj)) continue;
         if (di && dj && (job.isBlocked(ci + di, cj) || job.isBlocked(ci, cj + dj))) continue; // не режем углы
         const nc = cellCenter(ni, nj);
-        const gNew = gCur + (di && dj ? 1.414 : 1) * stepCost(nc.x, nc.z);
-        const nk = cellKey(ni, nj);
-        const old = job.cost.get(nk);
-        if (old !== undefined && old <= gNew) continue;
-        job.cost.set(nk, gNew);
-        job.came.set(nk, ck);
-        job.open.push([ni, nj], gNew + (W * Math.hypot(nc.x - job.to.x, nc.z - job.to.z)) / CELL);
+        let turn = 0;
+        if (cd !== 8) {
+          const diff = Math.abs(nd - cd);
+          turn = TURN_COST[Math.min(diff, 8 - diff)];
+        }
+        const add = (di && dj ? 1.414 : 1) * stepCost(nc.x, nc.z) + turn + (job.isTight(ni, nj) ? WALL_COST : 0);
+        relax(cur, ni, nj, nd, add);
       }
-      for (const [ni, nj, c] of job.links.get(ck) || []) {
-        const nk = cellKey(ni, nj);
-        const gNew = gCur + c;
-        const old = job.cost.get(nk);
-        if (old !== undefined && old <= gNew) continue;
-        const nc = cellCenter(ni, nj);
-        job.cost.set(nk, gNew);
-        job.came.set(nk, ck);
-        job.open.push([ni, nj], gNew + (W * Math.hypot(nc.x - job.to.x, nc.z - job.to.z)) / CELL);
-      }
+      for (const [ni, nj, c] of job.links.get(cellKey(ci, cj)) || []) relax(cur, ni, nj, 8, c);
     }
     if (job.done && job.best && !job.path) {
       // Путь назад от лучшей клетки (до цели или самой близкой к ней)
       const cells = [];
-      let k = cellKey(job.best[0], job.best[1]);
+      let k = stateKey(job.best[0], job.best[1], job.best[2]);
       let guard = 0;
-      while (k !== undefined && guard++ < 20000) {
-        const i = Math.floor(k / 2000) - OFF;
-        const j = (k % 2000) - OFF;
+      while (k !== undefined && guard++ < 40000) {
+        const ck = Math.floor(k / 9);
+        const i = Math.floor(ck / 2000) - OFF;
+        const j = (ck % 2000) - OFF;
         cells.push(cellCenter(i, j));
         k = job.came.get(k);
       }
       cells.reverse();
-      job.path = smooth(cells);
+      job.path = smooth(simplify(cells, job));
     }
   }
 
-  // Срезаем острые углы сетки (Chaikin, дважды): путь остается у дороги, но не ступенчатый
+  // Упрощение: убираем лишние точки, пока отрезок между ними чист (на расстоянии от препятствий) и не уходит с дороги на траву, если шел по дороге.
+  // Остаются только точки поворотов, поэтому путь — несколько прямых, а не лесенка по клеткам
+  function simplify(cells, job) {
+    if (cells.length < 3) return cells;
+    const classOf = (p) => stepCost(p.x, p.z);
+    const clear = (a, b) => {
+      const len = Math.hypot(b.x - a.x, b.z - a.z);
+      if (len > 80) return false;
+      const ca = Math.min(classOf(a), classOf(b));
+      const n = Math.ceil(len / 1.2);
+      for (let i = 1; i < n; i++) {
+        const x = a.x + ((b.x - a.x) * i) / n;
+        const z = a.z + ((b.z - a.z) * i) / n;
+        if (blockedAt(x, z, 1.1)) return false;
+        if (ca < OFFROAD && classOf({ x, z }) > ca + 0.2) return false; // не срезаем дорогу по траве
+      }
+      return true;
+    };
+    const out = [cells[0]];
+    let i = 0;
+    while (i < cells.length - 1) {
+      let j = cells.length - 1;
+      while (j > i + 1 && !clear(cells[i], cells[j])) j--;
+      out.push(cells[j]);
+      i = j;
+    }
+    return out;
+  }
+
+  // Мягко скругляем углы (один проход Чайкина): путь без острых изломов, но почти по тем же линиям
   function smooth(points) {
     let p = points;
     for (let it = 0; it < 2 && p.length > 2; it++) {
@@ -281,12 +329,20 @@
       for (let i = 0; i < p.length - 1; i++) {
         const a = p[i];
         const b = p[i + 1];
-        q.push({ x: a.x * 0.75 + b.x * 0.25, z: a.z * 0.75 + b.z * 0.25 }, { x: a.x * 0.25 + b.x * 0.75, z: a.z * 0.25 + b.z * 0.75 });
+        q.push({ x: a.x * 0.8 + b.x * 0.2, z: a.z * 0.8 + b.z * 0.2 }, { x: a.x * 0.2 + b.x * 0.8, z: a.z * 0.2 + b.z * 0.8 });
       }
       q.push(p[p.length - 1]);
       p = q;
     }
-    return p;
+    // Точки через ~1,5 юнита: стрелки и линия на карте идут ровно
+    const dense = [p[0]];
+    for (let i = 0; i < p.length - 1; i++) {
+      const a = p[i];
+      const b = p[i + 1];
+      const n = Math.max(1, Math.round(Math.hypot(b.x - a.x, b.z - a.z) / 1.5));
+      for (let k = 1; k <= n; k++) dense.push({ x: a.x + ((b.x - a.x) * k) / n, z: a.z + ((b.z - a.z) * k) / n });
+    }
+    return dense;
   }
 
   // ---------- Цель ----------
