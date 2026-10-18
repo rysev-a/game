@@ -11,10 +11,11 @@
 const gasX = -140; // центр первой заправки по X (двор с кузницей и мастерской у нее: src/quests/places.js)
 const gasPumpZ = -11; // колонки стоят здесь, машина — между ними и дорогой
 const gasPumps = []; // колонки всех заправок: { x, z }
+const gasPumpMeshes = []; // сетки колонок: клик по ним заправляет машину, если она у колонки
 const gasKiosks = []; // двери будок: { x, z, name }
 const gasStations = []; // все заправки: { x, z, rot } (кусты вдоль трассы обходят их, src/world/highway.js)
 const canisterPrice = 60; // цена канистры с бензином
-const pumpInfo = { kind: 'Устройство', name: 'Топливная колонка', desc: 'Подъезжайте, останавливайтесь и жмите E — бак наполнится.' };
+const pumpInfo = { kind: 'Устройство', name: 'Топливная колонка', desc: 'Подъедьте, остановитесь и кликните по колонке (или E) — бак наполнится.' };
 
 function buildGasStation({ x: ox, z: oz, rot = 0, name = 'Заправка', yard = false }) {
   const c = Math.cos(rot);
@@ -68,6 +69,7 @@ function buildGasStation({ x: ox, z: oz, rot = 0, name = 'Заправка', yar
   for (const dx of [-4.5, 4.5]) {
     const pump = put(boxWithEdges(0.9, 1.7, 0.6, 0xd23c3c), dx, 0.85, -11);
     addHoverInfo(pump, pumpInfo);
+    gasPumpMeshes.push(pump);
     addHoverInfo(put(boxWithEdges(0.5, 0.35, 0.05, 0x15202e), dx, 1.3, -11 + 0.32), pumpInfo);
     obstacle(dx, -11, 0.5, 0.35);
     gasPumps.push(toWorld(dx, -11));
@@ -145,6 +147,24 @@ const refuelInteractable = (driving) => ({
 });
 addInteractable(refuelInteractable(true)); // за рулем
 addInteractable(refuelInteractable(false)); // пешком у колонки
+
+// Клик мышью по колонке — то же, что E: если машина стоит у колонки (за рулем или рядом пешком), начинается заправка
+const pumpRay = new THREE.Raycaster();
+renderer.domElement.addEventListener('mousedown', (e) => {
+  if (e.button !== 0 || dialogueOpen || settingsOpen || insideBuilding() || !gasPumpMeshes.length) return;
+  pumpRay.setFromCamera(new THREE.Vector2((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1), camera);
+  const hit = pumpRay.intersectObjects(gasPumpMeshes, true).find((h) => h.object.isMesh && hoverShown(h.object));
+  if (!hit) return;
+  const car = pumpCar();
+  if (!car) {
+    const mine = cars.find((c) => c.isPlayerCar);
+    showToast(mine && carAtPump(mine) ? 'Подойдите к колонке: машина уже рядом' : 'Подъедьте машиной к колонке и остановитесь', 2500);
+  } else if (car.fuel >= 0.995 && !car.refuelling) showToast('Бак уже полный', 1800);
+  else if (!car.refuelling) {
+    car.refuelling = true;
+    showToast('Заправка…', 1500);
+  }
+});
 
 // КАНИСТРЫ. E у двери будки — купить канистру с бензином. Деньги — questGame (счетчик money); в ДЕМО (нет questGame) бесплатно.
 // Канистра идет в багажник машины героя, если она не дальше gasTrunkReach от будки; иначе — в инвентарь (E у машины — залить)
