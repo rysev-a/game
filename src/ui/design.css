@@ -1,0 +1,257 @@
+/* src/ui/design.css
+   ДИЗАЙН-СИСТЕМА ИГРЫ (docs/design-system.md). Один шрифт, три размера текста, один набор цветов, форм и движения на все панели:
+   диалоги, сканер, настройки, телефон, подсказки, часы, кнопки. Значения лежат в переменных :root; те же числа для кода игры —
+   в src/ui/design.js (DESIGN). Новый элемент интерфейса берет переменные отсюда, а не свои числа. */
+
+:root {
+  /* Шрифт: везде один */
+  --font: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* Размеры текста: Header 1, Header 2, обычный (regular), мелкий и крупные цифры (спидометр) */
+  --fs-h1: 20px;
+  --lh-h1: 1.25;
+  --fw-h1: 700;
+  --fs-h2: 16px;
+  --lh-h2: 1.3;
+  --fw-h2: 600;
+  --fs-text: 13px;
+  --lh-text: 1.5;
+  --fw-text: 400;
+  --fs-small: 11px;
+  --lh-small: 1.4;
+  --fs-display: 26px;
+
+  /* Отступы: шаг 4 */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+
+  /* Формы */
+  --r-sm: 4px;
+  --r: 8px;
+  --r-lg: 12px;
+  --bw: 1px;
+
+  /* Цвета */
+  --c-bg: rgba(12, 16, 22, 0.86); /* панель */
+  --c-bg-solid: #0c1016;
+  --c-bg-item: rgba(255, 255, 255, 0.07); /* строка, ячейка, вариант ответа */
+  --c-bg-hover: rgba(143, 208, 255, 0.22);
+  --c-border: rgba(255, 255, 255, 0.24);
+  --c-text: #f1f3f5;
+  --c-dim: rgba(241, 243, 245, 0.62);
+  --c-accent: #8fd0ff; /* заголовки, выбранное, говорящий */
+  --c-warm: #ffe27a; /* то, с чем можно взаимодействовать: двери, вещи, ромб цели */
+  --c-path: #37ff7a; /* направление к цели */
+  --c-car: #4ff0e0; /* ваша машина */
+  --c-ok: #3fa35b;
+  --c-danger: #ff6b5b;
+
+  /* Тень и движение */
+  --shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
+  --dur-fast: 120ms;
+  --dur: 220ms;
+  --dur-slow: 480ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --pulse: 2.4s; /* период мягкого пульса: свечение, кольца, стрелки */
+}
+
+body {
+  font: var(--fw-text) var(--fs-text) / var(--lh-text) var(--font);
+  color: var(--c-text);
+}
+button,
+input,
+select,
+textarea {
+  font-family: var(--font);
+}
+
+/* ---------- Текст ---------- */
+.ui-h1 { font-size: var(--fs-h1); line-height: var(--lh-h1); font-weight: var(--fw-h1); }
+.ui-h2 { font-size: var(--fs-h2); line-height: var(--lh-h2); font-weight: var(--fw-h2); color: var(--c-accent); }
+.ui-text { font-size: var(--fs-text); line-height: var(--lh-text); font-weight: var(--fw-text); }
+.ui-small { font-size: var(--fs-small); line-height: var(--lh-small); color: var(--c-dim); }
+
+/* ---------- Панель: один вид для диалога, сканера, настроек, подсказок, часов и кнопок ---------- */
+body .ui-panel,
+body #dialogue,
+body #infoPanel,
+body #settingsMenu,
+body #toast,
+body #clock,
+body #prompt,
+body #fuel,
+body #speedo,
+body #infFuel,
+body #fullscreenBtn,
+body #settingsBtn,
+body #questTimer,
+body #phoneBtn,
+body #equipHud .slot,
+body .invCell {
+  background: var(--c-bg);
+  border: var(--bw) solid var(--c-border);
+  border-radius: var(--r);
+  color: var(--c-text);
+  font-family: var(--font);
+  box-shadow: var(--shadow);
+}
+
+/* Кнопки и ячейки: одинаково реагируют на наведение */
+body #fullscreenBtn,
+body #settingsBtn,
+body #infFuel,
+body #phoneBtn,
+body #equipHud .slot,
+body .invCell,
+body #dialogue .option,
+body #settingsMenu .tabs button {
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
+}
+body #fullscreenBtn:hover,
+body #settingsBtn:hover,
+body #infFuel:hover,
+body #phoneBtn:hover {
+  background: var(--c-bg-hover);
+  border-color: var(--c-accent);
+}
+
+/* ---------- Диалог ---------- */
+body #dialogue {
+  padding: var(--sp-4) var(--sp-5);
+  border-radius: var(--r-lg);
+}
+body #dialogue .speaker {
+  font-size: var(--fs-h2);
+  line-height: var(--lh-h2);
+  font-weight: var(--fw-h2);
+  color: var(--c-accent);
+  margin-bottom: var(--sp-2);
+}
+body #dialogue .text {
+  font-size: var(--fs-text);
+  line-height: var(--lh-text);
+  margin-bottom: var(--sp-3);
+}
+body #dialogue .option {
+  margin-top: var(--sp-1);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r);
+  background: var(--c-bg-item);
+}
+body #dialogue .option:hover {
+  background: var(--c-bg-hover);
+}
+body #dialogue .hint {
+  font-size: var(--fs-small);
+  color: var(--c-dim);
+  opacity: 1;
+}
+
+/* ---------- Сканер («что это») ---------- */
+body #infoPanel {
+  padding: var(--sp-2) var(--sp-3);
+}
+body #infoPanel .ipTop {
+  font-size: var(--fs-small);
+  color: var(--c-dim);
+  opacity: 1;
+  letter-spacing: 0.08em;
+}
+body #infoPanel #ipName {
+  font-size: var(--fs-h2);
+  line-height: var(--lh-h2);
+  font-weight: var(--fw-h2);
+  color: var(--c-accent);
+}
+body #infoPanel #ipDesc {
+  font-size: var(--fs-text);
+  line-height: var(--lh-text);
+  color: var(--c-text);
+}
+
+/* ---------- Настройки ---------- */
+body #settingsMenu {
+  padding: var(--sp-4);
+  border-radius: var(--r-lg);
+}
+body #settingsMenu .title {
+  font-size: var(--fs-h1);
+  line-height: var(--lh-h1);
+  font-weight: var(--fw-h1);
+  margin-bottom: var(--sp-3);
+}
+body #settingsMenu .tabs button {
+  border-radius: var(--r);
+  border: var(--bw) solid var(--c-border);
+  background: var(--c-bg-item);
+  color: var(--c-text);
+  font-size: var(--fs-text);
+}
+body #settingsMenu .tabs button.on {
+  background: var(--c-bg-hover);
+  border-color: var(--c-accent);
+  color: var(--c-accent);
+}
+body #settingsMenu .note,
+body #settingsMenu .hint {
+  font-size: var(--fs-small);
+  color: var(--c-dim);
+  opacity: 1;
+}
+body #settingsMenu .sub {
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-h2);
+  color: var(--c-accent);
+}
+body #settingsMenu select,
+body #settingsMenu kbd {
+  border-radius: var(--r-sm);
+  border: var(--bw) solid var(--c-border);
+  background: var(--c-bg-item);
+  color: var(--c-text);
+  font-family: var(--font);
+}
+
+/* ---------- Подсказки, часы, таймер ---------- */
+body #toast {
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--r);
+  font-size: var(--fs-text);
+}
+body #clock {
+  padding: var(--sp-1) var(--sp-3);
+  gap: 0;
+}
+body #clockTime {
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-h2);
+  letter-spacing: 0.02em;
+}
+body #questTimer {
+  font-size: var(--fs-h1);
+  font-weight: var(--fw-h1);
+}
+body #questTimer.low {
+  background: rgba(160, 20, 20, 0.85);
+  border-color: var(--c-danger);
+}
+
+/* ---------- Движение: общие пульс и покачивание ---------- */
+@keyframes ui-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+@keyframes ui-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+.ui-pulse { animation: ui-pulse var(--pulse) ease-in-out infinite; }
+.ui-bob { animation: ui-bob var(--pulse) ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-pulse, .ui-bob { animation: none; }
+}

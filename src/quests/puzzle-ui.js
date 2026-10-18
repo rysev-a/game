@@ -7,35 +7,35 @@
   const css = document.createElement('style');
   css.textContent = `
     #puzzle { position: absolute; inset: 0; z-index: 15; display: none; align-items: center; justify-content: center;
-      background: rgba(0,0,0,0.65); font-family: sans-serif; color: #fff; }
+      background: rgba(0,0,0,0.65); font-family: var(--font); color: #fff; }
     #puzzle.on { display: flex; }
     #puzzle .panel { width: min(640px, 94vw); box-sizing: border-box; padding: 16px 18px; border-radius: 10px;
       border: 1px solid rgba(255,255,255,0.4); background: rgba(10,14,20,0.97); }
     #puzzle .head { display: flex; align-items: center; margin-bottom: 10px; }
-    #puzzle h2 { margin: 0; font-size: 20px; color: #8fd0ff; flex: 1; }
-    #puzzle .x { cursor: pointer; padding: 2px 10px; border-radius: 6px; font-size: 18px; }
+    #puzzle h2 { margin: 0; font-size: var(--fs-h1); color: #8fd0ff; flex: 1; }
+    #puzzle .x { cursor: pointer; padding: 2px 10px; border-radius: 6px; font-size: var(--fs-h2); }
     #puzzle .x:hover { background: rgba(255,255,255,0.15); }
     #puzzle .pot { min-height: 74px; padding: 8px; border-radius: 8px; background: rgba(160,92,240,0.14);
       border: 1px dashed rgba(160,92,240,0.6); display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
-    #puzzle .chip { padding: 5px 9px; border-radius: 14px; background: #7a3fb0; font-size: 14px; }
-    #puzzle .slot { padding: 5px 9px; border-radius: 14px; border: 1px dashed rgba(255,255,255,0.25); font-size: 14px; opacity: 0.5; }
+    #puzzle .chip { padding: 5px 9px; border-radius: 14px; background: #7a3fb0; font-size: var(--fs-text); }
+    #puzzle .slot { padding: 5px 9px; border-radius: 14px; border: 1px dashed rgba(255,255,255,0.25); font-size: var(--fs-text); opacity: 0.5; }
     #puzzle .pieces { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin: 12px 0; }
     #puzzle button.piece { padding: 10px 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3);
-      background: rgba(255,255,255,0.09); color: #fff; font-size: 15px; cursor: pointer; }
+      background: rgba(255,255,255,0.09); color: #fff; font-size: var(--fs-h2); cursor: pointer; }
     #puzzle button.piece:hover { background: rgba(143,208,255,0.3); }
     #puzzle button.piece.gone { visibility: hidden; }
-    #puzzle .msg { min-height: 22px; font-size: 14px; }
+    #puzzle .msg { min-height: 22px; font-size: var(--fs-text); }
     #puzzle .msg.bad { color: #ff9a8a; }
     #puzzle .msg.good { color: #7fd48a; }
-    #puzzle .foot { display: flex; align-items: center; gap: 12px; font-size: 13px; opacity: 0.9; }
+    #puzzle .foot { display: flex; align-items: center; gap: 12px; font-size: var(--fs-text); opacity: 0.9; }
     #puzzle .hintBtn { cursor: pointer; padding: 3px 10px; border-radius: 6px; background: rgba(255,255,255,0.12); }
-    #puzzle .hint { margin-top: 8px; font-size: 13px; line-height: 1.4; opacity: 0.85; display: none; }
+    #puzzle .hint { margin-top: 8px; font-size: var(--fs-text); line-height: 1.4; opacity: 0.85; display: none; }
     #puzzle .hint.on { display: block; }
     #puzzle .track { position: relative; height: 38px; margin: 6px 0 14px; border-radius: 19px; background: rgba(255,255,255,0.1); }
     #puzzle .zone { position: absolute; top: 0; bottom: 0; border-radius: 19px; background: rgba(127,212,138,0.35); border: 1px solid #7fd48a; }
     #puzzle .runner { position: absolute; top: 3px; width: 8px; height: 32px; margin-left: -4px; border-radius: 4px; background: #ffd84a; }
-    #puzzle button.hit { grid-column: 1 / -1; padding: 14px; font-size: 17px; }
-    #puzzle .dots { text-align: center; font-size: 20px; letter-spacing: 4px; margin: 6px 0; }
+    #puzzle button.hit { grid-column: 1 / -1; padding: 14px; font-size: var(--fs-h2); }
+    #puzzle .dots { text-align: center; font-size: var(--fs-h1); letter-spacing: 4px; margin: 6px 0; }
     #puzzle .shake { animation: puzzleShake 0.25s; }
     @keyframes puzzleShake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
   `;

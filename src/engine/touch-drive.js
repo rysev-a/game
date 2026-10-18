@@ -34,31 +34,31 @@ if (touchUI) {
       flex-direction: column; align-items: flex-start; gap: 6px; }
     #mDrive .row { display: flex; align-items: flex-end; gap: 10px; }
     #mDrive .speed { padding: 2px 10px; border-radius: 8px; background: rgba(10, 14, 20, 0.6); color: white;
-      font: bold 22px sans-serif; font-variant-numeric: tabular-nums; }
-    #mDrive .speed small { font-size: 11px; font-weight: normal; opacity: 0.7; margin-left: 4px; }
+      font: bold var(--fs-h1) var(--font); font-variant-numeric: tabular-nums; }
+    #mDrive .speed small { font-size: var(--fs-small); font-weight: normal; opacity: 0.7; margin-left: 4px; }
     #mDrive .box { display: flex; flex-direction: column; gap: 4px; padding: 4px; border-radius: 10px;
       background: rgba(10, 14, 20, 0.55); border: 1px solid rgba(255, 255, 255, 0.3); }
     #mDrive .box button { width: 34px; height: 30px; padding: 0; border-radius: 6px; border: 1px solid transparent;
-      background: none; color: rgba(255, 255, 255, 0.6); font: bold 15px sans-serif; }
+      background: none; color: rgba(255, 255, 255, 0.6); font: bold var(--fs-h2) var(--font); }
     #mDrive .box button.on { color: #111; background: #ffd84a; }
     #mDrive .pedal { box-sizing: border-box; border-radius: 10px; border: 2px solid rgba(255, 255, 255, 0.45);
       background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.16) 0 4px, rgba(10, 14, 20, 0.55) 4px 11px);
-      color: white; font: bold 12px sans-serif; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 6px; }
+      color: white; font: bold var(--fs-text) var(--font); display: flex; align-items: flex-end; justify-content: center; padding-bottom: 6px; }
     #mDrive .pedal.brake { width: 66px; height: 74px; }
     #mDrive .pedal.gas { width: 50px; height: 112px; }
-    #mDrive .pedal.hand { width: 46px; height: 56px; border-radius: 23px 23px 10px 10px; font-size: 11px; }
+    #mDrive .pedal.hand { width: 46px; height: 56px; border-radius: 23px 23px 10px 10px; font-size: var(--fs-small); }
     #mDrive .pedal.down { border-color: #ffd84a; background: repeating-linear-gradient(0deg, rgba(255, 216, 74, 0.5) 0 4px, rgba(60, 50, 10, 0.6) 4px 11px); }
     #mGearsM { right: max(14px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom));
       flex-direction: column; align-items: center; gap: 6px; }
     #mGearsM button { width: 54px; height: 46px; padding: 0; border-radius: 10px; border: 2px solid rgba(255, 255, 255, 0.45);
-      background: rgba(10, 14, 20, 0.6); color: white; font: bold 20px sans-serif; }
+      background: rgba(10, 14, 20, 0.6); color: white; font: bold var(--fs-h1) var(--font); }
     #mGearsM button.down { background: rgba(255, 216, 74, 0.45); border-color: #ffd84a; }
     #mGearsM .n { min-width: 46px; text-align: center; padding: 4px 0; border-radius: 8px; color: #ffd84a;
-      background: rgba(10, 14, 20, 0.7); font: bold 26px sans-serif; }
+      background: rgba(10, 14, 20, 0.7); font: bold var(--fs-display) var(--font); }
     #mSteer { right: max(14px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); gap: 10px; }
     body.touch.driving.manual #mSteer { right: calc(max(14px, env(safe-area-inset-right)) + 70px); }
     #mSteer button { width: 64px; height: 56px; padding: 0; border-radius: 12px; border: 2px solid rgba(255, 255, 255, 0.45);
-      background: rgba(10, 14, 20, 0.6); color: white; font: bold 24px sans-serif; }
+      background: rgba(10, 14, 20, 0.6); color: white; font: bold var(--fs-h1) var(--font); }
     #mSteer button.down { background: rgba(255, 216, 74, 0.45); border-color: #ffd84a; }
   `;
   document.head.appendChild(style);

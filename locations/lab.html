@@ -5,6 +5,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <title>Лаборатория</title>
+    <!-- Дизайн-система (docs/design-system.md): шрифт IBM Plex Mono, размеры, цвета и панели в src/ui/design.css -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="src/ui/design.css" />
     <style>
       body {
         margin: 0;
@@ -24,8 +29,8 @@
         color: white;
         border: 1px solid rgba(255, 255, 255, 0.4);
         border-radius: 6px;
-        font-family: sans-serif;
-        font-size: 14px;
+        font-family: var(--font);
+        font-size: var(--fs-text);
         cursor: pointer;
       }
       #fullscreenBtn:hover {
@@ -37,7 +42,7 @@
         left: 50%;
         transform: translateX(-50%);
         color: white;
-        font-family: sans-serif;
+        font-family: var(--font);
         background: rgba(0, 0, 0, 0.7);
         padding: 8px 12px;
         border-radius: 6px;
@@ -191,7 +196,7 @@
         border-radius: 10px;
         background: rgba(10, 14, 20, 0.94);
         color: white;
-        font-family: sans-serif;
+        font-family: var(--font);
       }
       #dialogue .speaker {
         font-weight: bold;
@@ -199,7 +204,7 @@
         margin-bottom: 6px;
       }
       #dialogue .text {
-        font-size: 16px;
+        font-size: var(--fs-h2);
         line-height: 1.45;
         margin-bottom: 10px;
       }
@@ -214,7 +219,7 @@
         background: rgba(143, 208, 255, 0.28);
       }
       #dialogue .hint {
-        font-size: 12px;
+        font-size: var(--fs-text);
         opacity: 0.65;
       }
       #settingsBtn {
@@ -228,7 +233,7 @@
         border-radius: 8px;
         background: rgba(0, 0, 0, 0.6);
         color: white;
-        font-size: 28px;
+        font-size: var(--fs-display);
         line-height: 1;
         cursor: pointer;
       }
@@ -248,17 +253,17 @@
         border-radius: 10px;
         background: rgba(15, 18, 24, 0.92);
         color: white;
-        font-family: sans-serif;
+        font-family: var(--font);
       }
       #settingsMenu .title {
-        font-size: 16px;
+        font-size: var(--fs-h2);
         font-weight: bold;
         margin-bottom: 12px;
       }
       #settingsMenu .row {
         display: flex;
         justify-content: space-between;
-        font-size: 14px;
+        font-size: var(--fs-text);
         margin-bottom: 6px;
       }
       #settingsMenu input[type='range'] {
@@ -270,7 +275,7 @@
         align-items: center;
         gap: 8px;
         margin-top: 12px;
-        font-size: 14px;
+        font-size: var(--fs-text);
         cursor: pointer;
       }
       #settingsMenu .check input {
@@ -278,7 +283,7 @@
       }
       #settingsMenu .hint {
         margin-top: 10px;
-        font-size: 11px;
+        font-size: var(--fs-small);
         opacity: 0.6;
       }
       #fuel {
@@ -290,8 +295,8 @@
         align-items: center;
         gap: 8px;
         color: white;
-        font-family: sans-serif;
-        font-size: 18px;
+        font-family: var(--font);
+        font-size: var(--fs-h2);
         background: rgba(0, 0, 0, 0.6);
         padding: 8px 12px;
         border-radius: 8px;
@@ -313,8 +318,8 @@
         align-items: baseline;
         gap: 6px;
         color: white;
-        font-family: sans-serif;
-        font-size: 14px;
+        font-family: var(--font);
+        font-size: var(--fs-text);
         background: rgba(0, 0, 0, 0.6);
         padding: 4px 12px;
         border-radius: 8px;
@@ -328,8 +333,8 @@
         display: none;
         padding: 6px 10px;
         color: white;
-        font-family: sans-serif;
-        font-size: 16px;
+        font-family: var(--font);
+        font-size: var(--fs-h2);
         background: rgba(0, 0, 0, 0.6);
         border: 1px solid rgba(255, 255, 255, 0.35);
         border-radius: 8px;
@@ -342,7 +347,7 @@
       #speedo b {
         min-width: 3ch;
         text-align: right;
-        font-size: 26px;
+        font-size: var(--fs-display);
         font-variant-numeric: tabular-nums;
       }
       #fuelFill {
@@ -357,7 +362,7 @@
         transform: translateX(-50%);
         z-index: 10;
         color: white;
-        font-family: sans-serif;
+        font-family: var(--font);
         background: rgba(30, 90, 50, 0.85);
         padding: 8px 14px;
         border-radius: 6px;
@@ -373,8 +378,8 @@
         text-align: right;
         z-index: 10;
         color: rgba(255, 255, 255, 0.8);
-        font-family: sans-serif;
-        font-size: 13px;
+        font-family: var(--font);
+        font-size: var(--fs-text);
         background: rgba(0, 0, 0, 0.5);
         padding: 6px 10px;
         border-radius: 6px;
@@ -402,7 +407,7 @@
         left: 50%;
         transform: translateX(-50%);
         color: white;
-        font-family: sans-serif;
+        font-family: var(--font);
         background: rgba(0, 0, 0, 0.7);
         padding: 8px 12px;
         border-radius: 6px;
@@ -432,8 +437,8 @@
         max-width: 300px;
         z-index: 10;
         color: rgba(255, 255, 255, 0.85);
-        font-family: sans-serif;
-        font-size: 12px;
+        font-family: var(--font);
+        font-size: var(--fs-text);
         text-align: right;
         background: rgba(0, 0, 0, 0.5);
         padding: 4px 10px;
@@ -443,14 +448,13 @@
       #clock {
         position: absolute;
         top: 10px;
-        left: 50%;
-        transform: translateX(-50%);
+        right: 64px; /* справа сверху, левее кнопки «на весь экран» */
         z-index: 10;
         display: flex;
         align-items: center;
         gap: 10px;
         color: white;
-        font-family: sans-serif;
+        font-family: var(--font);
         background: rgba(0, 0, 0, 0.5);
         padding: 4px 14px;
         border-radius: 8px;
@@ -463,13 +467,13 @@
       }
       #clockTime {
         white-space: nowrap;
-        font-size: 20px;
+        font-size: var(--fs-h1);
         font-weight: bold;
         font-variant-numeric: tabular-nums;
         line-height: 1;
       }
       #clockDate {
-        font-size: 12px;
+        font-size: var(--fs-text);
         opacity: 0.8;
       }
       #nightTint {
@@ -525,6 +529,7 @@
     </script>
     <script>const demoWorldRadius = 175; const demoWorldCenter = { x: -330, z: 215 }; // круглый мир локации (src/engine/layout.js)</script>
     <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+    <script src="src/ui/design.js"></script>
     <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://unpkg.com/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
     <script src="src/engine/materials.js"></script>

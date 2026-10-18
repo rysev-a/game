@@ -42,14 +42,14 @@ if (touchUI) {
   touchStyle.textContent = `
     html, body.touch { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
     body.touch canvas { touch-action: none; }
-    body.touch #fullscreenBtn { padding: 4px 9px; font-size: 16px; top: max(8px, env(safe-area-inset-top)); }
+    body.touch #fullscreenBtn { padding: 4px 9px; font-size: var(--fs-h2); top: max(8px, env(safe-area-inset-top)); }
     body.touch #settingsBtn { top: max(8px, env(safe-area-inset-top)); bottom: auto; left: auto; right: 58px;
-      width: 34px; height: 34px; font-size: 20px; }
+      width: 34px; height: 34px; font-size: var(--fs-h1); }
     body.touch #settingsMenu { top: 50px; bottom: auto; left: auto; right: 10px; z-index: 40; max-height: calc(100vh - 60px); }
     body.touch #minimapWrap { top: 50px; width: 120px; height: 120px; }
     body.touch #minimap { width: 120px; height: 120px; }
     body.touch #mmInfo, body.touch #clock, body.touch #mouseHint { display: none; }
-    body.touch #hud { top: 176px; max-width: 150px; font-size: 10px; padding: 2px 8px; }
+    body.touch #hud { top: 176px; max-width: 150px; font-size: var(--fs-small); padding: 2px 8px; }
     /* Инвентарь и нижняя панель снаряжения (src/player/equipment.js) — только на весь экран по значку */
     body.touch #topLeft, body.touch #equipHud { display: none; }
     /* Раскрытый инвентарь — на весь экран: слева вещи (прокручиваются), справа неподвижная панель
@@ -75,13 +75,13 @@ if (touchUI) {
     #mEquip {
       position: fixed; top: 0; right: 0; bottom: 0; width: 236px; z-index: 31; box-sizing: border-box; display: none;
       flex-direction: column; gap: 10px; padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 12px 12px;
-      background: rgba(14, 18, 26, 0.97); border-left: 1px solid rgba(255, 255, 255, 0.25); color: white; font: 13px sans-serif;
+      background: rgba(14, 18, 26, 0.97); border-left: 1px solid rgba(255, 255, 255, 0.25); color: white; font: var(--fs-text) var(--font);
     }
     body.touch.invOpen #mEquip { display: flex; }
-    #mEquip .head { display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 15px; }
+    #mEquip .head { display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: var(--fs-h2); }
     #mEquip .close { width: 32px; height: 32px; padding: 0; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.4);
-      background: rgba(255, 255, 255, 0.08); color: white; font-size: 18px; }
-    #mEquip .label { font-size: 11px; opacity: 0.6; margin-bottom: -4px; }
+      background: rgba(255, 255, 255, 0.08); color: white; font-size: var(--fs-h2); }
+    #mEquip .label { font-size: var(--fs-small); opacity: 0.6; margin-bottom: -4px; }
     #mHand { display: flex; align-items: center; gap: 10px; min-height: 44px; }
     #mHand .slot { width: 44px; height: 44px; box-sizing: border-box; border: 1px solid #ffd84a; border-radius: 6px;
       background: rgba(255, 216, 74, 0.18); display: flex; align-items: center; justify-content: center; }
@@ -92,24 +92,24 @@ if (touchUI) {
     }
     body.touch #mEquip #equipHud .stat { display: none; }
     body.touch #mEquip #equipHud .group { padding-left: 0; border-left: none; flex-wrap: wrap; }
-    body.touch #mEquip #equipHud .group::before { display: block; width: 100%; font-size: 11px; opacity: 0.6; margin-bottom: 2px; }
+    body.touch #mEquip #equipHud .group::before { display: block; width: 100%; font-size: var(--fs-small); opacity: 0.6; margin-bottom: 2px; }
     body.touch #mEquip #equipHud .group:nth-of-type(3)::before { content: 'Снаряжение'; }
     body.touch #mEquip #equipHud .group:nth-of-type(4)::before { content: 'Оружие под рукой'; }
     body.touch.invOpen #touchPad, body.touch.invOpen #mStats, body.touch.invOpen #infoPanel { display: none; }
     /* Панель оружия (src/engine/weapons.js) — сверху по центру, без подсказок для мыши и клавиатуры */
     body.touch #weaponHud { top: 8px !important; bottom: auto !important; left: 50% !important; right: auto !important;
-      transform: translateX(-50%); min-width: 140px !important; padding: 4px 8px !important; font-size: 11px !important; }
+      transform: translateX(-50%); min-width: 140px !important; padding: 4px 8px !important; font-size: var(--fs-small) !important; }
     body.touch #weaponHud > div:nth-child(2), body.touch #weaponHint { display: none; }
     /* Сканер (панель «что это») — маленький и полупрозрачный справа сверху, рядом с кнопками; только по касанию
        объекта, а в боевом режиме (оружие в руках) не появляется вовсе */
     body.touch #infoPanel {
       left: auto; right: max(104px, calc(env(safe-area-inset-right) + 96px)); top: 8px !important; width: 160px;
-      font-size: 10px; line-height: 1.3; padding: 4px 6px 5px; opacity: 0.72; border-width: 1px;
+      font-size: var(--fs-small); line-height: 1.3; padding: 4px 6px 5px; opacity: 0.72; border-width: 1px;
     }
-    body.touch #infoPanel #ipName { font-size: 12px; letter-spacing: 0; }
+    body.touch #infoPanel #ipName { font-size: var(--fs-text); letter-spacing: 0; }
     body.touch #infoPanel.empty, body.touch.armed #infoPanel { display: none; }
-    body.touch #fuel { bottom: 34px; left: 12px; font-size: 13px; padding: 4px 8px; }
-    body.touch #infFuel { bottom: 70px; left: 12px; font-size: 13px; padding: 3px 8px; }
+    body.touch #fuel { bottom: 34px; left: 12px; font-size: var(--fs-text); padding: 4px 8px; }
+    body.touch #infFuel { bottom: 70px; left: 12px; font-size: var(--fs-text); padding: 3px 8px; }
     body.touch #speedo { display: none !important; } /* на телефоне скорость — над педалями (touch-drive.js) */
     /* Разговор на телефоне — на весь экран, ответы — крупные кнопки; без ответов — коснуться, чтобы продолжить */
     body.touch #dialogue {
@@ -117,23 +117,23 @@ if (touchUI) {
       padding: max(18px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) 18px max(24px, env(safe-area-inset-left));
       overflow-y: auto; background: rgba(8, 11, 16, 0.96);
     }
-    body.touch #dialogue .text { font-size: 17px; }
-    body.touch #dialogue .option { padding: 12px 14px; margin-top: 8px; font-size: 16px; border: 1px solid rgba(255, 255, 255, 0.2); }
+    body.touch #dialogue .text { font-size: var(--fs-h2); }
+    body.touch #dialogue .option { padding: 12px 14px; margin-top: 8px; font-size: var(--fs-h2); border: 1px solid rgba(255, 255, 255, 0.2); }
     body.touch #dialogue .hint { font-size: 0; }
-    body.touch #dialogue .hint::after { content: 'Коснитесь, чтобы продолжить'; font-size: 13px; }
+    body.touch #dialogue .hint::after { content: 'Коснитесь, чтобы продолжить'; font-size: var(--fs-text); }
     /* Выбор из нескольких действий рядом (например, этаж) — меню на весь экран */
     #choiceMenu {
       position: fixed; inset: 0; z-index: 46; display: none; flex-direction: column; align-items: center; justify-content: center;
-      gap: 10px; padding: 18px; background: rgba(8, 11, 16, 0.94); color: white; font-family: sans-serif;
+      gap: 10px; padding: 18px; background: rgba(8, 11, 16, 0.94); color: white; font-family: var(--font);
     }
     #choiceMenu.on { display: flex; }
-    #choiceMenu .title { font-size: 15px; opacity: 0.7; margin-bottom: 6px; }
+    #choiceMenu .title { font-size: var(--fs-h2); opacity: 0.7; margin-bottom: 6px; }
     #choiceMenu button {
       min-width: min(420px, 80vw); padding: 14px 18px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.3);
-      background: rgba(255, 255, 255, 0.08); color: white; font-size: 17px;
+      background: rgba(255, 255, 255, 0.08); color: white; font-size: var(--fs-h2);
     }
-    #choiceMenu button.cancel { background: none; border-color: transparent; opacity: 0.7; font-size: 15px; }
-    body.touch #prompt { bottom: 40px; font-size: 13px; }
+    #choiceMenu button.cancel { background: none; border-color: transparent; opacity: 0.7; font-size: var(--fs-h2); }
+    body.touch #prompt { bottom: 40px; font-size: var(--fs-text); }
     body.touch #toast { bottom: 64px; max-width: 60vw; text-align: center; }
     #mStats {
       position: fixed; z-index: 20; left: max(10px, env(safe-area-inset-left)); bottom: max(8px, env(safe-area-inset-bottom));
@@ -149,14 +149,14 @@ if (touchUI) {
     #mStats .bar div { height: 100%; }
     #mClock {
       position: fixed; z-index: 20; right: max(12px, env(safe-area-inset-right)); bottom: max(4px, env(safe-area-inset-bottom));
-      color: rgba(255, 255, 255, 0.75); font: 10px sans-serif; font-variant-numeric: tabular-nums;
+      color: rgba(255, 255, 255, 0.75); font: var(--fs-small) var(--font); font-variant-numeric: tabular-nums;
       text-shadow: 0 0 3px rgba(0, 0, 0, 0.9); pointer-events: none;
     }
     #rotateNote {
       position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; text-align: center;
-      padding: 24px; background: #111; color: white; font: 18px/1.4 sans-serif;
+      padding: 24px; background: #111; color: white; font: var(--fs-h2)/1.4 var(--font);
     }
-    #rotateNote .big { font-size: 56px; display: block; margin-bottom: 12px; }
+    #rotateNote .big { font-size: var(--fs-display); display: block; margin-bottom: 12px; }
     @media (orientation: portrait) { #rotateNote { display: flex; } }
     /* Джойстик стоит на месте слева: внешний круг — сколько можно отклонить, внутренний — «мертвая зона» */
     #joyBase {
@@ -192,7 +192,7 @@ if (touchUI) {
     }
     .touchBtn {
       width: 52px; height: 52px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.45);
-      background: rgba(10, 14, 20, 0.55); color: white; font: bold 22px sans-serif; padding: 0;
+      background: rgba(10, 14, 20, 0.55); color: white; font: bold var(--fs-h1) var(--font); padding: 0;
       display: flex; align-items: center; justify-content: center;
       touch-action: none; -webkit-tap-highlight-color: transparent;
     }
@@ -208,13 +208,13 @@ if (touchUI) {
     /* Мирный режим — кнопка между полосками и оружием, видна только в бою */
     #mPeace {
       width: 34px; height: 34px; padding: 0; border-radius: 8px; border: 1px solid rgba(140, 220, 255, 0.6);
-      background: rgba(10, 14, 20, 0.6); color: white; font-size: 18px; display: none;
+      background: rgba(10, 14, 20, 0.6); color: white; font-size: var(--fs-h2); display: none;
     }
     body.touch.armed #mPeace { display: block; }
     /* За рулем — кнопка «выйти» там же, рядом с оружием; надписи «остановитесь, чтобы выйти» на телефоне нет */
     #mExit {
       width: 34px; height: 34px; padding: 0; border-radius: 8px; border: 1px solid rgba(255, 216, 74, 0.7);
-      background: rgba(10, 14, 20, 0.6); color: white; font-size: 18px; display: none;
+      background: rgba(10, 14, 20, 0.6); color: white; font-size: var(--fs-h2); display: none;
     }
     body.touch.driving #mExit { display: block; }
     #mExit.wait { background: rgba(255, 216, 74, 0.35); }

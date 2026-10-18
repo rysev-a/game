@@ -96,6 +96,8 @@ function addInteriorStairs(def, stairs) {
   for (const st of stairs) {
     addInteractable({
       priority: 1,
+      glowKind: 'floor',
+      glowMeshes: st.meshes, // сетки лестницы, если дом их отдает (src/quests/guide.js); иначе пятно на полу
       clickPoint: () => {
         const ci = currentInterior();
         return ci && ci.def === def ? { x: st.x, z: def.floorZ[ci.floor] + st.z, r: 2.4 } : null;

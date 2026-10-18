@@ -16,10 +16,10 @@ mapFullStyle.textContent = `
   #mmExpand {
     position: absolute; top: 6px; left: 6px; width: 30px; height: 30px; padding: 0; z-index: 11;
     border-radius: 7px; border: 1px solid rgba(255, 255, 255, 0.45); background: rgba(10, 14, 20, 0.7);
-    color: white; font-size: 18px; line-height: 1; cursor: pointer; pointer-events: auto;
+    color: white; font-size: var(--fs-h2); line-height: 1; cursor: pointer; pointer-events: auto;
   }
   #mmExpand:hover { background: rgba(60, 60, 60, 0.85); }
-  body.touch #mmExpand { width: 26px; height: 26px; font-size: 15px; top: 4px; left: 4px; }
+  body.touch #mmExpand { width: 26px; height: 26px; font-size: var(--fs-h2); top: 4px; left: 4px; }
   body.mapFullOn #toast { z-index: 70; }
   #mapFull { position: fixed; inset: 0; z-index: 60; display: none; background: #111; touch-action: none; }
   #mapFull.on { display: block; }
@@ -28,14 +28,14 @@ mapFullStyle.textContent = `
   #mapFull .btns { position: absolute; top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right));
     display: flex; flex-direction: column; gap: 8px; }
   #mapFull button { width: 42px; height: 42px; padding: 0; border-radius: 9px; border: 1px solid rgba(255, 255, 255, 0.45);
-    background: rgba(10, 14, 20, 0.8); color: white; font-size: 20px; cursor: pointer; }
+    background: rgba(10, 14, 20, 0.8); color: white; font-size: var(--fs-h1); cursor: pointer; }
   #mapFull button:hover { background: rgba(60, 60, 60, 0.9); }
   #mapFull .info { position: absolute; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%);
     max-width: min(520px, calc(100% - 140px)); box-sizing: border-box; padding: 8px 14px; border-radius: 10px;
-    background: rgba(10, 14, 20, 0.85); border: 1px solid rgba(255, 255, 255, 0.3); color: white; font: 13px sans-serif;
+    background: rgba(10, 14, 20, 0.85); border: 1px solid rgba(255, 255, 255, 0.3); color: white; font: var(--fs-text) var(--font);
     pointer-events: none; text-align: center; }
-  #mapFull .info .k { font-size: 11px; opacity: 0.6; }
-  #mapFull .info .n { font-size: 15px; font-weight: bold; margin: 2px 0; }
+  #mapFull .info .k { font-size: var(--fs-small); opacity: 0.6; }
+  #mapFull .info .n { font-size: var(--fs-h2); font-weight: bold; margin: 2px 0; }
   #mapFull .info .d { opacity: 0.85; }
   #mapFull .info.hint { opacity: 0.7; }
 `;

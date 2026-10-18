@@ -182,7 +182,7 @@
       if (!registry.facts[id]) warn('Нет факта: ' + id);
       game.state.facts[id] = game.now();
       game.bump();
-      if (host.toast) host.toast('Новая запись в журнале: выводы');
+      if (host.toast) host.toast('Новая заметка в телефоне');
     };
 
     game.addMessage = (from, text) => {

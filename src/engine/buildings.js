@@ -141,6 +141,7 @@ function placeBuilding(id, { x, z, heading = 0, full = true } = {}) {
       priority: 1,
       clickObject: ext.group, // клик по зданию — идти к двери (src/player/click-move.js)
       walkTo: outside,
+      canEnter: () => !(def.lock && !hasItem(def.lock.item)), // дверь светится, только если в нее можно войти (src/quests/guide.js)
       near: () => !insideBuilding() && !drivingCar && Math.hypot(playerWorldX - outside.x, playerWorldZ - outside.z) < doorRadius,
       prompt: () => def.enterLabel || 'E — войти: ' + def.name,
       act: () => {
@@ -183,6 +184,7 @@ function placeBuilding(id, { x, z, heading = 0, full = true } = {}) {
     for (const st of plan.stairs || []) {
       addInteractable({
         priority: 1,
+        glowKind: 'floor',
         clickPoint: () => {
           const ci = currentInterior();
           return ci && ci.def === idef && ci.floor === st.floor ? { x: st.x, z: floorZ[st.floor] + st.z, r: 2.4 } : null;

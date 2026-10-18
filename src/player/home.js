@@ -54,6 +54,8 @@ function createHomeInterior() {
     const fade = [];
     const mapShapes = [];
     const pickups = [];
+    const stairMeshes = []; // сетки лестницы: ее подсвечивает src/quests/guide.js
+    let garageDoorMesh = null;
 
     function part(w, h, d, color, x, y, z) {
       const geo = new THREE.BoxGeometry(w, h, d);
@@ -124,8 +126,8 @@ function createHomeInterior() {
     {
       const sx = homeStairsX;
       const base = 5.3; // южный край
-      for (let i = 0; i < 6; i++) part(2.6, 0.3 * (i + 1), 0.6, 0xb5ada0, sx, 0.15 * (i + 1), base - 0.3 - i * 0.6);
-      for (const side of [-1, 1]) part(0.15, 1.3, 3.6, 0x777777, sx + side * 1.4, 0.65, base - 1.8);
+      for (let i = 0; i < 6; i++) stairMeshes.push(part(2.6, 0.3 * (i + 1), 0.6, 0xb5ada0, sx, 0.15 * (i + 1), base - 0.3 - i * 0.6));
+      for (const side of [-1, 1]) stairMeshes.push(part(0.15, 1.3, 3.6, 0x777777, sx + side * 1.4, 0.65, base - 1.8));
       addSolid(sx, base - 1.8, 1.5, 1.9, '#a09888');
     }
 
@@ -150,7 +152,7 @@ function createHomeInterior() {
       pickup('wallet', 3.4, -1.4, 0.85);
 
       // Дверь в гараж на восточной стене
-      part(0.2, 2.3, 1.2, 0x4a3826, hw - 0.1, 1.15, homeGaragePoint.z);
+      garageDoorMesh = part(0.2, 2.3, 1.2, 0x4a3826, hw - 0.1, 1.15, homeGaragePoint.z);
     } else {
       // Спальня (восток): кровать и тумбочка с пропуском в IT-компанию
       furniture(2.1, 0.6, 2.3, 0x8a3b3b, 6.6, -3.6, '#8a3b3b');
@@ -168,7 +170,7 @@ function createHomeInterior() {
       furniture(3.0, 2.0, 0.5, 0x5a3a2a, -3.6, -5.7, '#5a3a2a'); // книжный шкаф у северной стены
     }
 
-    return { group, solids, fadeBoxes: fade, mapShapes, pickups };
+    return { group, solids, fadeBoxes: fade, mapShapes, pickups, glow: { stairs: stairMeshes, garageDoor: garageDoorMesh } };
   }
 
   const floors = [buildFloor(0), buildFloor(1)];
@@ -199,6 +201,10 @@ home.floors.forEach((floor, i) => {
   for (const f of floor.fadeBoxes) fadeBoxes.push(f);
   for (const m of floor.mapShapes) mapObjects.push({ ...m, z: m.z + homeFloorZ[i] });
 });
+homeStairs[0].meshes = () => {
+  const ci = currentInterior();
+  return ci && ci.def === homeInterior ? home.floors[ci.floor].glow.stairs : [];
+};
 addInteriorStairs(homeInterior, homeStairs);
 
 // Вещи: подсвечены вращением и покачиванием, E рядом — взять в инвентарь. Можно и мышью:
@@ -341,14 +347,27 @@ function buildHomeExterior(info) {
 
   // Кнопка двери — на внутренней стороне восточной стены у фасада
   garage.button = { x: x1 - 0.7, z: frontZ + (frontZ > houseZ ? -1.6 : 1.6) };
+  garage.rect = { x1: x0, x2: x1, z1: houseZ - homeD / 2, z2: houseZ + homeD / 2 }; // пол гаража (авто-закрытие, updateGarage)
+  garage.frontZ = frontZ;
+  garage.doorHalfW = doorW / 2;
   const buttonMesh = boxWithEdges(0.15, 0.3, 0.15, 0xd23c3c);
   buttonMesh.position.set(garage.button.x + 0.3, 1.3, garage.button.z);
   cityGroup.add(buttonMesh);
+  garage.buttonMesh = buttonMesh; // вдавливается, пока дверь открыта (updateGarage)
+  const pressButton = () => {
+    garage.open = !garage.open;
+    garage.sawInside = false; // авто-закрытие включится, когда герой побывает в гараже и выйдет
+    garage.leftAt = 0;
+  };
   addInteractable({
     priority: 3,
+    doorName: 'Кнопка двери гаража',
+    glowMeshes: () => [buttonMesh],
+    glowAt: () => (insideBuilding() ? null : { x: garage.button.x + 0.3, y: 1.3, z: garage.button.z, scale: 0.4 }), // мягко светится (src/quests/guide.js)
+    clickPoint: () => (insideBuilding() ? null : { x: garage.button.x, z: garage.button.z, y: 1.3, r: 2 }),
     near: () => !insideBuilding() && Math.hypot(playerWorldX - garage.button.x, playerWorldZ - garage.button.z) < 2.4,
     prompt: () => (garage.open ? 'E — закрыть дверь гаража' : 'E — открыть дверь гаража'),
-    act: () => (garage.open = !garage.open),
+    act: pressButton,
   });
 
   // Дверь из гаража в дом: на общей стене у задней стены гаража
@@ -359,7 +378,9 @@ function buildHomeExterior(info) {
   cityGroup.add(innerDoor);
   addInteractable({
     priority: 3,
-    clickPoint: () => (insideBuilding() ? null : { x: garage.insidePoint.x, z: garage.insidePoint.z, r: 2.4 }),
+    doorName: 'Вход в дом',
+    glowMeshes: () => [innerDoor],
+    clickPoint: () => (insideBuilding() ? null : { x: garage.insidePoint.x, z: garage.insidePoint.z, r: 3 }),
     near: () => !insideBuilding() && Math.hypot(playerWorldX - garage.insidePoint.x, playerWorldZ - garage.insidePoint.z) < 2.3,
     prompt: () => 'E — войти в дом',
     act: () => {
@@ -370,9 +391,11 @@ function buildHomeExterior(info) {
   // И обратно — из дома в гараж
   addInteractable({
     priority: 3,
+    doorName: 'Вход в гараж',
+    glowMeshes: () => [home.floors[0].glow.garageDoor],
     clickPoint: () => {
       const ci = currentInterior();
-      return ci && ci.def === homeInterior && ci.floor === 0 ? { x: homeGaragePoint.x, z: homeFloorZ[0] + homeGaragePoint.z, r: 2.4 } : null;
+      return ci && ci.def === homeInterior && ci.floor === 0 ? { x: homeGaragePoint.x, z: homeFloorZ[0] + homeGaragePoint.z, r: 3 } : null;
     },
     near: () => {
       const ci = currentInterior();
@@ -422,9 +445,41 @@ function setGarageDoorInstant(open) {
   if (!open && !blocked) obstacleShapes.push(garage.doorShape);
 }
 
+// АВТО-ЗАКРЫТИЕ. Дверь открыли кнопкой; герой побывал в гараже и вышел из него (выехал или вышел пешком, не зашел в дом), отошел от проема —
+// через секунду дверь сама закрывается, и кнопка отжимается. Пока в проеме машина или герой, дверь стоит открытой
+function updateGarageAutoClose() {
+  if (!garage.open || !garage.rect || garage.progress < 1) return;
+  const r = garage.rect;
+  const m = 0.4;
+  const heroIn = !insideBuilding() && playerWorldX > r.x1 - m && playerWorldX < r.x2 + m && playerWorldZ > r.z1 - m && playerWorldZ < r.z2 + m;
+  const car = garage.car;
+  const inDoorway = (x, z) => Math.abs(z - garage.frontZ) < 4 && Math.abs(x - garage.doorCenterX) < garage.doorHalfW + 1.5;
+  const carInDoorway = !!car && inDoorway(car.x, car.z);
+  const heroInDoorway = !insideBuilding() && inDoorway(playerWorldX, playerWorldZ);
+  if (heroIn || (insideBuilding() && currentInterior() && currentInterior().def === homeInterior)) garage.sawInside = true;
+  if (!garage.sawInside || heroIn || carInDoorway || heroInDoorway || insideBuilding()) {
+    garage.leftAt = 0;
+    return;
+  }
+  if (!garage.leftAt) garage.leftAt = performance.now();
+  if (performance.now() - garage.leftAt > 1000) {
+    garage.open = false;
+    garage.leftAt = 0;
+    garage.sawInside = false;
+  }
+}
+
 // Дверь гаража едет вверх/вниз; пока не поднята — препятствие
 function updateGarage() {
   if (!garage.doorGroup) return;
+  updateGarageAutoClose();
+  // Кнопка вдавливается, пока дверь открыта: уходит в стену и зеленеет
+  if (garage.buttonMesh) {
+    const pressed = garage.open ? 1 : 0;
+    garage.buttonMesh.position.x = garage.button.x + 0.3 + 0.08 * pressed;
+    garage.buttonMesh.scale.x = 1 - 0.4 * pressed;
+    garage.buttonMesh.material.color.setHex(pressed ? 0x3fa35b : 0xd23c3c);
+  }
   const target = garage.open ? 1 : 0;
   if (garage.progress === target) return;
   garage.progress += Math.sign(target - garage.progress) * (1 / 90); // 1,5 секунды

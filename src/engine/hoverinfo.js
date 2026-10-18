@@ -151,13 +151,13 @@ hoverStyle.textContent = `
   #infoPanel {
     position: fixed; right: 10px; bottom: 76px; width: 230px; box-sizing: border-box; z-index: 15;
     padding: 7px 10px 8px; pointer-events: none; display: none;
-    font: 12px/1.35 sans-serif; color: #f1f3f5;
+    font: var(--fs-text)/1.35 var(--font); color: #f1f3f5;
     background: rgba(12, 16, 22, 0.78); border: 1px solid rgba(255, 255, 255, 0.28); border-radius: 8px;
   }
   #infoPanel.on { display: block; }
-  #infoPanel .ipTop { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.55; margin-bottom: 2px; }
+  #infoPanel .ipTop { font-size: var(--fs-small); text-transform: uppercase; letter-spacing: 1px; opacity: 0.55; margin-bottom: 2px; }
   #infoPanel .ipBlink { display: none; }
-  #infoPanel #ipName { font-size: 14px; font-weight: bold; }
+  #infoPanel #ipName { font-size: var(--fs-text); font-weight: bold; }
   #infoPanel #ipDesc { margin-top: 2px; opacity: 0.85; }
 `;
 document.head.appendChild(hoverStyle);

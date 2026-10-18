@@ -62,6 +62,7 @@
       'src/quests/common-hooks.js',
       'src/quests/gates.js',
       'src/quests/weather-story.js',
+      'src/quests/guide.js',
       'main:src/quests/places.js',
       'main:src/quests/hooks.js',
       'src/quests/world.js',

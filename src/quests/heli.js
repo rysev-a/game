@@ -45,7 +45,7 @@
   const hud = document.createElement('div');
   hud.style.cssText =
     'position:absolute;left:50%;bottom:96px;transform:translateX(-50%);z-index:12;padding:8px 14px;border-radius:8px;' +
-    'background:rgba(0,0,0,0.6);color:#fff;font:14px/1.4 sans-serif;text-align:center;display:none;pointer-events:none';
+    'background:rgba(0,0,0,0.6);color:#fff;font: var(--fs-text)/1.4 var(--font);text-align:center;display:none;pointer-events:none';
   document.body.appendChild(hud);
 
   const towerBox = () => ({ x: towerX, z: towerZ, h: 10.8, top: 61.2 }); // башня: полуширина 10, крыша на высоте 61,2

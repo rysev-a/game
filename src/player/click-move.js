@@ -81,13 +81,35 @@ function clickDoorEntry() {
 }
 
 // Лестница или выход из здания рядом с кликом: запись с clickPoint() (возвращает { x, z, r } или null, если сейчас не подходит)
-function clickPointEntry(p) {
+// Дверь стоит вертикально: луч по ней попадает в землю за ней, поэтому кроме расстояния по земле смотрим, где дверь на экране
+// (точка двери на высоте cp.y, по умолчанию 1,2, переводится в пиксели и сравнивается с кликом)
+const clickProbe = new THREE.Vector3();
+function clickScreenDist(e, cp) {
+  clickProbe.set(cp.x, cp.y === undefined ? 1.2 : cp.y, cp.z);
+  cityGroup.localToWorld(clickProbe);
+  clickProbe.project(camera);
+  if (!(clickProbe.z <= 1)) return Infinity;
+  const d = Math.hypot((clickProbe.x * 0.5 + 0.5) * window.innerWidth - e.clientX, (-clickProbe.y * 0.5 + 0.5) * window.innerHeight - e.clientY);
+  return Number.isFinite(d) ? d : Infinity;
+}
+const clickDoorPixels = 60;
+
+function clickPointEntry(p, e) {
+  let best = null;
+  let bestScore = Infinity;
   for (const it of interactables) {
     if (!it.clickPoint) continue;
     const cp = it.clickPoint();
-    if (cp && Math.hypot(p.x - cp.x, p.z - cp.z) < (cp.r || 2.2)) return { near: it.near, act: it.act, walkTo: { x: cp.x, z: cp.z } };
+    if (!cp) continue;
+    const ground = Math.hypot(p.x - cp.x, p.z - cp.z) / (cp.r || 2.2); // меньше 1 — клик у двери на земле
+    const screen = e ? clickScreenDist(e, cp) / clickDoorPixels : Infinity; // меньше 1 — клик по самой двери на экране
+    const score = Math.min(ground, screen);
+    if (score < 1 && score < bestScore) {
+      bestScore = score;
+      best = { near: it.near, act: it.act, walkTo: { x: cp.x, z: cp.z } };
+    }
   }
-  return null;
+  return best;
 }
 
 // Живой противник под курсором (луч уже направлен clickGroundPoint) или null
@@ -164,7 +186,7 @@ renderer.domElement.addEventListener('mousedown', (e) => {
     clickDoor = { entry, frames: 0 };
     return;
   }
-  const point = settings.clickInteract ? clickPointEntry(p) : null;
+  const point = settings.clickInteract ? clickPointEntry(p, e) : null;
   if (point) {
     clickMoveTo(point.walkTo.x, point.walkTo.z);
     clickDoor = { entry: point, frames: 0 };

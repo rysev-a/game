@@ -26,6 +26,8 @@ const SETTINGS_DEFAULTS = {
   snow: true,
   rainFreq: 'normal', // 'rare' | 'normal' | 'often'
   mouseSens: 1, // множитель чувствительности мыши
+  showPath: true, // «Игра»: стрелки направления к цели квеста на земле и на карте (src/quests/guide.js)
+  showObjects: true, // «Игра»: подсветка того, к чему нужно подойти (src/quests/guide.js)
   clickInteract: true, // клик по человеку, двери и машине: герой подойдет сам (src/player/click-move.js)
   autoAim: true,
   firstPerson: false, // вид от первого лица в бою (компьютер)
@@ -106,6 +108,16 @@ const keyRows = (rows) =>
   '<table class="keys">' + rows.map(([k, what]) => '<tr><td><kbd>' + k + '</kbd></td><td>' + what + '</td></tr>').join('') + '</table>';
 const settingsTabs = [
   {
+    id: 'game',
+    name: 'Игра',
+    items: [
+      { type: 'check', key: 'showPath', label: 'Показывать направление',
+        note: 'Небольшие зеленые стрелки на земле и линия на карте ведут к цели задания: по дорогам, улицам и тропинкам, в обход зданий, кустов и реки' },
+      { type: 'check', key: 'showObjects', label: 'Подсвечивать объекты',
+        note: 'Человек, вход в здание или вещь, к которым нужно подойти по заданию, помечены покачивающимся ромбом, как ваша машина' },
+    ],
+  },
+  {
     id: 'sound',
     name: 'Звук',
     items: [
@@ -134,12 +146,12 @@ const settingsTabs = [
       { type: 'range', key: 'mouseSens', label: 'Чувствительность мыши', min: 0.25, max: 3, step: 0.05, show: pct, desk: true,
         note: 'Вид зажатым колесом и прицел в бою' },
       { type: 'check', key: 'clickInteract', label: 'Клик по человеку, двери и машине', desk: true,
-        note: 'Герой сам подойдет: заговорит, войдет в здание или сядет в машину. Далеко — через пару секунд он уже там, а время уйдет как на дорогу пешком' },
+        note: 'Клик по двери, лестнице, человеку или машине: герой полсекунды идет туда и сразу входит, заговаривает или садится, а время уходит как на дорогу пешком. Клик по земле ничего не делает' },
       { type: 'html', desk: true, html: '<div class="keycols"><div><div class="sub">Обычный режим</div>' + keyRows([
         ['W / S', 'вперед / назад'],
         ['W W / W W W', 'бег / спринт (отпустили W — шагом); за рулем — двойное W: нитро, пока W зажата'],
         ['A / D', 'поворот'],
-        ['Space', 'прыжок; за рулем — ручник (занос)'],
+        ['Space', 'за рулем — ручник (занос); пешком — ничего'],
         ['Правая кнопка мыши', 'за рулем — ручник, пока зажата, как Space: дрифт одной рукой'],
         ['Колесо мыши (два клика)', 'за рулем — режим ручника колесом: колесо зажато — ручник, как Space; выключили режим — колесо снова крутит камеру'],
         ['E', 'все действия: двери, вещи, сесть, заправка, разговор'],
@@ -242,7 +254,7 @@ settingsStyle.textContent = `
   #settingsMenu { width: min(580px, calc(100vw - 28px)); max-height: calc(100vh - 24px); overflow-y: auto; touch-action: pan-y; }
   #settingsMenu .tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px; }
   #settingsMenu .tabs button { padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.25);
-    background: rgba(255, 255, 255, 0.06); color: white; font: 13px sans-serif; cursor: pointer; }
+    background: rgba(255, 255, 255, 0.06); color: white; font: var(--fs-text) var(--font); cursor: pointer; }
   #settingsMenu .tabs button.on { background: rgba(143, 208, 255, 0.28); border-color: rgba(143, 208, 255, 0.7); }
   #settingsMenu .panel { display: none; height: min(760px, calc(100vh - 200px)); min-height: 150px; overflow-y: auto; padding-right: 4px; }
   #settingsMenu .panel.on { display: block; }
@@ -250,40 +262,40 @@ settingsStyle.textContent = `
   #settingsMenu .row { align-items: center; gap: 8px; }
   #settingsMenu .row .val { margin-left: auto; opacity: 0.85; }
   #settingsMenu .mute { width: 30px; height: 26px; padding: 0; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.3);
-    background: rgba(255, 255, 255, 0.06); color: white; font-size: 14px; cursor: pointer; }
+    background: rgba(255, 255, 255, 0.06); color: white; font-size: var(--fs-text); cursor: pointer; }
   #settingsMenu .mute.off { background: rgba(210, 60, 60, 0.35); }
   #settingsMenu .item.muted input[type='range'] { opacity: 0.4; }
   #settingsMenu .item > .check { margin-top: 0; }
-  #settingsMenu .note { font-size: 11px; opacity: 0.6; margin-top: 3px; }
+  #settingsMenu .note { font-size: var(--fs-small); opacity: 0.6; margin-top: 3px; }
   #settingsMenu select { width: 100%; margin-top: 4px; padding: 4px; border-radius: 6px; background: #1d222c; color: white;
-    border: 1px solid rgba(255, 255, 255, 0.3); font: 13px sans-serif; }
+    border: 1px solid rgba(255, 255, 255, 0.3); font: var(--fs-text) var(--font); }
   #settingsMenu .keycols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
   #settingsMenu .keycols .sub:first-child { margin-top: 4px; }
-  #settingsMenu .sub { font-weight: bold; font-size: 13px; margin: 12px 0 4px; }
-  #settingsMenu table.keys { width: 100%; border-collapse: collapse; font-size: 12px; }
+  #settingsMenu .sub { font-weight: bold; font-size: var(--fs-text); margin: 12px 0 4px; }
+  #settingsMenu table.keys { width: 100%; border-collapse: collapse; font-size: var(--fs-text); }
   #settingsMenu table.keys td { padding: 2px 0; vertical-align: top; }
   #settingsMenu table.keys td:first-child { width: 40%; white-space: nowrap; padding-right: 8px; }
   #settingsMenu kbd { display: inline-block; padding: 1px 5px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.35);
-    background: rgba(255, 255, 255, 0.08); font: 11px monospace; }
+    background: rgba(255, 255, 255, 0.08); font: var(--fs-small) var(--font); }
   #settingsMenu .setups .setupSave { display: flex; gap: 6px; margin-top: 4px; }
   #settingsMenu .setups input[type='text'] { flex: 1; min-width: 0; padding: 4px 6px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.3);
-    background: #1d222c; color: white; font: 13px sans-serif; }
+    background: #1d222c; color: white; font: var(--fs-text) var(--font); }
   #settingsMenu .setups button, .setupChip button { padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(143, 208, 255, 0.6);
-    background: rgba(143, 208, 255, 0.2); color: white; font: 12px sans-serif; cursor: pointer; }
+    background: rgba(143, 208, 255, 0.2); color: white; font: var(--fs-text) var(--font); cursor: pointer; }
   .setupChips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
   .setupChip { display: inline-flex; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.3); background: rgba(0, 0, 0, 0.55); }
   .setupChip button { border: none; border-radius: 0; background: transparent; }
   .setupChip button:hover { background: rgba(143, 208, 255, 0.35); }
   .setupChip .del { color: #ff9a8a; padding: 4px 7px; border-left: 1px solid rgba(255, 255, 255, 0.2); }
   .setupChip.on { border-color: #8fe3a8; background: rgba(63, 163, 91, 0.45); }
-  #setupBar { position: fixed; left: 70px; bottom: 112px; z-index: 12; display: none; max-width: 52vw; align-items: center; gap: 6px; color: white; font: 12px sans-serif; }
+  #setupBar { position: fixed; left: 70px; bottom: 112px; z-index: 12; display: none; max-width: 52vw; align-items: center; gap: 6px; color: white; font: var(--fs-text) var(--font); }
   #setupBar .label { opacity: 0.7; }
   body.touch #setupBar { left: 12px; bottom: 112px; }
   #settingsMenu .foot { display: flex; align-items: flex-end; gap: 10px; margin-top: 12px; padding-top: 10px;
     border-top: 1px solid rgba(255, 255, 255, 0.2); }
   #settingsMenu .foot #settingsVersion { flex: 1; margin: 0; padding: 0; border: none; }
   #settingsReset { flex: none; padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255, 140, 120, 0.6);
-    background: rgba(210, 60, 60, 0.25); color: white; font: bold 12px sans-serif; cursor: pointer; }
+    background: rgba(210, 60, 60, 0.25); color: white; font: bold var(--fs-text) var(--font); cursor: pointer; }
   #settingsReset:hover { background: rgba(210, 60, 60, 0.45); }
   body.touch #settingsMenu .desk { display: none; }
   body.touch #settingsMenu .panel { height: auto; min-height: 0; overflow: visible; }
@@ -587,22 +599,22 @@ const versionStyle = document.createElement('style');
 versionStyle.textContent = `
   #settingsMenu { max-height: calc(100vh - 90px); overflow-y: auto; touch-action: pan-y; }
   #settingsVersion { display: block; width: 100%; margin-top: 12px; padding: 10px 0 0; border: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.2); background: none; color: white; font: bold 12px sans-serif;
+    border-top: 1px solid rgba(255, 255, 255, 0.2); background: none; color: white; font: bold var(--fs-text) var(--font);
     text-align: left; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
   #versionHistory { position: fixed; inset: 0; z-index: 80; display: none; align-items: center; justify-content: center;
-    background: rgba(0, 0, 0, 0.55); font-family: sans-serif; }
+    background: rgba(0, 0, 0, 0.55); font-family: var(--font); }
   #versionHistory.on { display: flex; }
   #versionHistory .win { width: min(560px, calc(100% - 24px)); max-height: calc(100% - 24px); display: flex; flex-direction: column;
     box-sizing: border-box; padding: 14px 16px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.4);
     background: rgba(15, 18, 24, 0.97); color: white; }
-  #versionHistory .head { display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 16px;
+  #versionHistory .head { display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: var(--fs-h2);
     margin-bottom: 10px; }
   #versionHistory .close { width: 34px; height: 34px; padding: 0; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.4);
-    background: rgba(255, 255, 255, 0.08); color: white; font-size: 18px; cursor: pointer; }
+    background: rgba(255, 255, 255, 0.08); color: white; font-size: var(--fs-h2); cursor: pointer; }
   #versionHistory ol { list-style: none; margin: 0; padding: 0; overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
-  #versionHistory li { padding: 8px 0; border-top: 1px solid rgba(255, 255, 255, 0.12); font-size: 13px; line-height: 1.4; }
+  #versionHistory li { padding: 8px 0; border-top: 1px solid rgba(255, 255, 255, 0.12); font-size: var(--fs-text); line-height: 1.4; }
   #versionHistory li .v { font-weight: bold; margin-right: 6px; }
-  #versionHistory li .d { opacity: 0.55; font-size: 11px; }
+  #versionHistory li .d { opacity: 0.55; font-size: var(--fs-small); }
   #versionHistory li .t { display: block; opacity: 0.88; margin-top: 2px; }
 `;
 document.head.appendChild(versionStyle);

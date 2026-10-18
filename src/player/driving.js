@@ -760,7 +760,7 @@ let playerCarMarker = null;
 function markPlayerCar(car) {
   playerCarMarker = new THREE.Mesh(
     new THREE.OctahedronGeometry(0.45, 0),
-    new THREE.MeshBasicMaterial({ color: 0x4ff0e0 }),
+    new THREE.MeshBasicMaterial({ color: DESIGN.color.car }),
   );
   playerCarMarker.scale.y = 1.4;
   car.mesh.add(playerCarMarker);
@@ -822,9 +822,9 @@ let speedoShown = -1;
 const trunkHud = document.createElement('div');
 trunkHud.id = 'trunkHud';
 trunkHud.title = 'Канистры в багажнике: G — залить (на остановке)';
-trunkHud.style.cssText = 'position:absolute;bottom:14px;left:276px;z-index:10;display:none;align-items:center;gap:6px;color:#fff;font:15px sans-serif;' +
+trunkHud.style.cssText = 'position:absolute;bottom:14px;left:276px;z-index:10;display:none;align-items:center;gap:6px;color:#fff;font: var(--fs-h2) var(--font);' +
   'background:rgba(0,0,0,0.6);padding:8px 10px;border-radius:8px;pointer-events:none;';
-if (touchUI) trunkHud.style.cssText += 'left:auto;right:130px;bottom:70px;font-size:13px;padding:4px 8px;';
+if (touchUI) trunkHud.style.cssText += 'left:auto;right:130px;bottom:70px;font-size: var(--fs-text);padding:4px 8px;';
 document.body.appendChild(trunkHud);
 let trunkHudShown = -1;
 function updateFuelHud() {

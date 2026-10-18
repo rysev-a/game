@@ -10,24 +10,24 @@
   const css = document.createElement('style');
   css.textContent = `
     #carPick { position: absolute; inset: 0; z-index: 15; display: none; align-items: center; justify-content: center;
-      background: rgba(0,0,0,0.65); font-family: sans-serif; color: #fff; }
+      background: rgba(0,0,0,0.65); font-family: var(--font); color: #fff; }
     #carPick.on { display: flex; }
     #carPick .panel { width: min(680px, 94vw); max-height: 86vh; overflow-y: auto; box-sizing: border-box; padding: 16px 18px;
       border-radius: 10px; border: 1px solid rgba(255,255,255,0.4); background: rgba(10,14,20,0.97); }
-    #carPick h2 { margin: 0 0 4px; font-size: 20px; color: #8fd0ff; }
-    #carPick .sub { font-size: 13px; opacity: 0.75; margin-bottom: 10px; }
+    #carPick h2 { margin: 0 0 4px; font-size: var(--fs-h1); color: #8fd0ff; }
+    #carPick .sub { font-size: var(--fs-text); opacity: 0.75; margin-bottom: 10px; }
     #carPick .car { display: flex; gap: 10px; align-items: center; margin: 6px 0; padding: 8px 10px; border-radius: 8px;
       background: rgba(255,255,255,0.07); }
     #carPick .car .dot { width: 18px; height: 18px; border-radius: 50%; flex: none; }
-    #carPick .car .info { flex: 1; font-size: 13px; line-height: 1.35; }
-    #carPick .car b { font-size: 15px; }
+    #carPick .car .info { flex: 1; font-size: var(--fs-text); line-height: 1.35; }
+    #carPick .car b { font-size: var(--fs-h2); }
     #carPick button { padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.4); background: rgba(143,208,255,0.25);
-      color: #fff; cursor: pointer; font-size: 14px; }
+      color: #fff; cursor: pointer; font-size: var(--fs-text); }
     #carPick button.cancel { background: rgba(255,255,255,0.1); margin-top: 8px; }
     #practiceHud { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 12; display: none; text-align: center;
-      font: 13px/1.4 sans-serif; color: #fff; }
+      font: var(--fs-text)/1.4 var(--font); color: #fff; }
     #practiceHud button { padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.5); background: rgba(40,120,200,0.8);
-      color: #fff; font-size: 15px; cursor: pointer; }
+      color: #fff; font-size: var(--fs-h2); cursor: pointer; }
   `;
   document.head.appendChild(css);
 

@@ -12,65 +12,65 @@
   css.textContent = `
     #questGoal { display: none !important; position: absolute; top: 62px; left: 50%; transform: translateX(-50%); z-index: 10; max-width: min(420px, 92vw);
       box-sizing: border-box; padding: 5px 12px; border-radius: 8px; background: rgba(0, 0, 0, 0.5); color: white;
-      font: 13px/1.35 sans-serif; text-align: center; cursor: pointer; display: none; }
-    #questGoal .title { font-size: 11px; opacity: 0.65; }
+      font: var(--fs-text)/1.35 var(--font); text-align: center; cursor: pointer; display: none; }
+    #questGoal .title { font-size: var(--fs-small); opacity: 0.65; }
     #questGoal .dist { opacity: 0.7; }
     #questGoal:hover { background: rgba(40, 40, 40, 0.7); }
     #journal { position: fixed; inset: 0; z-index: 70; display: none; align-items: center; justify-content: center;
-      background: rgba(0, 0, 0, 0.55); font-family: sans-serif; }
+      background: rgba(0, 0, 0, 0.55); font-family: var(--font); }
     #journal.on { display: flex; }
     .phoneShell { position: relative; width: min(440px, calc(100% - 16px)); height: min(900px, calc(100% - 16px)); display: flex; flex-direction: column;
       box-sizing: border-box; padding: 8px; border-radius: 40px; border: 2px solid #3a3f4a; background: #12151b; color: white;
       box-shadow: 0 18px 60px rgba(0, 0, 0, 0.7), inset 0 0 0 2px #05070a; }
     .phoneScreen { position: relative; flex: 1; display: flex; flex-direction: column; min-height: 0; border-radius: 32px; overflow: hidden;
       background: linear-gradient(180deg, #0d141f, #080c13); }
-    .phoneStatus { display: flex; align-items: center; justify-content: space-between; padding: 9px 22px 4px; font-size: 12px; font-weight: bold; }
+    .phoneStatus { display: flex; align-items: center; justify-content: space-between; padding: 9px 22px 4px; font-size: var(--fs-text); font-weight: bold; }
     .phoneNotch { position: absolute; top: 7px; left: 50%; transform: translateX(-50%); width: 84px; height: 18px; border-radius: 10px; background: #000; }
     .phoneHome { align-self: center; width: 110px; height: 4px; margin: 6px 0 7px; border-radius: 3px; background: rgba(255, 255, 255, 0.45); }
     #journal .head { display: flex; align-items: center; gap: 6px; padding: 8px 14px 8px; }
-    #journal .head .name { font-weight: bold; font-size: 18px; margin-right: auto; }
+    #journal .head .name { font-weight: bold; font-size: var(--fs-h2); margin-right: auto; }
     #journal .close { width: 30px; height: 30px; padding: 0; border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.3);
-      background: rgba(255, 255, 255, 0.08); color: white; font-size: 15px; cursor: pointer; }
+      background: rgba(255, 255, 255, 0.08); color: white; font-size: var(--fs-h2); cursor: pointer; }
     #journal .body { flex: 1; overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch; padding: 0 12px 6px; }
     #journal .dock { display: flex; border-top: 1px solid rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.04); }
-    #journal .tab { flex: 1; padding: 7px 0 5px; border: 0; background: none; color: rgba(255, 255, 255, 0.55); font: 10px sans-serif; cursor: pointer; }
-    #journal .tab .ico { display: block; font-size: 19px; line-height: 1.2; }
-    #journal .tab.on { color: #8fd0ff; background: rgba(143, 208, 255, 0.1); }
+    #journal .tab { flex: 1; padding: 7px 0 5px; border: 0; background: none; color: rgba(255, 255, 255, 0.55); font: var(--fs-small) var(--font); cursor: pointer; }
+    #journal .tab .ico { display: block; font-size: var(--fs-h1); line-height: 1.2; }
+    #journal .tab.on { color: var(--c-accent); background: rgba(143, 208, 255, 0.1); }
     #journal .card { padding: 10px 12px; margin-bottom: 10px; border-radius: 14px; background: rgba(255, 255, 255, 0.07); }
-    #journal .card h3 { margin: 0 0 2px; font-size: 15px; color: #8fd0ff; }
-    #journal .card .goal { font-size: 13px; opacity: 0.85; margin-bottom: 6px; }
-    #journal .step { font-size: 14px; padding: 2px 0; }
+    #journal .card h3 { margin: 0 0 2px; font-size: var(--fs-h2); color: var(--c-accent); }
+    #journal .card .goal { font-size: var(--fs-text); opacity: 0.85; margin-bottom: 6px; }
+    #journal .step { font-size: var(--fs-text); padding: 2px 0; }
     #journal .step.done { opacity: 0.6; }
-    #journal .step .hint { display: block; font-size: 12px; opacity: 0.6; margin-left: 20px; }
-    #journal .meta { font-size: 12px; opacity: 0.6; margin-top: 6px; }
+    #journal .step .hint { display: block; font-size: var(--fs-text); opacity: 0.6; margin-left: 20px; }
+    #journal .meta { font-size: var(--fs-text); opacity: 0.6; margin-top: 6px; }
     #journal .track { margin-left: 6px; padding: 1px 7px; border-radius: 9px; border: 1px solid rgba(255, 216, 74, 0.7);
-      background: none; color: #ffd84a; font-size: 11px; cursor: pointer; }
-    #journal .row { padding: 8px 10px; margin-bottom: 6px; border-radius: 12px; background: rgba(255, 255, 255, 0.06); font-size: 14px; line-height: 1.45; }
-    #journal .row .when { display: block; font-size: 11px; opacity: 0.55; }
-    #journal .empty { opacity: 0.55; font-size: 14px; padding: 8px 0; }
-    #phoneCall { position: fixed; inset: 0; z-index: 80; display: none; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.6); font-family: sans-serif; }
+      background: none; color: var(--c-warm); font-size: var(--fs-small); cursor: pointer; }
+    #journal .row { padding: 8px 10px; margin-bottom: 6px; border-radius: 12px; background: rgba(255, 255, 255, 0.06); font-size: var(--fs-text); line-height: 1.45; }
+    #journal .row .when { display: block; font-size: var(--fs-small); opacity: 0.55; }
+    #journal .empty { opacity: 0.55; font-size: var(--fs-text); padding: 8px 0; }
+    #phoneCall { position: fixed; inset: 0; z-index: 80; display: none; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.6); font-family: var(--font); }
     #phoneCall.on { display: flex; }
     #phoneCall .phoneShell { animation: phoneShake 0.9s infinite; height: min(560px, calc(100% - 24px)); width: min(360px, calc(100% - 16px)); }
     #phoneCall .callScreen { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 70px 20px 24px; text-align: center; }
-    #phoneCall .avatar { width: 96px; height: 96px; border-radius: 48px; display: flex; align-items: center; justify-content: center; font-size: 44px;
+    #phoneCall .avatar { width: 96px; height: 96px; border-radius: 48px; display: flex; align-items: center; justify-content: center; font-size: var(--fs-display);
       background: linear-gradient(135deg, #3a7bd5, #2a3d66); box-shadow: 0 0 0 0 rgba(143, 208, 255, 0.6); animation: phonePulse 1.4s infinite; }
-    #phoneCall .who { margin-top: 16px; font-size: 26px; font-weight: bold; }
-    #phoneCall .sub { margin-top: 4px; opacity: 0.65; font-size: 14px; }
-    #phoneCall .answer { margin-top: auto; width: 72px; height: 72px; border-radius: 36px; border: 0; background: #2fbf5f; color: white; font-size: 32px; cursor: pointer; }
-    #phoneCall .hint { margin-top: 10px; font-size: 12px; opacity: 0.6; }
+    #phoneCall .who { margin-top: 16px; font-size: var(--fs-display); font-weight: bold; }
+    #phoneCall .sub { margin-top: 4px; opacity: 0.65; font-size: var(--fs-text); }
+    #phoneCall .answer { margin-top: auto; width: 72px; height: 72px; border-radius: 36px; border: 0; background: #2fbf5f; color: white; font-size: var(--fs-display); cursor: pointer; }
+    #phoneCall .hint { margin-top: 10px; font-size: var(--fs-text); opacity: 0.6; }
     #journal .appGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 4px; }
     #journal .app { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 4px 10px; border: 0; border-radius: 18px;
-      background: rgba(255, 255, 255, 0.07); color: white; font: 12px sans-serif; cursor: pointer; }
+      background: rgba(255, 255, 255, 0.07); color: white; font: var(--fs-text) var(--font); cursor: pointer; }
     #journal .app:hover { background: rgba(143, 208, 255, 0.16); }
-    #journal .app .ico { font-size: 34px; line-height: 1.1; }
-    #journal .app.hot { box-shadow: 0 0 0 2px #ffd84a; animation: phonePulse 1.4s infinite; }
-    #journal .sect { margin: 10px 2px 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.55; }
-    #journal .bubble { max-width: 86%; margin: 0 0 8px; padding: 8px 11px; border-radius: 16px 16px 16px 4px; background: rgba(255, 255, 255, 0.1); font-size: 14px; line-height: 1.4; }
-    #journal .bubble small { display: block; font-size: 10px; opacity: 0.55; margin-bottom: 2px; }
+    #journal .app .ico { font-size: var(--fs-display); line-height: 1.1; }
+    #journal .app.hot { box-shadow: 0 0 0 2px var(--c-warm); animation: phonePulse 1.4s infinite; }
+    #journal .sect { margin: 10px 2px 6px; font-size: var(--fs-text); text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.55; }
+    #journal .bubble { max-width: 86%; margin: 0 0 8px; padding: 8px 11px; border-radius: 16px 16px 16px 4px; background: rgba(255, 255, 255, 0.1); font-size: var(--fs-text); line-height: 1.4; }
+    #journal .bubble small { display: block; font-size: var(--fs-small); opacity: 0.55; margin-bottom: 2px; }
     #journal .bubble.me { margin-left: auto; border-radius: 16px 16px 4px 16px; background: rgba(60, 130, 220, 0.45); }
-    #journal .bigBtn { display: block; width: 100%; margin: 8px 0; padding: 12px; border: 0; border-radius: 14px; background: #2f7fd5; color: white; font: bold 15px sans-serif; cursor: pointer; }
-    #journal .bigTimer { font: bold 54px/1.1 sans-serif; text-align: center; font-variant-numeric: tabular-nums; padding: 10px 0; }
-    #journal .bigTimer.low { color: #ff6b5b; }
+    #journal .bigBtn { display: block; width: 100%; margin: 8px 0; padding: 12px; border: 0; border-radius: 14px; background: #2f7fd5; color: white; font: bold var(--fs-h2) var(--font); cursor: pointer; }
+    #journal .bigTimer { font: bold calc(var(--fs-display) * 2)/1.1 var(--font); text-align: center; font-variant-numeric: tabular-nums; padding: 10px 0; }
+    #journal .bigTimer.low { color: var(--c-danger); }
     #phoneBtnWrap { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; pointer-events: auto; }
     #phoneBtn { position: relative; width: 44px; height: 44px; padding: 0; border: 2px solid rgba(255, 255, 255, 0.55); border-radius: 10px; background: rgba(20, 24, 32, 0.8); cursor: pointer; display: none; align-items: center; justify-content: center; }
     #phoneBtn:hover { background: rgba(40, 60, 90, 0.9); }

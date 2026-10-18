@@ -11,7 +11,7 @@
   const css = document.createElement('style');
   css.textContent = `
     #questTimer { margin: 0; padding: 4px 12px; border-radius: 8px; background: rgba(0,0,0,0.45); color: #fff;
-      font: bold 20px/1.2 sans-serif; display: none; font-variant-numeric: tabular-nums; pointer-events: none; text-align: center; }
+      font: bold var(--fs-h1)/1.2 var(--font); display: none; font-variant-numeric: tabular-nums; pointer-events: none; text-align: center; }
     #questTimer small { display: none; }
     #questTimer.low { background: rgba(160,20,20,0.8); }
   `;

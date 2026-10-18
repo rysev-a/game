@@ -640,7 +640,7 @@ const equipHudStyle = document.createElement('style');
 equipHudStyle.textContent = `
 #equipHud { position:fixed; left:50%; bottom:10px; transform:translateX(-50%); z-index:12; display:flex;
   align-items:center; gap:10px; padding:6px 10px; background:rgba(10,14,20,0.62);
-  border:1px solid rgba(255,255,255,0.3); border-radius:8px; font:13px sans-serif; color:#fff; user-select:none; }
+  border:1px solid rgba(255,255,255,0.3); border-radius:8px; font: var(--fs-text) var(--font); color:#fff; user-select:none; }
 #equipHud .px, #equipPanel .px { width:28px; height:28px; image-rendering:pixelated; pointer-events:none; }
 #equipHud .stat { display:flex; align-items:center; gap:6px; }
 #equipHud .stat .px { width:22px; height:22px; }
@@ -656,13 +656,13 @@ equipHudStyle.textContent = `
 #equipHud .slot.active, #equipPanel .slot.active { border-color:#ffd84a; }
 #equipHud .slot.active.drawn, #equipPanel .slot.active.drawn { background:rgba(255,216,74,0.25); }
 #equipHud .slot.armed, #equipPanel .slot.armed { border-color:#4ee6ff; background:rgba(78,230,255,0.22); }
-#equipHud .slot .key, #equipPanel .slot .key { position:absolute; left:3px; top:1px; font:bold 9px sans-serif; opacity:0.55; pointer-events:none; }
+#equipHud .slot .key, #equipPanel .slot .key { position:absolute; left:3px; top:1px; font: bold var(--fs-small) var(--font); opacity:0.55; pointer-events:none; }
 #equipPanel { display:none; flex-direction:column; gap:6px; padding:8px; border:1px solid rgba(255,255,255,0.3); border-radius:8px;
-  background:rgba(10,14,20,0.62); color:#fff; font:12px sans-serif; user-select:none; }
+  background:rgba(10,14,20,0.62); color:#fff; font: var(--fs-text) var(--font); user-select:none; }
 #equipPanel.on { display:flex; }
-#equipPanel .label { font-size:11px; opacity:0.7; margin-top:2px; }
+#equipPanel .label { font-size: var(--fs-small); opacity:0.7; margin-top:2px; }
 #equipPanel .row { display:grid; grid-template-columns:repeat(4, 40px); gap:4px; }
-#equipPanel .defense { font-size:11px; opacity:0.8; }
+#equipPanel .defense { font-size: var(--fs-small); opacity:0.8; }
 .dropZone.canDrop { border-color:rgba(120,220,255,0.75) !important; }
 .dropZone.over { background:rgba(120,220,255,0.3) !important; }
 .dragging { opacity:0.4; }
