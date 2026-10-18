@@ -9,7 +9,7 @@ const vm = require('node:vm');
 
 const root = path.join(__dirname, '..');
 const src = fs.readFileSync(path.join(root, 'src/world/highway-path.js'), 'utf8');
-const hw = vm.runInNewContext(src + '\n({ highwaySections, highwayChaseXs, highwayMinRadius, highwaySlopeMax, highwayZ, highwayY, highwayHalfWidth, highwayLength })');
+const hw = vm.runInNewContext(src + '\n({ highwaySections, highwayChaseXs, highwayMinRadius, highwaySlopeMax, highwayZ, highwayY, highwayHalfWidth, highwayVerge, highwayLength })');
 const { highwaySections: sections, highwayZ: z, highwayY: y } = hw;
 
 // Что привязано к трассе: [название, x1, x2] — на этих участках z = 0 и высота 0
@@ -53,7 +53,7 @@ test('кривая начинается и кончается плавно: z = 
   }
 });
 
-test('x растет вдоль всего пути, радиус дуг не меньше 32, повороты есть в обе стороны', () => {
+test('x растет вдоль всего пути, радиус дуг не меньше 55, дорога заметно отклоняется от оси', () => {
   for (const s of sections) {
     let minR = Infinity;
     let zMin = 0;
@@ -68,13 +68,13 @@ test('x растет вдоль всего пути, радиус дуг не м
       zMin = Math.min(zMin, p[i].z);
       zMax = Math.max(zMax, p[i].z);
     }
-    assert.ok(minR >= 32, s.x1 + ': минимальный радиус ' + minR.toFixed(1));
-    assert.ok(zMin < -8 && zMax > 8, s.x1 + ': S-образные повороты: отклонения ' + zMin.toFixed(1) + '…' + zMax.toFixed(1));
+    assert.ok(minR >= 55, s.x1 + ': минимальный радиус ' + minR.toFixed(1));
+    assert.ok(Math.max(-zMin, zMax) > 15, s.x1 + ': кривая должна отклоняться от оси: ' + zMin.toFixed(1) + '…' + zMax.toFixed(1));
     assert.ok(Math.abs(zMin) < 60 && zMax < 60, 'кривая не уходит далеко от оси');
   }
 });
 
-test('холмы: высота до 6,5, уклон не круче 0,12', () => {
+test('холмы: высота до 4, уклон не круче 0,07', () => {
   let top = 0;
   let steepest = 0;
   for (const s of sections) {
@@ -83,8 +83,8 @@ test('холмы: высота до 6,5, уклон не круче 0,12', () =>
       steepest = Math.max(steepest, Math.abs(y(x + 0.5) - y(x)) / 0.5);
     }
   }
-  assert.ok(top >= 5.5 && top <= 6.5001, 'высота ' + top);
-  assert.ok(steepest <= 0.12, 'уклон ' + steepest);
+  assert.ok(top >= 3.5 && top <= 4.0001, 'высота ' + top);
+  assert.ok(steepest <= 0.07, 'уклон ' + steepest);
 });
 
 test('дорога к городам 3–6 входит в трассу на нулевой высоте: x = −882 и −432', () => {
@@ -105,17 +105,21 @@ test('заграждения погони: пять, стоят на земле 
   }
 });
 
-test('дорога уже обычной (7), но не уже 6; путь заметно длиннее прямой', () => {
+test('полотно широкое: полуширина 7,5 на кривой, обычная на концах и у заграждений; обочина сходит на нет вместе с ним', () => {
   for (const s of sections) {
-    for (let x = s.x1 + 1; x < s.x2; x += 5) {
-      const w = 2 * hw.highwayHalfWidth(x);
-      assert.ok(w >= 6.1 && w <= 7.0001, 'ширина ' + w);
-    }
-    assert.ok(s.length > (s.x2 - s.x1) * 1.15, s.x1 + ': длина ' + s.length);
+    assert.ok(Math.abs(hw.highwayHalfWidth(s.x1 + 0.01) - 3.5) < 0.01 && Math.abs(hw.highwayHalfWidth(s.x2 - 0.01) - 3.5) < 0.01);
+    assert.equal(hw.highwayVerge(s.x1 + 0.01) < 0.01, true);
+    let widest = 0;
+    for (let x = s.x1 + 1; x < s.x2; x += 1) widest = Math.max(widest, hw.highwayHalfWidth(x));
+    assert.ok(widest >= 7.4 && widest <= 7.51, s.x1 + ': самое широкое место ' + widest);
   }
-  const home = -1304;
-  const len = 18 + hw.highwayLength(home, 350);
-  assert.ok(len > 1750 && len < 1900, 'длина пути от дома до моста ' + len);
+  for (const x of hw.highwayChaseXs) assert.ok(hw.highwayHalfWidth(x) <= 3.51, 'у заграждения полуширина ' + hw.highwayHalfWidth(x));
+});
+
+test('путь от дома до моста 1700–1800 (не короче: таймеры квестов считаны по нему)', () => {
+  for (const s of sections) assert.ok(s.length > s.x2 - s.x1, s.x1 + ': длина ' + s.length);
+  const len = 18 + hw.highwayLength(-1304, 350);
+  assert.ok(len > 1700 && len < 1800, 'длина пути от дома до моста ' + len);
 });
 
 test('index.html подключает ось до поселка, а кусты и меши трассы — до world.js, внутри блока мира', () => {
