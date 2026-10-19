@@ -54,7 +54,7 @@ const ITEMS = {
   mg_spring: { name: 'Возвратная пружина', icon: 'spring', desc: 'Пружина для пулемета.' },
   rc_remote: { name: 'Пульт вертолетика', icon: 'phone', desc: 'Пульт радиоуправляемого вертолетика с камерой. Влезает в карман.' },
   chips: { name: 'Микрочипы киборгов', icon: 'chip', desc: 'Платы из киборгов с яхты: на каждой серийный номер лаборатории. Из таких микросхем можно собирать приборы.' },
-  backpack: { name: 'Бесконечный рюкзак', icon: 'backpack', desc: 'Супер-предмет Веры: внутри он бездонный, влезает сколько угодно вещей.' },
+  backpack: { name: 'Бесконечный рюкзак', icon: 'backpack', desc: 'Супер-предмет Веры: голубой рюкзак с бездонным нутром. Влезает сколько угодно вещей, и всё это ничего не весит.' },
 };
 
 // Надеваемые приборы (браслет) тоже лежат в инвентаре, пока их не надели
@@ -97,7 +97,27 @@ function openCells() {
   return Math.max(inventory.rows * c, (Math.ceil(n / c) + 1) * c);
 }
 
+// Голубой рюкзак виден на спине героя, пока лежит в инвентаре (в том числе после загрузки сохранения)
+function syncBackpackOnBack() {
+  let hero = null;
+  try {
+    hero = player; // герой создается позже инвентаря: до этого момента переменной еще нет
+  } catch (e) {
+    return;
+  }
+  if (!hero || !hero.attach || typeof createBackpackModel !== 'function') return;
+  const worn = !!hero.userData.backpackMesh;
+  if (hasBackpack() && !worn) hero.userData.backpackMesh = hero.attach('back', createBackpackModel());
+  else if (!hasBackpack() && worn) {
+    const m = hero.userData.backpackMesh;
+    if (m.parent) m.parent.remove(m);
+    hero.userData.rig.attached = hero.userData.rig.attached.filter(([, o]) => o !== m);
+    hero.userData.backpackMesh = null;
+  }
+}
+
 function renderInventory() {
+  syncBackpackOnBack();
   if (typeof renderEquipPanel === 'function') renderEquipPanel(); // панель снаряжения справа видна, пока инвентарь раскрыт
   inventoryEl.innerHTML = '';
   inventoryEl.className = inventoryOpen ? 'open' : 'closed';

@@ -124,7 +124,7 @@ defineBuilding('treehouse', {
       };
       const takeBackpack = () => {
         if (!addItem('backpack')) return;
-        showToast('Бесконечный рюкзак! Теперь с собой можно носить сколько угодно вещей.', 4500);
+        showToast('Бесконечный рюкзак! Он бездонный: влезает сколько угодно вещей, и они ничего не весят.', 4500);
       };
       addPickable({ id: 'backpack', mesh: backpack, canPick: () => !hasItem('backpack'), pick: takeBackpack });
       // Рядом с рюкзаком — супер-браслет Веры (без него сохранений нет); взять — надеть на руку

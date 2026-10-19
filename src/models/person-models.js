@@ -103,6 +103,12 @@ function attachPersonModel(man, type) {
     const boneFor = (slot) => (slot === 'wristL' ? bones.L : bones.R);
     const baseAttach = man.attach;
     man.attach = function (slot, obj) {
+      if (slot === 'back') {
+        // Рюкзак — на корпус всей модели (процедурное тело скрыто): за спину примерно на уровне лопаток
+        obj.position.set(0, 1.28, 0.2);
+        man.add(obj);
+        return obj;
+      }
       const bone = boneFor(slot);
       if (!bone) return baseAttach(slot, obj);
       bone.add(obj);

@@ -110,7 +110,7 @@ const PIXEL_ART = {
     ],
   },
   backpack: {
-    palette: { k: '#2a1a10', B: '#7a4fc4', b: '#5a3796', s: '#c9a86a', g: '#7affd8' },
+    palette: { k: '#14344f', B: '#4fa8e8', b: '#2f78b8', s: '#c9a86a', g: '#bff0ff' },
     rows: [
       '....kkkk....',
       '...ks..sk...',

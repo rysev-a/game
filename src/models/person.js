@@ -17,6 +17,7 @@
 //   man.attach('wristL', mesh);     // надеть вещь на левое запястье (браслет), качается с рукой
 //   man.attach('handR', gun);       // вложить оружие в правую руку: ствол (-Z модели) идет вдоль руки
 //   man.setAim(true);               // правая рука вытянута вперед (держит оружие); setAim(false) — опустить
+//   man.attach('back', createBackpackModel()); // рюкзак за спиной
 //   man.attach('rifle', gun);       // винтовка у груди: приклад у правого плеча, ствол (-Z модели) вперед
 //   man.setAim('rifle');            // хват как у солдата: корпус левым плечом вперед, приклад в плече,
 //                                   // правая — на рукояти со спуском, левая держит ствол
@@ -881,6 +882,11 @@ function createWalkingMan(options = {}) {
     if (slot === 'rifle') {
       obj.position.fromArray(toBody(RIFLE_AT));
       obj.rotation.y = -RIFLE_YAW; // корпус развернут, а ствол смотрит прямо вперед
+      body.add(obj);
+      return obj;
+    }
+    if (slot === 'back') {
+      obj.position.set(0, 1.28, 0.2); // рюкзак на спине, лямки к лопаткам
       body.add(obj);
       return obj;
     }
