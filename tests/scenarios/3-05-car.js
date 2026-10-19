@@ -14,9 +14,8 @@ defineScenario('3.05', {
     { do: [{ give: 'weather' }], expect: 'done:3.06' },
     { zone: 'none' },
     { action: '3.05/practice' }, // тренировка: открывается выбор машины (у хоста)
-    { action: '3.05/sleep', expectNot: 'step:3.05.morning' }, // до 07:30: на треке еще рано
-    { at: 'track.start', expect: ['dayssince:deal>=1', '!step:3.05.morning'] },
-    { wait: '40m', expect: ['step:3.05.morning', 'quest:3.05', 'weather:sun'] }, // восемь часов утра: прибор разогнал тучи
+    { action: '3.05/sleep', expectNot: 'step:3.05.morning' }, // «переждать до утра»: стало 08:00, но герой еще не на треке
+    { at: 'track.start', expect: ['dayssince:deal>=1', 'step:3.05.morning', 'quest:3.05', 'weather:sun'] }, // восемь утра, он на треке: прибор разогнал тучи
     { drive: true },
     ...raceSteps,
     { at: 'track.start', expect: ['count:cp>=9', 'step:3.05.race'] },
