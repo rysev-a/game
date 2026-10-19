@@ -13,8 +13,8 @@
 
 const mmInfoEl = document.getElementById('mmInfo');
 const travelFadeEl = document.getElementById('travelFade');
-const mmDefaultInfo = 'Клик — переместиться · колесо — масштаб · зажатое колесико — двигать карту';
-let mmInfoShown = '';
+const mmDefaultInfo = ''; // подсказки про клик по карте убраны: как перемещаться, объяснит окно телепорта, когда герой его получит
+let mmInfoShown = null;
 
 const travelFootSpeed = () => playerSpeed * 60; // юнитов в секунду, как при обычной ходьбе
 const travelCarSpeed = () => carMaxSpeed * 60 * 0.8; // в среднем чуть медленнее максимальной
@@ -236,5 +236,6 @@ function updateTravelHud() {
   if (text !== mmInfoShown) {
     mmInfoShown = text;
     mmInfoEl.textContent = text;
+    mmInfoEl.style.display = text ? '' : 'none'; // пустая строка под картой не рисуется
   }
 }

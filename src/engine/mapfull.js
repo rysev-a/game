@@ -67,9 +67,7 @@ document.body.appendChild(mapFullEl);
 const mapFullCanvas = mapFullEl.querySelector('canvas');
 const mapFullCtx = mapFullCanvas.getContext('2d');
 const mapFullInfo = mapFullEl.querySelector('.info');
-const mapFullHint = touchUI
-  ? 'Коснитесь точки — переместиться, здания — что это. Двумя пальцами — масштаб и поворот'
-  : 'Клик — переместиться, наведите на здание — что это. Колесо — масштаб, правая кнопка — поворот';
+const mapFullHint = ''; // подсказок под картой нет: про перемещение по карте расскажет окно телепорта, когда герой его получит
 
 function mapFullToMe() {
   mapFull.cx = playerWorldX;
@@ -293,6 +291,7 @@ function drawMapFull() {
   if (key === mapFullInfoShown) return;
   mapFullInfoShown = key;
   mapFullInfo.classList.toggle('hint', !h);
+  mapFullInfo.style.display = h || mapFullHint ? '' : 'none';
   if (!h) {
     mapFullInfo.textContent = mapFullHint;
     return;
