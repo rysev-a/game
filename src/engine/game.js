@@ -37,8 +37,11 @@ function animate(now = performance.now()) {
   requestAnimationFrame(animate);
   if (now - lastTick < frameMs - 1) return;
   lastTick = Math.max(lastTick + frameMs, now - frameMs);
-  // Окно супер-предмета (src/quests/supers-ui.js): время остановлено, мир замер, рисуется только последний кадр
+  // Окно супер-предмета или меню настроек (src/quests/supers-ui.js): время остановлено, мир замер, рисуется только последний кадр.
+  // Звук и мышь живут: в настройках слышно, как меняется громкость, и мышь отпускается
   if (typeof gameFrozen === 'function' && gameFrozen()) {
+    updateMouseLook();
+    updateSound();
     renderer.render(scene, camera);
     return;
   }

@@ -9,7 +9,8 @@
 // и растягивается без сглаживания (CSS image-rendering: pixelated). Оружие и прочие вещи рисуются из значков инвентаря (PIXEL_ART), вдвое крупнее.
 
 let questSuperOpen = false;
-const gameFrozen = () => questSuperOpen; // главный цикл (src/engine/game.js) на это время не двигает мир
+// Мир замирает, пока открыто окно супер-предмета или меню настроек (Esc, O): время не идет, люди и машины стоят, таймеры квестов тоже
+const gameFrozen = () => questSuperOpen || (typeof settingsOpen !== 'undefined' && settingsOpen); // главный цикл (src/engine/game.js) на это время не двигает мир
 
 (function () {
   const g = questGame;
