@@ -883,10 +883,7 @@ function carSpeedKmh(car) {
   return Math.min(1200, Math.round(Math.abs(car.speed) * kmhPerSpeed));
 }
 const speedoEl = document.getElementById('speedo');
-// Кнопка «⛽∞» (бесконечный бензин) рядом со спидометром; то же — галочка в настройках
-const infFuelBtn = document.getElementById('infFuel');
-infFuelBtn.addEventListener('click', () => setSetting('infiniteFuel', !settings.infiniteFuel));
-infFuelBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+// Бесконечный бензин (settings.infiniteFuel) включается галочкой в окне отладки (src/quests/debug.js)
 const speedoValue = document.getElementById('speedoValue');
 let speedoShown = -1;
 // Багажник: число канистр рядом с указателем топлива (появляется, когда в багажнике что-то есть)
@@ -905,8 +902,6 @@ function updateFuelHud() {
   }
   fuelEl.style.display = drivingCar ? 'flex' : 'none';
   speedoEl.style.display = drivingCar ? 'flex' : 'none';
-  infFuelBtn.style.display = drivingCar ? 'block' : 'none';
-  infFuelBtn.classList.toggle('on', settings.infiniteFuel);
   if (!drivingCar) return;
   speedoValue.style.color = nitroActive ? ['', '#ffb347', '#ff7a2f', '#ff3b2f'][nitroLevel] || '#ff3b2f' : ''; // нитро — спидометр оранжевый, с каждой ступенью краснее
   const kmh = carSpeedKmh(drivingCar);

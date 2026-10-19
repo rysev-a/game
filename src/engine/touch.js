@@ -109,7 +109,6 @@ if (touchUI) {
     body.touch #infoPanel #ipName { font-size: var(--fs-text); letter-spacing: 0; }
     body.touch #infoPanel.empty, body.touch.armed #infoPanel { display: none; }
     body.touch #fuel { bottom: 34px; left: 12px; font-size: var(--fs-text); padding: 4px 8px; }
-    body.touch #infFuel { bottom: 70px; left: 12px; font-size: var(--fs-text); padding: 3px 8px; }
     body.touch #speedo { display: none !important; } /* на телефоне скорость — над педалями (touch-drive.js) */
     /* Разговор на телефоне — на весь экран, ответы — крупные кнопки; без ответов — коснуться, чтобы продолжить */
     body.touch #dialogue {

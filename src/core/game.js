@@ -263,7 +263,7 @@
       for (const { key, def } of timerList()) {
         const total = Core.parseDuration(def.limit);
         if (t[key] === undefined) {
-          t[key] = now + total;
+          t[key] = now + total + (host.timerBonus ? host.timerBonus() : 0); // отладка: +1 минута (src/quests/debug.js)
           game.bump();
         }
         if (t[key] < 0) continue; // уже сработал

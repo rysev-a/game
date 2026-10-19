@@ -78,6 +78,7 @@
       'src/quests/supers-ui.js',
       'src/quests/puzzle-ui.js',
       'src/quests/shop-ui.js',
+      'src/quests/debug.js',
       'src/quests/transit.js',
       'src/quests/start.js',
     ],

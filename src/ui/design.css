@@ -85,7 +85,6 @@ body #clock,
 body #prompt,
 body #fuel,
 body #speedo,
-body #infFuel,
 body #fullscreenBtn,
 body #settingsBtn,
 body #questTimer,
@@ -103,7 +102,6 @@ body .invCell {
 /* Кнопки и ячейки: одинаково реагируют на наведение */
 body #fullscreenBtn,
 body #settingsBtn,
-body #infFuel,
 body #phoneBtn,
 body #equipHud .slot,
 body .invCell,
@@ -113,7 +111,6 @@ body #settingsMenu .tabs button {
 }
 body #fullscreenBtn:hover,
 body #settingsBtn:hover,
-body #infFuel:hover,
 body #phoneBtn:hover {
   background: var(--c-bg-hover);
   border-color: var(--c-accent);

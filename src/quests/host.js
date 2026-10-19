@@ -138,6 +138,7 @@ const questHost = {
   },
   // Телефон (журнал) не останавливает время: пока он открыт, таймеры квестов идут (questPhoneOpen, src/quests/journal-ui.js); разговор, магазин и головоломка по-прежнему ставят на паузу
   paused: () => (dialogueOpen && !(typeof questPhoneOpen !== 'undefined' && questPhoneOpen)) || settingsOpen || questCallOpen || (typeof mainMenuOpen !== 'undefined' && mainMenuOpen) || (typeof introActive !== 'undefined' && introActive) || (typeof questSuperOpen !== 'undefined' && questSuperOpen), // в разговоре, журнале, головоломке и меню таймеры стоят
+  timerBonus: () => (settings.timerPlus ? 60 : 0), // отладочная галочка «+1 минута к таймеру»
   elixir: () => heroStats.elixir,
   advanceTime: (min) => {
     advanceGameTime(min);
