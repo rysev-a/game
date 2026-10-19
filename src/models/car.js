@@ -63,7 +63,7 @@ function buildAlmeraBody(body, o, part, edgeMat) {
   // Нижняя часть: перед и капот, пояс по бокам, палуба багажника и зад
   extrude(
     [
-      P(246, 24), P(248, 48), P(245, 70), P(233, 86), P(209, 92), P(185, 97), P(149, 103), P(113, 108), P(101, 110), // перед и капот до основания лобового
+      P(257, 26), P(263, 40), P(262, 55), P(253, 70), P(237, 81), P(210, 90), P(185, 96), P(149, 103), P(113, 108), P(101, 110), // длинный скругленный нос, капот плавно вверх до основания лобового
       P(60, 109), P(-140, 111), P(-175, 121), P(-199, 124), P(-235, 121), P(-261, 118), P(-271, 109), // пояс, палуба багажника
       P(-276, 80), P(-277, 44), P(-270, 24), // зад
     ],
@@ -93,15 +93,20 @@ function buildAlmeraBody(body, o, part, edgeMat) {
     for (const zm of [20, -88]) put(basic(0.014, 0.025, 0.16, chrome), sx * 0.814, Yg(106), Zg(zm));
   }
 
-  // Перед: решетка со значком, большие фары на крыльях, туманки, воздухозаборник
-  put(basic(0.95, 0.2, 0.05, black), 0, Yg(64), Zg(247));
-  put(basic(0.9, 0.05, 0.05, chrome), 0, Yg(70), Zg(248));
-  put(basic(0.14, 0.14, 0.05, chrome), 0, Yg(66), Zg(250)); // значок
-  put(basic(1.2, 0.13, 0.05, black), 0, Yg(40), Zg(246));
+  // Перед (по обложке меню): длинный скругленный нос с покатым капотом, широкая фара, заходящая на крыло и отогнутая назад по углу кузова
+  // (не вогнутая внутрь), янтарный повторитель на крыле, небольшая решетка со значком, черный низ бампера с воздухозаборником
+  put(basic(0.8, 0.13, 0.05, black), 0, Yg(54), Zg(264)); // решетка
+  put(basic(0.74, 0.03, 0.05, chrome), 0, Yg(61), Zg(263));
+  put(basic(0.12, 0.1, 0.05, chrome), 0, Yg(57), Zg(266)); // значок
+  put(basic(1.46, 0.2, 0.1, 0x101114), 0, Yg(35), Zg(259)); // нижний бампер, черный пластик
+  put(basic(1.0, 0.09, 0.06, black), 0, Yg(33), Zg(265)); // воздухозаборник
   for (const sx of [-1, 1]) {
-    put(basic(0.62, 0.17, 0.07, 0x2a2d33), sx * 0.58, Yg(77), Zg(233), sx * 0.32); // оправа
-    put(basic(0.56, 0.12, 0.08, o.lampColor), sx * 0.58, Yg(77), Zg(236), sx * 0.32); // фара: уходит на крыло
-    put(basic(0.15, 0.09, 0.06, o.lampColor), sx * 0.62, Yg(38), Zg(247)); // туманка
+    // фара: вдоль наклона носа, внешний край отогнут назад (rotation.y = −sx·угол), поэтому у угла кузова она не вогнута
+    put(basic(0.62, 0.19, 0.06, 0x2a2d33), sx * 0.57, Yg(69), Zg(250.5), -sx * 0.34, 0.5); // оправа
+    put(basic(0.56, 0.14, 0.07, o.lampColor), sx * 0.57, Yg(69), Zg(252.5), -sx * 0.34, 0.5); // стекло фары
+    put(basic(0.2, 0.1, 0.06, o.lampColor), sx * 0.8, Yg(68), Zg(238), sx * 1.3, 0.2); // продолжение фары на крыле
+    put(basic(0.014, 0.04, 0.11, 0xff9a2a), sx * 0.818, Yg(76), Zg(222)); // янтарный повторитель на крыле
+    put(basic(0.15, 0.08, 0.05, o.lampColor), sx * 0.6, Yg(36), Zg(262)); // туманка
   }
   // Зад: широкие фонари, фонари заднего хода, планка над номером, низ бампера
   for (const sx of [-1, 1]) {
@@ -125,7 +130,7 @@ function buildAlmeraBody(body, o, part, edgeMat) {
   // Колесные арки: темные диски на боку за колесами
   for (const sx of [-1, 1]) {
     for (const zm of [145, -152]) {
-      const arch = new THREE.Mesh(new THREE.CircleGeometry(0.4, 16), new THREE.MeshBasicMaterial({ color: black, side: THREE.DoubleSide }));
+      const arch = new THREE.Mesh(new THREE.CircleGeometry(0.43, 16), new THREE.MeshBasicMaterial({ color: black, side: THREE.DoubleSide }));
       arch.position.set(sx * 0.812, 0.36, Zg(zm));
       arch.rotation.y = Math.PI / 2;
       body.add(arch);
@@ -246,7 +251,7 @@ function createCar(options = {}) {
     const plateMat = new LitMaterial({ map: new THREE.CanvasTexture(cv) });
     const plateGeo = new THREE.PlaneGeometry(0.62, 0.31);
     const front = new THREE.Mesh(plateGeo, plateMat);
-    front.position.set(0, almera ? 0.5 : 0.5, almera ? -2.19 : -2.115);
+    front.position.set(0, almera ? 0.52 : 0.5, almera ? -2.31 : -2.115);
     front.rotation.y = Math.PI; // лицом вперед (в -Z)
     body.add(front);
     const rear = new THREE.Mesh(plateGeo, plateMat);
@@ -271,19 +276,19 @@ function createCar(options = {}) {
     cyl.rotation.z = Math.PI / 2;
     hub.add(cyl);
     if (almera) {
-      // Литой диск: серебристая шайба на обеих сторонах колеса, пять темных спиц и колпачок; крутится вместе с колесом
-      const rimMat = new THREE.MeshBasicMaterial({ color: 0xb4bbc6 });
-      const darkMat = new THREE.MeshBasicMaterial({ color: 0x2a2d33 });
+      // Литой диск: темная шайба на обеих сторонах колеса, восемь светлых спиц и колпачок, как на обложке; крутится вместе с колесом
+      const rimMat = new THREE.MeshBasicMaterial({ color: 0x4d525c }); // фон диска темнее спиц, как на обложке
+      const darkMat = new THREE.MeshBasicMaterial({ color: 0xc4cad4 }); // спицы и колпачок светлые
       for (const f of [-1, 1]) {
         const rim = new THREE.Mesh(new THREE.CircleGeometry(wheelR * 0.68, 16), rimMat);
         rim.rotation.y = (f * Math.PI) / 2;
         rim.position.x = f * 0.125;
         hub.add(rim);
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 8; i++) {
           const arm = new THREE.Group(); // спица: полоса вдоль радиуса, группа поворачивает ее на пятую часть круга
-          arm.rotation.x = (i / 5) * Math.PI * 2;
+          arm.rotation.x = (i / 8) * Math.PI * 2;
           arm.position.x = f * 0.127;
-          const spoke = new THREE.Mesh(new THREE.PlaneGeometry(0.05, wheelR * 0.62), darkMat);
+          const spoke = new THREE.Mesh(new THREE.PlaneGeometry(0.038, wheelR * 0.64), darkMat);
           spoke.rotation.y = (f * Math.PI) / 2;
           spoke.position.y = wheelR * 0.33;
           arm.add(spoke);

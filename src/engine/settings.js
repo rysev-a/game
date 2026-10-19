@@ -707,3 +707,15 @@ getJSON(versionURL)
   .catch(() => {
     versionEl.textContent = 'Версия: локальная (запустите node tools/version.js)';
   });
+
+// Колесико над ползунком или списком в настройках не меняет значение (раньше браузер крутил их): оно прокручивает вкладку
+settingsMenu.addEventListener(
+  'wheel',
+  (e) => {
+    const t = e.target;
+    if (!t.closest || !t.closest('input[type="range"], select')) return;
+    e.preventDefault();
+    (t.closest('.panel') || settingsMenu).scrollTop += e.deltaY;
+  },
+  { passive: false },
+);

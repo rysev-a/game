@@ -435,7 +435,7 @@ function buildHomeExterior(info) {
     color: 0x22252c, // черная Nissan Almera Classic (2006–2011): такой машины нет ни у кого больше
     fuel: 0.65, // бак заполнен на 65%
     keyId: 'keys',
-    model: { style: 'almera', cabinColor: 0x5a7690, plateText: 'ДЕТ 001' }, // Almera Classic из седанного профиля, номер
+    model: { style: 'almera', cabinColor: 0x5d6488, plateText: 'ДЕТ 001' }, // Almera Classic из седанного профиля, номер
   });
   car.isPlayerCar = true;
   markPlayerCar(car);
