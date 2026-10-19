@@ -434,6 +434,21 @@ test('таймеры: предупреждение, срабатывание о�
   assert.equal(game.currentTimer(), null, 'шаг выполнен — таймера нет');
 });
 
+test('супер-предметы: окно ждет, пока условие истинно, и показывается один раз; шаблон оружия не показывается сам', () => {
+  const { game, host } = makeGame((reg) => {
+    reg.defineSuper('phone', { when: 'has:phone', art: 'phone', title: 'Телефон', sections: [{ title: 'Что это', lines: ['Телефон'] }] });
+    reg.defineSuper('weapon', { template: true, art: 'weapon', sections: [{ title: 'Как стрелять', lines: ['Мышь'] }] });
+  });
+  assert.deepEqual(game.pendingSupers(), []);
+  host.giveItem('phone');
+  assert.deepEqual(game.pendingSupers(), ['phone']);
+  game.seeSuper('phone');
+  assert.deepEqual(game.pendingSupers(), [], 'показанное не повторяется');
+  const saved = JSON.parse(JSON.stringify(game.snapshot()));
+  game.restore(saved);
+  assert.deepEqual(game.pendingSupers(), [], 'и после загрузки сохранения тоже');
+});
+
 test('таймеры идут в реальных секундах, когда у хоста есть seconds: игровое время (оно идет как в жизни) им не мешает', () => {
   const { game, host } = makeGame((reg) => {
     reg.defineQuest({

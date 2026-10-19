@@ -9,7 +9,6 @@ if (typeof demoStart !== 'undefined') {
 } else {
   playerWorldX = home.door.x;
   playerWorldZ = homeFloorZ[0] + 2;
-  showToast('Чтобы поехать: возьмите ключи, пройдите в гараж и откройте дверь', 7000);
 }
 
 function updatePrompt() {
@@ -38,6 +37,11 @@ function animate(now = performance.now()) {
   requestAnimationFrame(animate);
   if (now - lastTick < frameMs - 1) return;
   lastTick = Math.max(lastTick + frameMs, now - frameMs);
+  // Окно супер-предмета (src/quests/supers-ui.js): время остановлено, мир замер, рисуется только последний кадр
+  if (typeof gameFrozen === 'function' && gameFrozen()) {
+    renderer.render(scene, camera);
+    return;
+  }
 
   updateRotationKeys();
   const controls = readControls();

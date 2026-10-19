@@ -363,6 +363,7 @@ function buildHomeExterior(info) {
     priority: 3,
     doorName: 'Кнопка двери гаража',
     glowMeshes: () => [buttonMesh],
+    glowHit: 1, // невидимая область наведения вокруг маленькой кнопки
     glowAt: () => (insideBuilding() ? null : { x: garage.button.x + 0.3, y: 1.3, z: garage.button.z, scale: 0.4 }), // мягко светится (src/quests/guide.js)
     clickPoint: () => (insideBuilding() ? null : { x: garage.button.x, z: garage.button.z, y: 1.3, r: 2 }),
     near: () => !insideBuilding() && Math.hypot(playerWorldX - garage.button.x, playerWorldZ - garage.button.z) < 2.4,

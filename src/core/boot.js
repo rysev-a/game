@@ -14,4 +14,5 @@
   root.defineSpot = (a, b) => reg().defineSpot(a, b);
   root.definePortal = (a, b) => reg().definePortal(a, b);
   root.defineScenario = (a, b) => reg().defineScenario(a, b);
+  root.defineSuper = (a, b) => reg().defineSuper(a, b);
 })(globalThis);

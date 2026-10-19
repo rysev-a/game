@@ -257,6 +257,13 @@
     for (const p of Object.values(registry.places)) {
       if (typeof p.x !== 'number' || typeof p.z !== 'number') bad('место ' + p.id, 'нужны числа x и z');
     }
+    // Супер-предметы: условие показа окна проверяем; у каждого есть название и разделы с текстом
+    for (const sp of Object.values(registry.supers)) {
+      const where = 'супер-предмет ' + sp.id;
+      if (!sp.template) lintCond(sp.when, where + ', when');
+      if (!sp.title && !sp.template) bad(where, 'нет названия (title)');
+      if (!Array.isArray(sp.sections) || !sp.sections.length) bad(where, 'нет разделов (sections)');
+    }
     return problems;
   };
 

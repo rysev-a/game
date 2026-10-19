@@ -127,7 +127,7 @@ const questHost = {
     renderEquipHud();
     showToast('Люди в черном догнали вас. Темнота... и снова старт.', 4500);
   },
-  paused: () => dialogueOpen || settingsOpen || questCallOpen, // в разговоре, журнале, головоломке и меню таймеры стоят
+  paused: () => dialogueOpen || settingsOpen || questCallOpen || (typeof questSuperOpen !== 'undefined' && questSuperOpen), // в разговоре, журнале, головоломке и меню таймеры стоят
   elixir: () => heroStats.elixir,
   advanceTime: (min) => {
     advanceGameTime(min);

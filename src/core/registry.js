@@ -20,6 +20,7 @@
     spots: 'объект мира',
     portals: 'переход',
     scenarios: 'сценарий',
+    supers: 'супер-предмет',
   };
 
   Core.createRegistry = function createRegistry() {
@@ -50,6 +51,7 @@
     reg.defineSpot = (a, b) => put('spots', ...entry(a, b));
     reg.definePortal = (a, b) => put('portals', ...entry(a, b));
     reg.defineScenario = (a, b) => put('scenarios', ...entry(a, b));
+    reg.defineSuper = (a, b) => put('supers', ...entry(a, b));
     return reg;
   };
 

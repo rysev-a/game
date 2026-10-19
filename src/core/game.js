@@ -39,6 +39,7 @@
     messages: [],
     calls: [], // история звонков: { id, from, at, lines: [{ who, text, me }] } — «прослушать» показывает текст как диалог
     tracked: null,
+    supers: {}, // супер-предметы, о которых герою уже рассказало окно (src/quests/supers-ui.js): { phone: true }
     storyClock: 0, // секунды таймеров квестов: идут по реальному времени, пока игра не на паузе (игровые часы идут как в жизни и таймерами не меряются)
     weatherMode: 'gloom', // погода сюжета: gloom — хмуро (до прибора), storm — ужасный ливень, sun — солнце, auto — солнце и редкие дожди, rain — призванный ливень, fog — туман
     fuelEconomy: 1, // во сколько раз машина героя тратит бензин медленнее (настроили у Рустама)
@@ -385,6 +386,16 @@
 
     // ---------- Сохранение ----------
     game.snapshot = () => ({ version: Core.STORY_VERSION, ...JSON.parse(JSON.stringify(game.state)) });
+
+    // Супер-предметы (src/content/supers.js): те, у которых условие when истинно, а окно с рассказом еще не показывали
+    game.pendingSupers = () =>
+      Object.values(registry.supers)
+        .filter((sp) => !sp.template && sp.when && !game.state.supers[sp.id] && game.check(sp.when))
+        .map((sp) => sp.id);
+    game.seeSuper = (id) => {
+      game.state.supers[id] = true;
+      game.bump();
+    };
 
     // Состояние из снимка; без снимка (старое сохранение) история начинается заново
     game.restore = (data) => {

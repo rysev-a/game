@@ -611,7 +611,8 @@
     origUpdateHoverInfo(mouse);
   };
   const glowRay = new THREE.Raycaster();
-  const WARM = new THREE.Color(DESIGN.color.warm);
+  const hitGeo = new THREE.BoxGeometry(1, 1, 1);
+  const GLOW = new THREE.Color(DESIGN.color.accent); // подсветка при наведении: светлее и чуть голубее
   const glows = new Map(); // interactable → { panel, tinted: Set }
   const doorWord = { 'войти': 'Вход', 'выйти': 'Выход', 'подняться': 'Подъем', 'спуститься': 'Спуск' };
 
@@ -672,7 +673,7 @@
         }
         o.material.color.copy(o.userData.glowBase);
         if (amount > 0) {
-          const c = o.material.color.lerp(WARM, amount * 0.6).multiplyScalar(1 + amount * 1.1); // светлее и чуть теплее
+          const c = o.material.color.lerp(GLOW, amount * 0.9).multiplyScalar(1 + amount * 1.1); // светлее и чуть голубее
           c.r = Math.min(1, c.r);
           c.g = Math.min(1, c.g);
           c.b = Math.min(1, c.b);
@@ -698,10 +699,22 @@
       if (it.glowMeshes) {
         if (glow.tinted && (!meshes || meshes.some((m) => !glow.tinted.includes(m)))) tint(glow.tinted, 0);
         glow.tinted = meshes;
+        // Мелкие предметы (кнопка) трудно поймать мышью: вокруг них невидимая коробка побольше (glowHit — ее размер), она же показывает подпись в сканере
+        if (meshes && it.glowHit && spot) {
+          if (!glow.hitBox) {
+            glow.hitBox = new THREE.Mesh(hitGeo, new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
+            cityGroup.add(glow.hitBox);
+            addHoverInfo(glow.hitBox, () => (glow.tinted ? hoverOf(it) : null));
+          }
+          glow.hitBox.scale.setScalar(it.glowHit);
+          glow.hitBox.position.set(spot.x, spot.y !== undefined ? spot.y : 1.2, spot.z);
+          glow.hitBox.visible = true;
+        } else if (glow.hitBox) glow.hitBox.visible = false;
         let hovered = false;
         if (meshes && lastMouse && !dialogueOpen && !settingsOpen) {
           glowRay.setFromCamera(lastMouse, camera);
-          const hit = glowRay.intersectObjects(meshes, true).find((h) => h.object.isMesh && hoverShown(h.object));
+          const targets = glow.hitBox && glow.hitBox.visible ? [...meshes, glow.hitBox] : meshes;
+          const hit = glowRay.intersectObjects(targets, true).find((h) => h.object.isMesh && hoverShown(h.object));
           hovered = !!hit;
         }
         glow.amt = (glow.amt || 0) + ((hovered ? 0.2 : 0) - (glow.amt || 0)) * 0.25; // плавно: туда и обратно
@@ -813,5 +826,6 @@
     updateMark(sec);
     updateDoors(sec);
   };
+  nav.ray = glowRay; // луч наведения на двери и кнопки (для проверок: подменяют intersectObjects)
   window.questGuide = nav; // для отладки: путь, цель, nav.frame(секунды) — один кадр подсказок вручную
 })();
