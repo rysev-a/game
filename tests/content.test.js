@@ -34,7 +34,7 @@ for (const [id, x, z] of [
   ['lab.hall', -330, 250], ['lab.assembly', -330, 302], ['lab.office', -300, 322],
 ]) definePlace(id, { x, z, r: 10, name: id });
 definePlace('chase.start', { x: -700, z: 3, r: 10, name: 'Старт погони' });
-for (let i = 1; i <= 5; i++) definePlace('chase.b' + i, { x: -600 + (i - 1) * 70, z: 0, r: 6, name: 'Заграждение' });
+for (let i = 1; i <= 5; i++) definePlace('chase.b' + i, { x: -600 + (i - 1) * 70, z: 0, r: 6, name: 'Поваленное дерево' });
 definePlace('mall.stalls', { x: 40, z: -18, r: 12, name: 'Прилавки' });
 definePlace('tower.base', { x: 70, z: 70, r: 40, name: 'Башня' });
 definePlace('tower.door', { x: 70, z: 56, r: 8, name: 'Вход в башню' });
