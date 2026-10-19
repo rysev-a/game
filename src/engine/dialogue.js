@@ -99,7 +99,12 @@ window.addEventListener('keydown', (e) => {
   } else if (e.code === 'Escape') {
     endDialogue();
   } else if (['KeyE', 'Space', 'Enter'].includes(e.code)) {
-    // Тот же E, которым начали разговор, не должен сразу его закрыть
-    if (performance.now() - dialogueOpenedAt > 250 && !(dialogueNode.options || []).length) endDialogue();
+    // Тот же E (или пробел, которым ответили на звонок), что начал разговор, не должен сразу его закрыть или выбрать ответ
+    if (performance.now() - dialogueOpenedAt <= 250) return;
+    if (!(dialogueNode.options || []).length) endDialogue();
+    else if (e.code === 'Space') {
+      e.preventDefault();
+      chooseDialogueOption(0); // пробел выбирает первый вариант ответа
+    }
   }
 });
