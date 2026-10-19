@@ -21,7 +21,7 @@ let mainMenuOpen = false;
   }
   if (/[?&]nomenu\b/.test(location.search)) return;
 
-  const GAME_TITLE = 'Дело Веры';
+  const GAME_TITLE = 'По ту сторону реки';
   const GAME_TAGLINE = 'Максим вернулся, чтобы узнать, что случилось на самом деле';
   // Картинка заставки: null — запасная пиксельная сцена (сейчас включена), 'assets/menu/cover-comic.png' — комикс из Figma (лежит рядом)
   const COVER_URL = null;
@@ -37,7 +37,7 @@ let mainMenuOpen = false;
     #mainMenu .shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(6, 8, 14, 0.94) 0%, rgba(6, 8, 14, 0.82) 36%, rgba(6, 8, 14, 0.32) 52%, rgba(6, 8, 14, 0) 66%),
       linear-gradient(0deg, rgba(6, 8, 14, 0.7) 0%, rgba(6, 8, 14, 0) 28%); pointer-events: none; }
     #mainMenu .col { position: relative; width: min(440px, 86vw); margin-left: clamp(18px, 7vw, 110px); display: flex; flex-direction: column; gap: 10px; }
-    #mainMenu h1 { margin: 0; font-size: clamp(32px, 6.4vw, 64px); line-height: 1.02; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 800;
+    #mainMenu h1 { margin: 0; font-size: clamp(28px, 5vw, 54px); line-height: 1.02; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 800;
       text-shadow: 0 3px 0 #000, 0 0 26px rgba(143, 208, 255, 0.35); }
     #mainMenu .tag { margin: 0 0 18px; color: var(--c-dim, rgba(241, 243, 245, 0.62)); font-size: var(--fs-text, 13px); line-height: 1.5; max-width: 34ch; }
     #mainMenu .btn { display: block; width: 100%; box-sizing: border-box; padding: 13px 18px; text-align: left; cursor: pointer; border-radius: 6px;

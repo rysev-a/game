@@ -1,7 +1,7 @@
 {
   "name": "detective-game",
   "private": true,
-  "description": "Браузерная игра-детектив. Здесь только запуск тестов ядра квестов: npm test",
+  "description": "«По ту сторону реки»: браузерная игра-детектив. Здесь только запуск тестов ядра квестов: npm test",
   "scripts": {
     "test": "node --test \"tests/*.test.js\""
   }

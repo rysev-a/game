@@ -1,4 +1,4 @@
-# Игра-детектив (браузер, three.js)
+# По ту сторону реки: игра-детектив (браузер, three.js)
 
 **Играть онлайн: https://rysev-a.github.io/game/** · ДЕМО-площадка: https://rysev-a.github.io/game/demo/
 
