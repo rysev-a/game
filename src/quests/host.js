@@ -58,22 +58,23 @@ function questTeleportLocal(placeId, opts = {}) {
   if (typeof clickMoveStop === 'function') clickMoveStop();
 }
 
-// Переход в другую локацию: состояние игры (как сохранение) кладется в sessionStorage и открывается страница локации; она восстановит его
-// (src/quests/transit.js) и поставит героя в место payload.to. payload: { to, opts, extra } или { load: данные слота }
+// Переход в другую локацию: состояние игры (как сохранение) и показатели героя кладутся в sessionStorage, страница перезагружается (адрес тот же) и
+// строит мир локации (src/locations/shared/locations.js); она восстановит игру (src/quests/transit.js) и поставит героя в место payload.to.
+// payload: { to, opts, extra } или { load: данные слота }
 let questTraveling = false;
 function questTravelToLocation(loc, payload) {
   if (questTraveling || !LOCATIONS[loc]) return;
   questTraveling = true;
   const data = payload.load || captureGame();
   try {
-    sessionStorage.setItem('game.transit', JSON.stringify({ ...payload, load: !!payload.load, data }));
+    sessionStorage.setItem('game.transit', JSON.stringify({ ...payload, loc, load: !!payload.load, data, hero: { ...heroStats } }));
   } catch (e) {
     questTraveling = false;
     showToast('Не удалось перейти в другую локацию: хранилище браузера недоступно');
     return;
   }
   questFade();
-  setTimeout(() => (window.location.href = LOCATIONS[loc].page), 450);
+  setTimeout(() => window.location.reload(), 450);
 }
 
 // Доля бака, которой хватает от дома героя до реки по трассе: длина пути (highwayLengthToRiver, если дорога ее задала, иначе прямая и 15% на изгибы)

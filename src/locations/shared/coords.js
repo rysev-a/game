@@ -1,8 +1,7 @@
 // src/locations/shared/coords.js
-// КООРДИНАТЫ ЛОКАЦИЙ. Трек, лаборатория и этажи башни — отдельные локации (отдельные страницы locations/*.html, у каждой свой
-// небольшой мир), чтобы большой мир и память браузера не раздувались. Координаты — одни и те же для страницы локации, для входов
+// КООРДИНАТЫ ЛОКАЦИЙ. Трек, лаборатория и этажи башни — отдельные локации (у каждой свой небольшой мир, src/locations/shared/locations.js), чтобы большой мир и память браузера не раздувались. Координаты — одни и те же для страницы локации, для входов
 // в основном мире (src/locations/entrances/entrances.js) и для мест квестов (src/content/places-locations.js), поэтому лежат здесь.
-// Подключается сразу после src/engine/layout.js на всех страницах.
+// Подключается сразу после src/engine/layout.js.
 
 // Гоночный трек (location: 'track'): кольцо 300 × 180, старт и финиш на северной стороне посередине
 const trackX = -620;
@@ -33,10 +32,10 @@ const ravineHalf = 4;
 const ravineCross = { x1: 461, x2: 471 };
 const ravineGap = { z1: ravineZ - ravineHalf - 1, z2: ravineZ + ravineHalf + 1, x1: riverX + riverHalf }; // восточнее реки земля не покрывает полосу оврага
 
-// Локации: страница, название, круглый мир (центр и радиус) и точка, где окажется игрок, если страницу открыли напрямую
+// Локации: название, круглый мир (центр и радиус, src/locations/shared/locations.js) и точка, где окажется игрок, если локацию загрузили напрямую (?loc=)
 const LOCATIONS = {
-  main: { page: 'index.html', name: 'Мир' },
-  track: { page: 'locations/track.html', name: 'Гоночный трек', center: { x: trackX, z: 200 }, radius: 290, start: { x: trackX, z: 30, heading: Math.PI } },
-  lab: { page: 'locations/lab.html', name: 'Лаборатория', center: { x: labX, z: 215 }, radius: 175, start: { x: labX, z: 90, heading: Math.PI } },
-  tower: { page: 'locations/tower.html', name: 'Башня: этажи', center: { x: -130 + 4 * 38, z: towerFloorZ }, radius: 200, start: { x: towerFloorX(1) - 6, z: towerFloorZ, heading: -Math.PI / 2 } },
+  main: { name: 'Мир' },
+  track: { name: 'Гоночный трек', ...LOCATION_WORLDS.track, start: { x: trackX, z: 30, heading: Math.PI } },
+  lab: { name: 'Лаборатория', ...LOCATION_WORLDS.lab, start: { x: labX, z: 90, heading: Math.PI } },
+  tower: { name: 'Башня: этажи', ...LOCATION_WORLDS.tower, start: { x: towerFloorX(1) - 6, z: towerFloorZ, heading: -Math.PI / 2 } },
 };

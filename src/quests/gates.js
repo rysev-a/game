@@ -134,6 +134,6 @@ const questUnlocked = {
     } catch (e) {
       /* без хранилища просто перезагружаем */
     }
-    window.location.href = GAME_LOCATION === 'main' ? window.location.pathname : '../index.html';
+    window.location.href = window.location.pathname; // основной мир, адрес без ?loc=
   }
 })();

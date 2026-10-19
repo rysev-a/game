@@ -1,10 +1,10 @@
 // src/locations/shared/location.js
-// ОСНОВА СТРАНИЦЫ-ЛОКАЦИИ (locations/track.html, lab.html, tower.html; их собирает tools/build-locations.js из index.html). Вместо большого мира
+// ОСНОВА МИРА-ЛОКАЦИИ (трек, лаборатория, этажи башни: src/locations/shared/locations.js выбирает, какой мир строить). Вместо большого мира
 // страница строит один небольшой круглый мир (центр и радиус — LOCATIONS в src/locations/shared/coords.js): зеленая земля внутри
 // забора, сам забор и лес снаружи (src/world/fence.js, forest.js), и только своя локация (src/locations/<id>/<id>.js).
 // Здесь — заглушки того, что главный цикл спрашивает у большого мира (как в src/demo/demo.js), и машина героя: у локации ее
 // выдает основной мир при переходе (src/quests/transit.js), а если страницу открыли напрямую — она стоит на старте.
-// Страница задает GAME_LOCATION (id локации) и до layout.js — demoWorldRadius и demoWorldCenter.
+// GAME_LOCATION (id локации), demoWorldRadius и demoWorldCenter задает src/locations/shared/locations.js до layout.js.
 
 const incident = { arrived: false, state: 'waiting' };
 function updateIncident() {}

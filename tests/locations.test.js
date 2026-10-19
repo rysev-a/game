@@ -1,49 +1,37 @@
-// Тесты разбиения мира на локации: страницы locations/*.html собраны программой tools/build-locations.js из index.html и не устарели;
-// у каждой страницы свой id, круглый мир и нужные скрипты; все скрипты существуют.
+// Тесты разбиения мира на локации: игра — одна страница index.html (адрес не меняется), мир выбирается при загрузке
+// (src/locations/shared/locations.js); все скрипты миров существуют, а у отдельных локаций есть свой скрипт.
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { buildAll, LOCATIONS } = require('../tools/build-locations.js');
 
 const root = path.join(__dirname, '..');
+const read = (f) => fs.readFileSync(path.join(root, f), 'utf8');
+const locations = read('src/locations/shared/locations.js');
 
-test('страницы locations/*.html совпадают с тем, что собирает tools/build-locations.js (иначе: node tools/build-locations.js)', () => {
-  for (const [file, html] of Object.entries(buildAll())) {
-    assert.equal(fs.readFileSync(path.join(root, file), 'utf8'), html, 'устарела страница ' + file);
-  }
+test('отдельных страниц локаций нет: игра — одна index.html', () => {
+  assert.ok(!fs.existsSync(path.join(root, 'locations')), 'папка locations/ с отдельными страницами не нужна');
+  const index = read('index.html');
+  assert.ok(index.includes('src/locations/shared/locations.js') && index.includes('writeWorldScripts();'));
+  assert.ok(!index.includes("const GAME_LOCATION = 'main';"));
 });
 
-test('на странице локации свой GAME_LOCATION, свой круглый мир и нет большого мира', () => {
-  for (const [file, html] of Object.entries(buildAll())) {
-    const id = path.basename(file, '.html');
-    assert.ok(html.includes("const GAME_LOCATION = '" + id + "';"), file + ': нет id локации');
-    assert.ok(html.includes('const demoWorldRadius = ' + LOCATIONS[id].radius), file + ': нет радиуса мира');
-    assert.ok(!html.includes('src/locations/village/village.js'), file + ': в локации не должно быть поселка');
-    assert.ok(!html.includes('src/world/world.js'), file + ': в локации не строится трасса основного мира');
-    assert.ok(html.includes('src/locations/shared/location.js') && html.includes('src/locations/shared/location-finish.js'));
-    assert.ok(html.includes('src/locations/' + id + '/' + id + '.js'), file + ': нет скрипта самой локации');
-  }
+test('все скрипты основного мира и локаций существуют', () => {
+  const srcs = [...locations.matchAll(/'(src\/[^']+\.js)'/g)].map((m) => m[1]);
+  assert.ok(srcs.length > 15);
+  for (const f of srcs) assert.ok(fs.existsSync(path.join(root, f)), 'нет файла ' + f);
 });
 
-test('index.html: основной мир, без скриптов трека, лаборатории и этажей башни, но со входами', () => {
-  const index = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-  assert.ok(index.includes("const GAME_LOCATION = 'main';"));
-  for (const gone of ['locations/lab/lab.js', 'locations/tower/tower.js', 'locations/track/track.js']) assert.ok(!index.includes(gone), 'в основном мире не должно быть ' + gone);
-  assert.ok(index.includes('src/locations/entrances/entrances.js'));
-  assert.ok(index.includes('src/locations/shared/coords.js'));
+test('у каждой отдельной локации свой скрипт, центр и радиус мира', () => {
+  for (const id of ['track', 'lab', 'tower']) {
+    assert.ok(locations.includes(id + ': {'), id + ': нет в LOCATION_WORLDS');
+    assert.ok(locations.includes('src/locations/' + id + '/' + id + '.js'), id + ': нет скрипта локации');
+  }
+  assert.ok(!/world\.js|village\.js/.test(locations.slice(locations.indexOf('const LOCATION_WORLDS'))), 'в мирах локаций не должно быть большого мира');
 });
 
-test('все скрипты страниц-локаций существуют', () => {
-  for (const html of Object.values(buildAll())) {
-    for (const m of html.matchAll(/<script src="(src\/[^"]+)"/g)) assert.ok(fs.existsSync(path.join(root, m[1])), 'нет файла ' + m[1]);
-  }
-});
-
-test('координаты локаций в coords.js и в tools/build-locations.js согласованы (центр и радиус)', () => {
-  const coords = fs.readFileSync(path.join(root, 'src/locations/shared/coords.js'), 'utf8');
-  for (const [id, loc] of Object.entries(LOCATIONS)) {
-    assert.ok(coords.includes('radius: ' + loc.radius), id + ': радиус в coords.js другой');
-  }
+test('основной мир собирает входы в локации', () => {
+  assert.ok(locations.includes('src/locations/entrances/entrances.js'));
+  assert.ok(read('index.html').includes('src/locations/shared/coords.js'));
 });

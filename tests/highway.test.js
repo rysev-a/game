@@ -122,10 +122,9 @@ test('путь от дома до моста 1700–1800 (не короче: т�
   assert.ok(len > 1700 && len < 1800, 'длина пути от дома до моста ' + len);
 });
 
-test('index.html подключает ось до поселка, а кусты и меши трассы — до world.js, внутри блока мира', () => {
-  const index = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-  const at = (s) => index.indexOf(s);
-  assert.ok(at('src/world/highway-path.js') > at('world:begin') && at('src/world/highway-path.js') < at('src/locations/village/village.js'));
+test('скрипты основного мира (src/locations/shared/locations.js): ось до поселка, а кусты и меши трассы — до world.js', () => {
+  const list = fs.readFileSync(path.join(root, 'src/locations/shared/locations.js'), 'utf8');
+  const at = (s) => list.indexOf("'" + s + "'");
+  assert.ok(at('src/world/highway-path.js') >= 0 && at('src/world/highway-path.js') < at('src/locations/village/village.js'));
   assert.ok(at('src/world/highway.js') > at('src/locations/entrances/entrances.js') && at('src/world/highway.js') < at('src/world/world.js'));
-  assert.ok(at('src/world/world.js') < at('world:end'));
 });

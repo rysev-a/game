@@ -32,6 +32,8 @@ function questTransitArrive() {
   t.data.arriving = true; // applyGame (src/quests/common-hooks.js): уже на нужной странице, переходить не надо
   t.data.location = GAME_LOCATION;
   applyGame(t.data);
+  if (t.hero) Object.assign(heroStats, t.hero); // здоровье и эликсир переезжают вместе с героем (в слоте сохранения их нет)
+  if (typeof renderEquipHud === 'function') renderEquipHud();
   if (t.load) return; // загрузка слота: положение героя берется из слота
   if (t.to) questTeleportLocal(t.to, t.opts || {});
   if (t.extra && t.extra.practice) questPracticeArrive(t.extra.practice);

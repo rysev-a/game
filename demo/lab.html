@@ -1,11 +1,16 @@
 <!doctype html>
 <html lang="ru">
   <head>
+    <!-- ДЕМО лежит в /demo/, а файлы игры (src, audio, game.json) — в корне: все относительные пути от корня (собрано tools/build-demo.js) -->
+    <base href="../" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-    <!-- ДЕМО лежит в /demo/, а файлы игры (src, audio, game.json) — в корне: все относительные пути от корня -->
-    <base href="../" />
     <title>ДЕМО — лаборатория</title>
+    <!-- Дизайн-система (docs/design-system.md): шрифт IBM Plex Mono, размеры, цвета и панели в src/ui/design.css -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="src/ui/design.css" />
     <style>
       body {
         margin: 0;
@@ -25,8 +30,8 @@
         color: white;
         border: 1px solid rgba(255, 255, 255, 0.4);
         border-radius: 6px;
-        font-family: sans-serif;
-        font-size: 14px;
+        font-family: var(--font);
+        font-size: var(--fs-text);
         cursor: pointer;
       }
       #fullscreenBtn:hover {
@@ -38,7 +43,7 @@
         left: 50%;
         transform: translateX(-50%);
         color: white;
-        font-family: sans-serif;
+        font-family: var(--font);
         background: rgba(0, 0, 0, 0.7);
         padding: 8px 12px;
         border-radius: 6px;
@@ -55,6 +60,42 @@
         display: flex;
         align-items: flex-start;
         gap: 8px;
+      }
+      /* Кошелек рядом с телефоном: значок и сумма одним блоком (src/player/inventory.js, renderWalletHud) */
+      #walletHud {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        box-sizing: border-box;
+        height: 54px;
+        padding: 0 12px 0 8px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        background: rgba(10, 14, 20, 0.62);
+        color: var(--c-text, #f1f3f5);
+        font: 600 var(--fs-h2, 16px) var(--font, monospace);
+        font-variant-numeric: tabular-nums;
+        user-select: none;
+        pointer-events: none;
+      }
+      #walletHud.on {
+        display: flex;
+      }
+      #walletHud img.px {
+        width: 32px;
+        height: 32px;
+        image-rendering: pixelated;
+      }
+      #walletHud .amt {
+        transition: color 0.4s;
+      }
+      #walletHud.down .amt {
+        color: var(--c-danger, #ff6b5b);
+        transition: none;
+      }
+      #walletHud.up .amt {
+        color: var(--c-ok, #3fa35b);
+        transition: none;
       }
       #inventory {
         position: relative;
@@ -157,6 +198,13 @@
       #inventory .invCell.slot.filled {
         cursor: pointer;
       }
+      #inventory .invCell.weatherNow {
+        border-color: #8fd0ff;
+        background: rgba(143, 208, 255, 0.28);
+      }
+      #inventory .invWeather {
+        margin-top: 8px;
+      }
       #inventory .invCell.slot.filled:hover {
         background: rgba(255, 255, 255, 0.2);
       }
@@ -192,7 +240,7 @@
         border-radius: 10px;
         background: rgba(10, 14, 20, 0.94);
         color: white;
-        font-family: sans-serif;
+        font-family: var(--font);
       }
       #dialogue .speaker {
         font-weight: bold;
@@ -200,7 +248,7 @@
         margin-bottom: 6px;
       }
       #dialogue .text {
-        font-size: 16px;
+        font-size: var(--fs-h2);
         line-height: 1.45;
         margin-bottom: 10px;
       }
@@ -215,7 +263,7 @@
         background: rgba(143, 208, 255, 0.28);
       }
       #dialogue .hint {
-        font-size: 12px;
+        font-size: var(--fs-text);
         opacity: 0.65;
       }
       #settingsBtn {
@@ -229,7 +277,7 @@
         border-radius: 8px;
         background: rgba(0, 0, 0, 0.6);
         color: white;
-        font-size: 28px;
+        font-size: var(--fs-display);
         line-height: 1;
         cursor: pointer;
       }
@@ -249,17 +297,17 @@
         border-radius: 10px;
         background: rgba(15, 18, 24, 0.92);
         color: white;
-        font-family: sans-serif;
+        font-family: var(--font);
       }
       #settingsMenu .title {
-        font-size: 16px;
+        font-size: var(--fs-h2);
         font-weight: bold;
         margin-bottom: 12px;
       }
       #settingsMenu .row {
         display: flex;
         justify-content: space-between;
-        font-size: 14px;
+        font-size: var(--fs-text);
         margin-bottom: 6px;
       }
       #settingsMenu input[type='range'] {
@@ -271,7 +319,7 @@
         align-items: center;
         gap: 8px;
         margin-top: 12px;
-        font-size: 14px;
+        font-size: var(--fs-text);
         cursor: pointer;
       }
       #settingsMenu .check input {
@@ -279,7 +327,7 @@
       }
       #settingsMenu .hint {
         margin-top: 10px;
-        font-size: 11px;
+        font-size: var(--fs-small);
         opacity: 0.6;
       }
       #fuel {
@@ -291,8 +339,8 @@
         align-items: center;
         gap: 8px;
         color: white;
-        font-family: sans-serif;
-        font-size: 18px;
+        font-family: var(--font);
+        font-size: var(--fs-h2);
         background: rgba(0, 0, 0, 0.6);
         padding: 8px 12px;
         border-radius: 8px;
@@ -314,8 +362,8 @@
         align-items: baseline;
         gap: 6px;
         color: white;
-        font-family: sans-serif;
-        font-size: 14px;
+        font-family: var(--font);
+        font-size: var(--fs-text);
         background: rgba(0, 0, 0, 0.6);
         padding: 4px 12px;
         border-radius: 8px;
@@ -329,8 +377,8 @@
         display: none;
         padding: 6px 10px;
         color: white;
-        font-family: sans-serif;
-        font-size: 16px;
+        font-family: var(--font);
+        font-size: var(--fs-h2);
         background: rgba(0, 0, 0, 0.6);
         border: 1px solid rgba(255, 255, 255, 0.35);
         border-radius: 8px;
@@ -343,7 +391,7 @@
       #speedo b {
         min-width: 3ch;
         text-align: right;
-        font-size: 26px;
+        font-size: var(--fs-display);
         font-variant-numeric: tabular-nums;
       }
       #fuelFill {
@@ -358,7 +406,7 @@
         transform: translateX(-50%);
         z-index: 10;
         color: white;
-        font-family: sans-serif;
+        font-family: var(--font);
         background: rgba(30, 90, 50, 0.85);
         padding: 8px 14px;
         border-radius: 6px;
@@ -374,8 +422,8 @@
         text-align: right;
         z-index: 10;
         color: rgba(255, 255, 255, 0.8);
-        font-family: sans-serif;
-        font-size: 13px;
+        font-family: var(--font);
+        font-size: var(--fs-text);
         background: rgba(0, 0, 0, 0.5);
         padding: 6px 10px;
         border-radius: 6px;
@@ -403,7 +451,7 @@
         left: 50%;
         transform: translateX(-50%);
         color: white;
-        font-family: sans-serif;
+        font-family: var(--font);
         background: rgba(0, 0, 0, 0.7);
         padding: 8px 12px;
         border-radius: 6px;
@@ -433,8 +481,8 @@
         max-width: 300px;
         z-index: 10;
         color: rgba(255, 255, 255, 0.85);
-        font-family: sans-serif;
-        font-size: 12px;
+        font-family: var(--font);
+        font-size: var(--fs-text);
         text-align: right;
         background: rgba(0, 0, 0, 0.5);
         padding: 4px 10px;
@@ -444,14 +492,13 @@
       #clock {
         position: absolute;
         top: 10px;
-        left: 50%;
-        transform: translateX(-50%);
+        right: 64px; /* справа сверху, левее кнопки «на весь экран» */
         z-index: 10;
         display: flex;
         align-items: center;
         gap: 10px;
         color: white;
-        font-family: sans-serif;
+        font-family: var(--font);
         background: rgba(0, 0, 0, 0.5);
         padding: 4px 14px;
         border-radius: 8px;
@@ -463,13 +510,14 @@
         image-rendering: pixelated;
       }
       #clockTime {
-        font-size: 22px;
+        white-space: nowrap;
+        font-size: var(--fs-h1);
         font-weight: bold;
         font-variant-numeric: tabular-nums;
         line-height: 1;
       }
       #clockDate {
-        font-size: 12px;
+        font-size: var(--fs-text);
         opacity: 0.8;
       }
       #nightTint {
@@ -492,10 +540,11 @@
     </style>
   </head>
   <body>
-    <button id="fullscreenBtn">⛶ На весь экран</button>
+    <button id="fullscreenBtn" title="На весь экран">⛶</button>
     <div id="mouseHint"></div>
     <div id="topLeft">
       <div id="inventory"></div>
+      <div id="walletHud" title="Кошелек"></div>
     </div>
     <div id="toast"></div>
     <div id="dialogue">
@@ -520,10 +569,9 @@
     <div id="hud"><div id="hudZone"></div>E — действие · I — инвентарь · P — дождь · M — звук · O — настройки<div id="hudSound"></div></div>
     <div id="minimapWrap"><canvas id="minimap" width="320" height="320"></canvas></div>
     <div id="mmInfo"></div>
-    <script>
-      window.SAVES_KEY = 'game.demo.saves'; // свои слоты сохранений, не смешиваются с игрой
-    </script>
+    <script>const GAME_LOCATION = 'demo'; const demoLocation = 'lab'; const demoWorldRadius = 190; const demoWorldCenter = { x: 50, z: 70 }; // ДЕМО: локация и ее круглый мир (src/engine/layout.js, src/demo/demo.js)</script>
     <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+    <script src="src/ui/design.js"></script>
     <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://unpkg.com/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
     <script src="src/engine/materials.js"></script>
@@ -542,7 +590,6 @@
     <script src="src/models/treehouse.js"></script>
     <script src="src/models/weapons.js"></script>
     <script src="src/models/creatures.js"></script>
-    <script>const demoLocation = 'lab'; const demoWorldRadius = 190; const demoWorldCenter = { x: 50, z: 70 }; // ДЕМО: локация и ее круглый мир (src/engine/layout.js, src/demo/demo.js)</script>
     <script src="src/engine/layout.js"></script>
     <script src="src/engine/scene.js"></script>
     <script src="src/engine/helpers.js"></script>
@@ -571,6 +618,7 @@
     <script src="src/player/weapons.js"></script>
     <script src="src/player/equipment.js"></script>
     <script src="src/player/footsteps.js"></script>
+    <script src="src/engine/creature-sounds.js"></script>
     <script src="src/player/driving.js"></script>
     <script src="src/world/vehicles.js"></script>
     <script src="src/player/home.js"></script>
@@ -581,6 +629,7 @@
     <script src="src/content/buildings/library.js"></script>
     <script src="src/content/buildings/it-company.js"></script>
     <script src="src/content/buildings/treehouse.js"></script>
+    <!-- мир этой страницы: основной или отдельная локация (src/locations/shared/locations.js) -->
     <script src="src/demo/demo.js"></script>
     <script src="src/demo/range.js"></script>
     <script src="src/demo/range-creatures.js"></script>
@@ -588,6 +637,8 @@
     <script src="src/world/forest.js"></script>
     <script src="src/world/fence.js"></script>
     <script src="src/engine/settings.js"></script>
+    <script src="src/ui/intro.js"></script>
+    <script src="src/ui/main-menu.js"></script>
     <script src="src/engine/input.js"></script>
     <script src="src/engine/mouse-look.js"></script>
     <script src="src/engine/touch.js"></script>

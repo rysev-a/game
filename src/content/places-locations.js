@@ -2,7 +2,7 @@
 // МЕСТА ОТДЕЛЬНЫХ ЛОКАЦИЙ (трек, лаборатория, этажи башни) и входы в них из основного мира. У места поле location: на какой странице оно
 // существует (по умолчанию 'main'); на другой странице расстояния до него нет (src/core/game.js). Координаты — src/locations/shared/coords.js.
 
-// ---- Гоночный трек (страница locations/track.html): старт и финиш, восемь контрольных точек по часовой стрелке (квест 3.05)
+// ---- Гоночный трек (отдельный мир, src/locations/shared/locations.js): старт и финиш, восемь контрольных точек по часовой стрелке (квест 3.05)
 definePlace('track.start', { location: 'track', x: trackX, z: trackZ - trackHalfD, r: 16, name: 'Старт и финиш трека' });
 {
   const x1 = trackX - trackHalfW;
@@ -18,7 +18,7 @@ definePlace('track.exit', { location: 'track', x: trackX, z: -12, r: 12, name: '
 definePlace('track.entrance', { x: trackX, z: 58, r: 12, name: 'Съезд на гоночный трек' });
 definePlace('track.back', { x: trackX, z: 30, r: 8, name: 'Съезд с трека' });
 
-// ---- Лаборатория (страница locations/lab.html): территория, потайной люк, подвал с залом капсул, сборочный зал и кабинет Штерна (квесты 4.09, 4.11)
+// ---- Лаборатория (отдельный мир): территория, потайной люк, подвал с залом капсул, сборочный зал и кабинет Штерна (квесты 4.09, 4.11)
 definePlace('lab.gate', { location: 'lab', x: labX, z: labZ - 40, r: 14, name: 'Ворота лаборатории' });
 definePlace('lab.exit', { location: 'lab', x: labX, z: 8, r: 12, name: 'Выезд из лаборатории' });
 definePlace('lab.desk', { location: 'lab', x: labX - 14, z: labZ - 12, r: 6, name: 'Рабочий стол Веры' });
@@ -31,5 +31,5 @@ definePlace('lab.office', { location: 'lab', x: labX + 30, z: labWallZ + 50, r: 
 definePlace('lab.entrance', { x: labX, z: 58, r: 12, name: 'Дорога к лаборатории' }); // основной мир
 definePlace('lab.back', { x: labX, z: 30, r: 8, name: 'Съезд от лаборатории' });
 
-// ---- Девять площадок-этажей башни (страница locations/tower.html, квест 4.12)
+// ---- Девять площадок-этажей башни (отдельный мир, квест 4.12)
 for (let i = 1; i <= 9; i++) definePlace('tower.f' + i, { location: 'tower', x: towerFloorX(i), z: towerFloorZ, r: 16, name: i + ' этаж башни' });
