@@ -236,7 +236,10 @@ let mainMenuOpen = false;
     col.append(h, tag);
     const hasSaves = savedSlots().length > 0;
     col.append(
-      btn('Новая игра', close),
+      btn('Новая игра', () => {
+        if (typeof beginIntro === 'function') beginIntro(); // вступление: герой в кровати, текст на весь экран, звонок (src/ui/intro.js)
+        close();
+      }),
       btn('Загрузить', showSlots, !hasSaves),
       btn('Настройки', () => {
         if (typeof setSettingsOpen === 'function') setSettingsOpen(true);

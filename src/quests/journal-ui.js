@@ -429,6 +429,8 @@
   }
   callAnswer.addEventListener('click', answerCall);
 
+  window.ringPhoneOnce = ringOnce; // звонок на столике в начале игры, пока телефон не взят (src/ui/intro.js)
+
   questHost.incomingCall = (call) => {
     if (pendingCall) return;
     pendingCall = call;

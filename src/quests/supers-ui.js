@@ -10,7 +10,7 @@
 
 let questSuperOpen = false;
 // Мир замирает, пока открыто главное меню (src/ui/main-menu.js), окно супер-предмета или меню настроек (Esc, O): время не идет, люди и машины стоят, таймеры квестов тоже
-const gameFrozen = () => questSuperOpen || (typeof mainMenuOpen !== 'undefined' && mainMenuOpen) || (typeof settingsOpen !== 'undefined' && settingsOpen); // главный цикл (src/engine/game.js) на это время не двигает мир
+const gameFrozen = () => questSuperOpen || (typeof mainMenuOpen !== 'undefined' && mainMenuOpen) || (typeof introActive !== 'undefined' && introActive) || (typeof settingsOpen !== 'undefined' && settingsOpen); // главный цикл (src/engine/game.js) на это время не двигает мир
 
 (function () {
   const g = questGame;
