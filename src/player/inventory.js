@@ -27,7 +27,8 @@ const ITEMS = {
   wrench: { name: 'Гаечный ключ', icon: 'wrench', desc: 'Тяжелый, надежный. Пригодится в гараже.' },
   screwdriver: { name: 'Отвертка', icon: 'screwdriver', desc: 'Крестовая. Открывает корпуса приборов.' },
   keys: { name: 'Ключи от машины', icon: 'keys', pocket: true, desc: 'Ключи от вашей Nissan Almera Classic.' },
-  wallet: { name: 'Кошелек', icon: 'wallet', desc: 'Немного денег и старый пропуск в спортзал.' },
+  // Кошелек лежит в кармане, как ключи и телефон. В нем деньги с большим запасом: каждая заправка и канистра уменьшают их (счетчик money, src/quests)
+  wallet: { name: 'Кошелек', icon: 'wallet', pocket: true, desc: 'Деньги на всё необходимое с запасом и старый пропуск в спортзал. Каждая заправка уменьшает их.', onTake: () => walletFill() },
   phone: { name: 'Телефон', icon: 'phone', pocket: true, desc: 'Связь, карта и фонарик, пока не сядет батарейка.' },
   itpass: { name: 'Пропуск в IT-компанию', icon: 'itpass', desc: 'Пропуск через турникет IT-компании.' },
   notebook: { name: 'Блокнот', icon: 'notebook', desc: 'Записи по делу. Пока почти пустой.' },
@@ -63,6 +64,17 @@ for (const id in DEVICES) {
 }
 
 const hasBackpack = () => inventory.items.includes('backpack');
+
+// Деньги героя — счетчик money квестовой системы. Кошелек при первом взятии наполняется walletStartMoney: на заправки хватит с большим запасом.
+// Без квестовой системы (ДЕМО) денег нет вовсе и всё бесплатно
+const walletStartMoney = 800;
+const questMoney = () => (typeof questGame !== 'undefined' && questGame ? questGame.state.counters.money || 0 : Infinity);
+function walletFill() {
+  if (typeof questGame !== 'undefined' && questGame) questGame.run({ add: { money: walletStartMoney } });
+}
+function spendMoney(n) {
+  if (typeof questGame !== 'undefined' && questGame) questGame.run({ add: { money: -n } });
+}
 
 const inventory = {
   get size() {
@@ -133,7 +145,7 @@ function renderInventory() {
     const id = inventory.items[i];
     if (id) {
       c.appendChild(pixelIcon(ITEMS[id].icon));
-      c.title = ITEMS[id].name;
+      c.title = ITEMS[id].name + (id === 'wallet' && isFinite(questMoney()) ? ' — в нем ' + Math.round(questMoney()) : '');
       // На телефоне в раскрытом инвентаре касание надеваемой вещи — надеть (в ячейку нижней панели);
       // на компьютере вещи перетаскивают в панель снаряжения справа (src/player/equipment.js)
       if (inventoryOpen && touchUI && typeof equipSlotOf === 'function' && equipSlotOf(id)) {
@@ -303,13 +315,14 @@ const hasItem = (id) => inventory.items.includes(id) || (typeof isEquipped === '
 function addItem(id) {
   if (hasItem(id) || inventory.items.length >= inventory.size) return false;
   if (!hasBackpack() && id !== 'backpack' && !ITEMS[id].pocket) {
-    showToast('Некуда положить: без рюкзака с собой только ключи и телефон.');
+    showToast('Некуда положить: без рюкзака в карманах только ключи, телефон и кошелек.');
     return false;
   }
   inventory.items.push(id);
   if (typeof autoEquip === 'function') autoEquip(id); // оружие — сразу в свободную ячейку
   renderInventory();
   showToast('Взято: ' + ITEMS[id].name);
+  if (ITEMS[id].onTake) ITEMS[id].onTake();
   playPickupClick(); // щелчок (src/player/footsteps.js)
   return true;
 }

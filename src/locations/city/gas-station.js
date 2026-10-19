@@ -15,6 +15,7 @@ const gasPumpMeshes = []; // сетки колонок: клик по ним з�
 const gasKiosks = []; // двери будок: { x, z, name }
 const gasStations = []; // все заправки: { x, z, rot } (кусты вдоль трассы обходят их, src/world/highway.js)
 const canisterPrice = 60; // цена канистры с бензином
+const fuelTankPrice = 20; // цена полного бака: заправка списывает деньги из кошелька героя пропорционально долитому (кошелек полон с запасом: walletStartMoney)
 const pumpInfo = { kind: 'Устройство', name: 'Топливная колонка', desc: 'Подъедьте, остановитесь и кликните по колонке (или E) — бак наполнится.' };
 
 function buildGasStation({ x: ox, z: oz, rot = 0, name = 'Заправка', yard = false }) {
@@ -128,6 +129,28 @@ function pumpCar() {
   return best;
 }
 
+// Заправка своей машины стоит денег: начинается, если в кошельке есть хоть что-то; чужие машины и ДЕМО бесплатны
+function startRefuel(car) {
+  if (car.isPlayerCar && questMoney() < 1) {
+    showToast(hasItem('wallet') ? 'В кошельке пусто: заправить нечем' : 'Кошелек остался дома: платить нечем', 3000);
+    return false;
+  }
+  car.refuelDue = 0;
+  car.refuelling = true;
+  return true;
+}
+// Платим за долитое, когда заправка закончилась: бак полный, уехали от колонки или кончились деньги
+function finishRefuel(car, text = '') {
+  car.refuelling = false;
+  const n = Math.round(car.refuelDue || 0);
+  car.refuelDue = 0;
+  if (car.isPlayerCar && n >= 1 && isFinite(questMoney())) {
+    spendMoney(n);
+    text = (text ? text + '. ' : '') + 'Заправка: −' + n + ', в кошельке ' + Math.round(questMoney());
+  }
+  if (text) showToast(text, 3500);
+}
+
 const refuelInteractable = (driving) => ({
   driving,
   priority: 2,
@@ -142,7 +165,7 @@ const refuelInteractable = (driving) => ({
   },
   act: () => {
     const car = pumpCar();
-    if (!car.refuelling) car.refuelling = true;
+    if (!car.refuelling) startRefuel(car);
   },
 });
 addInteractable(refuelInteractable(true)); // за рулем
@@ -160,10 +183,7 @@ renderer.domElement.addEventListener('mousedown', (e) => {
     const mine = cars.find((c) => c.isPlayerCar);
     showToast(mine && carAtPump(mine) ? 'Подойдите к колонке: машина уже рядом' : 'Подъедьте машиной к колонке и остановитесь', 2500);
   } else if (car.fuel >= 0.995 && !car.refuelling) showToast('Бак уже полный', 1800);
-  else if (!car.refuelling) {
-    car.refuelling = true;
-    showToast('Заправка…', 1500);
-  }
+  else if (!car.refuelling && startRefuel(car)) showToast('Заправка…', 1500);
 });
 
 // КАНИСТРЫ. E у двери будки — купить канистру с бензином. Деньги — questGame (счетчик money); в ДЕМО (нет questGame) бесплатно.
@@ -173,10 +193,10 @@ const gasKioskNear = () => {
   if (drivingCar || pushingCar || insideBuilding() || dialogueOpen) return null;
   return gasKiosks.find((k) => Math.hypot(playerWorldX - k.x, playerWorldZ - k.z) < 3.4) || null;
 };
-const canPayCanister = () => typeof questGame === 'undefined' || !questGame || questGame.check('count:money>=' + canisterPrice);
+const canPayCanister = () => questMoney() >= canisterPrice;
 function buyCanister() {
   if (!canPayCanister()) {
-    showToast('Не хватает денег: канистра стоит ' + canisterPrice, 3000);
+    showToast(hasItem('wallet') ? 'Не хватает денег: канистра стоит ' + canisterPrice : 'Кошелек остался дома: платить нечем', 3000);
     return;
   }
   const mine = cars.find((c) => c.isPlayerCar);
@@ -189,7 +209,7 @@ function buyCanister() {
     showToast('Канистра у вас уже есть', 3000);
     return;
   }
-  if (typeof questGame !== 'undefined' && questGame) questGame.run({ add: { money: -canisterPrice } });
+  spendMoney(canisterPrice);
   if (toTrunk) {
     trunkOf(mine).canisters++;
     showToast('Канистра в багажнике (' + trunkOf(mine).canisters + '/' + trunkMax + ')', 3500);
@@ -212,13 +232,16 @@ function updateGasStation() {
   for (const car of cars) {
     if (!car.refuelling) continue;
     if (!carAtPump(car) || Math.abs(car.speed) > 0.02) {
-      car.refuelling = false;
+      finishRefuel(car);
       continue;
     }
-    car.fuel = Math.min(1, car.fuel + refuelRate);
-    if (car.fuel >= 1) {
-      car.refuelling = false;
-      showToast('Бак полный');
+    const add = Math.min(1 - car.fuel, refuelRate);
+    car.fuel += add;
+    car.refuelDue = (car.refuelDue || 0) + add * fuelTankPrice;
+    if (car.isPlayerCar && car.refuelDue >= questMoney()) {
+      finishRefuel(car, 'Деньги кончились: бак заправлен не до конца');
+    } else if (car.fuel >= 1) {
+      finishRefuel(car, 'Бак полный');
     }
   }
 }
