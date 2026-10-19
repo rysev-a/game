@@ -109,8 +109,9 @@ const labWallZ = labZ + 142; // внутренняя стена подвала: 
 // Башня в центре: сама башня стоит в основном мире (main), девять площадок-этажей — отдельная локация (location: 'tower')
 const towerX = 70;
 const towerZ = 70;
-const towerFloorZ = 250;
-const towerFloorX = (i) => -130 + (i - 1) * 38;
+// Этажи башни — отдельные миры tower1…tower9 (src/locations/shared/locations.js): центр каждого (0, 0), этаж 140 × 100; лестница вверх у восточной стены на севере,
+// лестница вниз у западной на юге, в разных частях этажа
+const towerFloor = { hx: 70, hz: 50, up: { x: 62, z: -34 }, down: { x: -62, z: 34 } };
 
 // Овраг с ручьем за домом бабушки в Заречье (src/locations/zarechye/grandma.js): тянется с востока от реки до забора мира. Он вырыт в земле, поэтому
 // в земле (src/world/ground.js, src/world/world.js) для него оставлен прогал; ось овраги ravineZ и полуширина ravineHalf — общие числа
@@ -125,5 +126,5 @@ const LOCATIONS = {
   main: { name: 'Мир' },
   track: { name: 'Гоночный трек', ...LOCATION_WORLDS.track, start: { x: trackX, z: 158, heading: Math.PI } },
   lab: { name: 'Лаборатория', ...LOCATION_WORLDS.lab, start: { x: labX, z: 90, heading: Math.PI } },
-  tower: { name: 'Башня: этажи', ...LOCATION_WORLDS.tower, start: { x: towerFloorX(1) - 6, z: towerFloorZ, heading: -Math.PI / 2 } },
 };
+for (let i = 1; i <= 9; i++) LOCATIONS['tower' + i] = { name: 'Башня: ' + i + ' этаж', ...LOCATION_WORLDS['tower' + i], start: { x: towerFloor.down.x + 10, z: towerFloor.down.z, heading: -Math.PI / 2 } };

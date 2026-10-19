@@ -25,7 +25,7 @@ test('все скрипты основного мира и локаций сущ
 
 test('у каждой отдельной локации свой скрипт, центр и радиус мира', () => {
   for (const id of ['track', 'lab', 'tower']) {
-    assert.ok(locations.includes(id + ': {'), id + ': нет в LOCATION_WORLDS');
+    assert.ok(locations.includes(id + (id === 'tower' ? "' + i" : ': {')), id + ': нет в LOCATION_WORLDS');
     assert.ok(locations.includes('src/locations/' + id + '/' + id + '.js'), id + ': нет скрипта локации');
   }
   assert.ok(!/world\.js|village\.js/.test(locations.slice(locations.indexOf('const LOCATION_WORLDS'))), 'в мирах локаций не должно быть большого мира');

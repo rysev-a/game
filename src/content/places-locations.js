@@ -30,4 +30,11 @@ definePlace('lab.entrance', { x: labX, z: 58, r: 12, name: 'Дорога к ла
 definePlace('lab.back', { x: labX, z: 30, r: 8, name: 'Съезд от лаборатории' });
 
 // ---- Девять площадок-этажей башни (отдельный мир, квест 4.12)
-for (let i = 1; i <= 9; i++) definePlace('tower.f' + i, { location: 'tower', x: towerFloorX(i), z: towerFloorZ, r: 16, name: i + ' этаж башни' });
+for (let i = 1; i <= 9; i++) {
+  const loc = 'tower' + i; // каждый этаж — свой мир (src/locations/tower/tower.js)
+  definePlace('tower.f' + i, { location: loc, x: 0, z: 0, r: 16, name: i + ' этаж башни' });
+  // Площадки перед лестницами: сюда выходит герой, поднявшись снизу (перед лестницей вниз) или спустившись сверху (перед лестницей вверх); на них метки шагов
+  definePlace('tower.up' + i, { location: loc, x: towerFloor.up.x - 9, z: towerFloor.up.z, r: 6, name: 'Лестница вверх, ' + i + ' этаж' });
+  definePlace('tower.down' + i, { location: loc, x: towerFloor.down.x + 9, z: towerFloor.down.z, r: 6, name: 'Лестница вниз, ' + i + ' этаж' });
+}
+definePlace('tower.exit9', { location: 'tower9', x: -44, z: -36, r: 6, name: 'Аварийный выход, 9 этаж' });

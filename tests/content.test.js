@@ -39,7 +39,12 @@ definePlace('mall.stalls', { x: 40, z: -18, r: 12, name: 'Прилавки' });
 definePlace('tower.base', { x: 70, z: 70, r: 40, name: 'Башня' });
 definePlace('tower.door', { x: 70, z: 56, r: 8, name: 'Вход в башню' });
 definePlace('tower.pad', { x: 90, z: 54, r: 8, name: 'Площадка' });
-for (let i = 1; i <= 9; i++) definePlace('tower.f' + i, { x: -130 + (i - 1) * 38, z: 250, r: 16, name: i + ' этаж' });
+for (let i = 1; i <= 9; i++) {
+  definePlace('tower.f' + i, { x: 0, z: 0, r: 16, name: i + ' этаж' });
+  definePlace('tower.up' + i, { x: 53, z: -34, r: 6, name: 'Лестница вверх' });
+  definePlace('tower.down' + i, { x: -53, z: 34, r: 6, name: 'Лестница вниз' });
+}
+definePlace('tower.exit9', { x: -44, z: -36, r: 6, name: 'Аварийный выход' });
 for (const id of ['track.salon', 'track.entrance', 'track.gate', 'track.exit', 'track.back', 'lab.entrance', 'lab.exit', 'lab.back']) definePlace(id, { x: 0, z: 0, r: 10, name: id });
 definePlace('track.start', { x: -620, z: 190, r: 16, name: 'Старт' });
 definePlace('track.pre', { x: -590, z: 190, r: 14, name: 'Разгон' });

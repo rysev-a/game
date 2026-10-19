@@ -28,8 +28,9 @@ const LOCATION_WORLDS = {
   // gate — проем в заборе на севере по оси центра мира: полуширина hw и на сколько юнитов дорога уходит за забор (len); там и меняется мир
   track: { title: 'Гоночный трек', scripts: ['src/locations/track/track.js'], center: { x: -620, z: 200 }, radius: 290, gate: { hw: 9, len: 320 } },
   lab: { title: 'Лаборатория', scripts: ['src/locations/lab/lab.js'], center: { x: -330, z: 215 }, radius: 175, gate: { hw: 9, len: 320 } },
-  tower: { title: 'Башня: этажи', scripts: ['src/locations/tower/tower.js'], center: { x: 22, z: 250 }, radius: 200 },
 };
+// Девять этажей башни (квест 4.12): каждый этаж — свой мир tower1…tower9, широкий офисный этаж 140 × 100 внутри круга радиуса 100 (src/locations/tower/tower.js)
+for (let i = 1; i <= 9; i++) LOCATION_WORLDS['tower' + i] = { title: 'Башня: ' + i + ' этаж', scripts: ['src/locations/tower/tower.js'], center: { x: 0, z: 0 }, radius: 100 };
 
 const GAME_LOCATION = (() => {
   let want = null;
