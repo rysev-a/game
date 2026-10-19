@@ -16,21 +16,28 @@
 // Зависимость: глобальный THREE (three.js r128+).
 
 
-// ТЕЛО NISSAN ALMERA CLASSIC (B10, 2006–2011): боковой профиль выдавлен по ширине кузова, отдельно стекла, решетка с логотипом, фары, фонари, зеркала.
-// Профиль (z, y): капот ниже и длиннее, крутое лобовое, высокая ровная крыша, короткое заднее стекло, высокая палуба багажника — классический трехобъемный седан
+// ТЕЛО NISSAN ALMERA CLASSIC (B10, 2006–2011). Пропорции сняты с настоящей 3D-модели (файл nissan-almera-classic_ModLandNet.usdz): профиль
+// кузова по высоте капота, крыши и багажника, развал стекол, положение фар, зеркал и колес. Единица модели переведена в юниты игры: ALM = 0,0082
+// (бампер до бампера 4,3), низ порога на высоте 0,32; перед в −Z. Кузов собран слоями: нижняя часть (ширина 1,62), салон уже (1,40, развал стенок),
+// стекла полосой чуть шире салона, лобовое и заднее — наклонные пластины по скатам.
 function buildAlmeraBody(body, o, part, edgeMat) {
+  const ALM = 0.0082;
   const glassMat = new LitMaterial({ color: o.cabinColor });
   const chrome = 0xc8ced6;
   const black = 0x0e0f12;
+  // Точка модели (z вперед, y вверх, в единицах оригинала) → точка игры [z, y]
+  const P = (zm, ym) => [-(zm + 14.4) * ALM, (ym - 22) * ALM + 0.32];
+  const Zg = (zm) => -(zm + 14.4) * ALM;
+  const Yg = (ym) => (ym - 22) * ALM + 0.32;
 
   const extrude = (profile, width, color) => {
     const shape = new THREE.Shape();
-    profile.forEach(([z, y], i) => (i ? shape.lineTo(z, y) : shape.moveTo(z, y)));
+    profile.forEach(([z, y], k) => (k ? shape.lineTo(z, y) : shape.moveTo(z, y)));
     const geo = new THREE.ExtrudeGeometry(shape, { depth: width, bevelEnabled: false });
     geo.rotateY(-Math.PI / 2); // профиль в плоскости ZY, выдавливание — вдоль X
     geo.translate(width / 2, 0, 0);
     const mesh = new THREE.Mesh(geo, new LitMaterial({ color }));
-    mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));
+    mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 25), edgeMat));
     body.add(mesh);
     return mesh;
   };
@@ -41,48 +48,78 @@ function buildAlmeraBody(body, o, part, edgeMat) {
     return mesh;
   };
   const basic = (w, h, d, color) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color }));
+  // Наклонная пластина между двумя точками профиля (лобовое и заднее стекло): ширина w, чуть выше поверхности
+  const slab = (z1, y1, z2, y2, w, mat, lift = 0.012) => {
+    const [a, b] = [P(z1, y1), P(z2, y2)];
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.03, len), mat);
+    const ang = Math.atan2(b[1] - a[1], b[0] - a[0]); // наклон к горизонту
+    m.position.set(0, (a[1] + b[1]) / 2 + lift, (a[0] + b[0]) / 2);
+    m.rotation.x = Math.atan2(b[1] - a[1], a[0] - b[0]);
+    body.add(m);
+    return m;
+  };
 
-  // Кузов
+  // Нижняя часть: перед и капот, пояс по бокам, палуба багажника и зад
   extrude(
     [
-      [-2.1, 0.38], [-2.13, 0.52], [-2.07, 0.74], [-1.85, 0.84], [-1.25, 0.9], [-0.92, 0.94], // перед и капот
-      [-0.1, 1.42], [0.08, 1.46], [0.95, 1.44], // лобовое и крыша
-      [1.4, 1.08], [1.55, 1.04], [2.05, 1.03], // заднее стекло и палуба багажника
-      [2.13, 0.86], [2.13, 0.46], [2.05, 0.38], // зад
+      P(246, 24), P(248, 48), P(245, 70), P(233, 86), P(209, 92), P(185, 97), P(149, 103), P(113, 108), P(101, 110), // перед и капот до основания лобового
+      P(60, 109), P(-140, 111), P(-175, 121), P(-199, 124), P(-235, 121), P(-261, 118), P(-271, 109), // пояс, палуба багажника
+      P(-276, 80), P(-277, 44), P(-270, 24), // зад
     ],
-    1.86,
+    1.62,
     o.bodyColor,
   );
-  // Боковые стекла: полоса шире кузова, видна только по бокам
-  extrude([[-0.9, 0.99], [-0.14, 1.38], [0.1, 1.41], [0.9, 1.4], [1.38, 1.06], [1.38, 0.99]], 1.92, o.cabinColor);
-  // Лобовое и заднее стекло: тонкие наклонные пластины по скатам
-  put(new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.03, 0.9), glassMat), 0, 1.2, -0.5, 0, -0.52);
-  put(new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.03, 0.74), glassMat), 0, 1.28, 1.17, 0, 0.6);
-  // Стойки между стеклами
-  for (const x of [-0.93, 0.93]) put(part(0.05, 0.42, 0.08, o.bodyColor), x, 1.2, 0.97);
+  // Салон: капсула от лобового до заднего стекла, чуть уже нижней части; крыша почти плоская, лобовое круче, заднее короче и круче
+  extrude(
+    [
+      P(101, 108), P(101, 112), P(77, 125), P(53, 143), P(41, 150), P(17, 157.5), P(-7, 161), P(-31, 164.8), P(-67, 165.4), P(-103, 162.9),
+      P(-127, 158.5), P(-151, 148.8), P(-175, 134.5), P(-190, 126), P(-190, 108),
+    ],
+    1.34,
+    o.bodyColor,
+  );
+  // Боковые стекла: полоса шире салона, видна только по бокам; перед ней — наклон A-стойки, за ней — C-стойка
+  extrude([P(66, 108), P(34, 150), P(-103, 160), P(-135, 153), P(-149, 147), P(-149, 112), P(-48, 109)], 1.4, o.cabinColor);
+  // Лобовое и заднее стекла
+  slab(101, 112.5, 30, 154, 1.28, glassMat);
+  slab(-127, 157, -188, 128, 1.2, glassMat);
+  // Стойки: B (между дверями) и по краям боковых стекол
+  put(part(1.43, 0.46, 0.09, o.bodyColor), 0, Yg(130), Zg(-47));
+  for (const sx of [-1, 1]) put(part(0.06, 0.4, 0.07, o.bodyColor), sx * 0.69, Yg(130), Zg(-150));
+  // Стыки дверей и ручки на боку
+  for (const sx of [-1, 1]) {
+    for (const zm of [93, -48, -158]) put(basic(0.012, 0.5, 0.012, 0x1b1d22), sx * 0.812, Yg(70), Zg(zm));
+    for (const zm of [20, -88]) put(basic(0.014, 0.025, 0.16, chrome), sx * 0.814, Yg(106), Zg(zm));
+  }
 
-  // Перед: решетка с хромированной планкой и логотипом, большие фары, туманки, нижняя воздухозаборная щель
-  put(basic(1.1, 0.24, 0.05, black), 0, 0.68, -2.14);
-  put(basic(1.0, 0.08, 0.05, chrome), 0, 0.72, -2.16);
-  put(basic(0.16, 0.16, 0.05, chrome), 0, 0.72, -2.185); // логотип
-  put(basic(1.3, 0.14, 0.05, black), 0, 0.46, -2.14);
+  // Перед: решетка со значком, большие фары на крыльях, туманки, воздухозаборник
+  put(basic(0.95, 0.2, 0.05, black), 0, Yg(64), Zg(247));
+  put(basic(0.9, 0.05, 0.05, chrome), 0, Yg(70), Zg(248));
+  put(basic(0.14, 0.14, 0.05, chrome), 0, Yg(66), Zg(250)); // значок
+  put(basic(1.2, 0.13, 0.05, black), 0, Yg(40), Zg(246));
   for (const sx of [-1, 1]) {
-    put(basic(0.66, 0.2, 0.06, 0x2a2d33), sx * 0.66, 0.77, -2.1, sx * 0.22); // оправа фары
-    put(basic(0.58, 0.15, 0.08, o.lampColor), sx * 0.66, 0.77, -2.12, sx * 0.22); // фара: большая, уходит на крыло
-    put(basic(0.16, 0.1, 0.06, o.lampColor), sx * 0.72, 0.47, -2.13); // туманка
+    put(basic(0.62, 0.17, 0.07, 0x2a2d33), sx * 0.58, Yg(77), Zg(233), sx * 0.32); // оправа
+    put(basic(0.56, 0.12, 0.08, o.lampColor), sx * 0.58, Yg(77), Zg(236), sx * 0.32); // фара: уходит на крыло
+    put(basic(0.15, 0.09, 0.06, o.lampColor), sx * 0.62, Yg(38), Zg(247)); // туманка
   }
-  // Зад: широкие фонари, белые фонари заднего хода, хромированная планка над номером
+  // Зад: широкие фонари, фонари заднего хода, планка над номером, низ бампера
   for (const sx of [-1, 1]) {
-    put(basic(0.62, 0.2, 0.08, 0xc0262c), sx * 0.66, 0.9, 2.12, sx * -0.18);
-    put(basic(0.14, 0.1, 0.06, 0xf4f4f4), sx * 0.34, 0.9, 2.15);
+    put(basic(0.5, 0.2, 0.07, 0xc0262c), sx * 0.58, Yg(96), Zg(-271), sx * -0.3);
+    put(basic(0.13, 0.08, 0.06, 0xf4f4f4), sx * 0.3, Yg(96), Zg(-277));
   }
-  put(basic(0.8, 0.05, 0.05, chrome), 0, 0.96, 2.14);
-  put(basic(1.4, 0.12, 0.05, black), 0, 0.45, 2.14); // нижняя часть заднего бампера
-  // Боковые зеркала и ручки
+  put(basic(0.8, 0.05, 0.05, chrome), 0, Yg(98), Zg(-277));
+  put(basic(1.4, 0.12, 0.05, black), 0, Yg(36), Zg(-276));
+  // Зеркала: на стыке двери и стойки, чуть выше пояса
+  for (const sx of [-1, 1]) put(part(0.16, 0.11, 0.2, o.bodyColor), sx * 0.86, Yg(112), Zg(58));
+  // Колесные арки: темные диски на боку за колесами
   for (const sx of [-1, 1]) {
-    put(part(0.13, 0.11, 0.22, o.bodyColor), sx * 1.0, 1.0, -0.62);
-    put(basic(0.16, 0.035, 0.035, chrome), sx * 0.945, 0.9, 0.38);
-    put(basic(0.16, 0.035, 0.035, chrome), sx * 0.945, 0.9, 1.0);
+    for (const zm of [145, -152]) {
+      const arch = new THREE.Mesh(new THREE.CircleGeometry(0.4, 16), new THREE.MeshBasicMaterial({ color: black, side: THREE.DoubleSide }));
+      arch.position.set(sx * 0.812, 0.36, Zg(zm));
+      arch.rotation.y = Math.PI / 2;
+      body.add(arch);
+    }
   }
 }
 
@@ -146,11 +183,11 @@ function createCar(options = {}) {
   let doorTarget = 0;
   if (o.door) {
     doorGroup = new THREE.Group();
-    doorGroup.position.set(almera ? -0.96 : -0.98, almera ? 0.72 : 0.85, almera ? -0.75 : -0.3);
-    const panel = part(0.05, almera ? 0.55 : 0.85, almera ? 1.2 : 1.1, o.bodyColor);
-    panel.position.set(0, 0, almera ? 0.6 : 0.55);
+    doorGroup.position.set(almera ? -0.82 : -0.98, almera ? 0.73 : 0.85, almera ? -0.88 : -0.3);
+    const panel = part(0.05, almera ? 0.62 : 0.85, almera ? 1.16 : 1.1, o.bodyColor);
+    panel.position.set(0, 0, almera ? 0.58 : 0.55);
     const glass = part(0.06, almera ? 0.4 : 0.36, almera ? 1.0 : 0.9, o.cabinColor);
-    glass.position.set(0, almera ? 0.46 : 0.33, almera ? 0.6 : 0.55);
+    glass.position.set(0, almera ? 0.5 : 0.33, almera ? 0.55 : 0.55);
     doorGroup.add(panel);
     doorGroup.add(glass);
     body.add(doorGroup);
@@ -199,27 +236,26 @@ function createCar(options = {}) {
     const plateMat = new LitMaterial({ map: new THREE.CanvasTexture(cv) });
     const plateGeo = new THREE.PlaneGeometry(0.62, 0.31);
     const front = new THREE.Mesh(plateGeo, plateMat);
-    front.position.set(0, almera ? 0.52 : 0.5, almera ? -2.17 : -2.115);
+    front.position.set(0, almera ? 0.5 : 0.5, almera ? -2.19 : -2.115);
     front.rotation.y = Math.PI; // лицом вперед (в -Z)
     body.add(front);
     const rear = new THREE.Mesh(plateGeo, plateMat);
-    rear.position.set(0, almera ? 0.68 : 0.5, almera ? 2.17 : 2.115);
+    rear.position.set(0, almera ? 0.72 : 0.5, almera ? 2.2 : 2.115);
     body.add(rear);
   }
 
   // Колеса: цилиндр осью вдоль X внутри группы-ступицы, крутим группу
-  const wheelGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.3, 14);
+  const wheelR = almera ? 0.34 : 0.38;
+  const wheelGeo = new THREE.CylinderGeometry(wheelR, wheelR, almera ? 0.24 : 0.3, 14);
   const wheelMat = new LitMaterial({ color: o.wheelColor });
   const wheels = [];
   const frontPivots = [];
-  [
-    [-1.05, -1.35],
-    [1.05, -1.35],
-    [-1.05, 1.45],
-    [1.05, 1.45],
-  ].forEach(([x, z]) => {
+  (almera
+    ? [[-0.76, -1.19], [0.76, -1.19], [-0.76, 1.25], [0.76, 1.25]] // колесная база и колея по настоящей модели
+    : [[-1.05, -1.35], [1.05, -1.35], [-1.05, 1.45], [1.05, 1.45]]
+  ).forEach(([x, z]) => {
     const pivot = new THREE.Group(); // поворот руля — у передних колес (z < 0)
-    pivot.position.set(x, 0.38, z);
+    pivot.position.set(x, wheelR, z);
     const hub = new THREE.Group();
     const cyl = new THREE.Mesh(wheelGeo, wheelMat);
     cyl.rotation.z = Math.PI / 2;
@@ -235,7 +271,7 @@ function createCar(options = {}) {
 
   let wheelAngle = 0;
   root.spinWheels = function (distance) {
-    wheelAngle -= distance / 0.38; // катим вперед (в -Z)
+    wheelAngle -= distance / wheelR; // катим вперед (в -Z)
     for (const w of wheels) w.rotation.x = wheelAngle;
   };
 
