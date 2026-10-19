@@ -117,7 +117,7 @@ const questHost = {
     garage.car.limp = !!on;
     showToast(on ? 'Мотор троит и дымит: машина еле едет. Нужен ремонт.' : 'Машина починена: едет как новая.', 4000);
   },
-  swapPlayerCar: (kindId) => questSwapPlayerCar(kindId),
+  swapPlayerCar: (kindId, nearHero) => questSwapPlayerCar(kindId, nearHero),
   // Бак машины героя: доля 0…1; 'river' — ровно хватит от дома до реки по трассе (с небольшим запасом)
   setFuel: (v) => {
     const car = garage.car;
@@ -167,15 +167,27 @@ const questHost = {
 };
 
 // Подарить герою другую машину вместо его: старая убирается, новая встает на ее место (герой остается за рулем, если сидел)
-function questSwapPlayerCar(kindId) {
+// nearHero: подарок (директор автосалона, Рустам) встает рядом с героем, а не там, где стояла прежняя машина (она могла остаться далеко): герой сразу видит ее и садится
+function questSwapPlayerCar(kindId, nearHero) {
   const old = garage.car;
   if (!old || !VEHICLE_KINDS[kindId] || (old.kind && old.kind.id === kindId)) return;
   const wasDriving = drivingCar === old;
-  const { x, z, heading } = old;
+  let { x, z, heading } = old;
   if (wasDriving) drivingCar = null;
   cityGroup.remove(old.mesh);
   cars.splice(cars.indexOf(old), 1);
-  const car = addVehicle(kindId, x, z, heading, { fuel: 1, keyId: 'keys' });
+  let car = null;
+  if (nearHero && !wasDriving && Math.hypot(x - playerWorldX, z - playerWorldZ) > 14) {
+    // свободное место на расстоянии 6–10 юнитов от героя (по кругу), носом по ходу героя
+    for (const r of [7, 10, 13]) {
+      for (let k = 0; k < 8 && !car; k++) {
+        const a = (k * Math.PI) / 4;
+        car = addVehicle(kindId, playerWorldX + Math.cos(a) * r, playerWorldZ + Math.sin(a) * r, playerHeading, { fuel: 1, keyId: 'keys' });
+      }
+      if (car) break;
+    }
+  }
+  if (!car) car = addVehicle(kindId, x, z, heading, { fuel: 1, keyId: 'keys' });
   if (!car) {
     cars.push(old); // нет места: оставляем старую
     cityGroup.add(old.mesh);

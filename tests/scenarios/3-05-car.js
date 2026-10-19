@@ -1,7 +1,7 @@
 // Сценарии прохождения квеста 3.05 «Крутая тачка» (формат — src/core/scenario.js): поломка, договор, ночь, гонка, подарок, погоня.
 
 const raceSteps = [];
-for (let i = 1; i <= 8; i++) raceSteps.push({ at: 'track.cp' + i, expect: 'count:cp>=' + (i + 2) }); // счетчик: разгон, линия старта, потом ворота
+for (let i = 1; i <= 8; i++) raceSteps.push({ at: 'track.cp' + i, expect: 'count:cp>=' + (i + 1) }); // счетчик: линия старта, потом ворота
 
 defineScenario('3.05', {
   title: 'Крутая тачка проходится: Рустам, ожидание утра, гонка, подарок, погоня',
@@ -17,10 +17,9 @@ defineScenario('3.05', {
     { action: '3.05/sleep', expectNot: 'step:3.05.morning' }, // «переждать до утра»: стало 08:00, но герой еще не на треке
     { at: 'track.start', expect: ['dayssince:deal>=1', 'step:3.05.morning', 'quest:3.05', 'weather:sun'] }, // восемь утра, он на треке: прибор разогнал тучи
     { drive: true },
-    { at: 'track.pre', expect: ['count:cp>=1', '!step:3.05.line'] }, // разгон: секундомер еще не идет
-    { at: 'track.start', expect: ['count:cp>=2', 'step:3.05.line', 'step:3.05.line'] }, // пересек линию — пошло время гонки
+    { at: 'track.start', expect: ['count:cp>=1', 'step:3.05.line', 'step:3.05.line'] }, // пересек линию — пошло время гонки
     ...raceSteps,
-    { at: 'track.start', expect: ['count:cp>=11', 'step:3.05.race'] },
+    { at: 'track.start', expect: ['count:cp>=10', 'step:3.05.race'] },
     { talk: 'rustam', pick: [0, 0], see: 'Это не езда, это танец', expect: ['step:3.05.win', 'weather:auto'] },
     { talk: 'dealer', pick: [6], see: 'победитель', expect: 'step:3.05.pick' }, // директор автосалона отдает машину на выбор (гиперкар)
     { at: 'mall.entrance', expect: ['step:3.05.chase', 'done:3.05', 'quest:3.12'] },
@@ -41,11 +40,9 @@ defineScenario('3.05-late', {
     { at: 'track.start' },
     { wait: '40m', expect: 'step:3.05.morning' },
     { drive: true },
-    { at: 'track.pre' },
     { at: 'track.start' },
-    { at: 'track.cp1', expect: 'count:cp>=3' },
+    { at: 'track.cp1', expect: 'count:cp>=2' },
     { wait: '116m', expect: ['count:cp<1', 'step:3.05.morning', '!step:3.05.line', '!step:3.05.race', 'quest:3.05'] }, // время вышло: счет с нуля, новая попытка (машину выбирают заново)
-    { at: 'track.pre' },
     { at: 'track.start' },
     ...raceSteps,
     { at: 'track.start', expect: 'step:3.05.race' },

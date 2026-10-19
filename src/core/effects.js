@@ -106,7 +106,7 @@
     playerCar: (arg, g) => {
       g.state.playerCar = arg;
       g.bump();
-      if (g.host.swapPlayerCar) g.host.swapPlayerCar(arg);
+      if (g.host.swapPlayerCar) g.host.swapPlayerCar(arg, true); // подаренная машина встает рядом с героем
     },
     fuelEconomy: (arg, g) => {
       g.state.fuelEconomy = arg;
