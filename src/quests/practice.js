@@ -19,7 +19,7 @@
     #carPick .car { display: flex; gap: 10px; align-items: center; margin: 6px 0; padding: 8px 10px; border-radius: 8px;
       background: rgba(255,255,255,0.07); }
     #carPick .car .dot { width: 18px; height: 18px; border-radius: 50%; flex: none; }
-    #carPick .car .info { flex: 1; font-size: var(--fs-text); line-height: 1.35; }
+    #carPick .car .info { flex: 1; min-width: 0; font-size: var(--fs-text); line-height: 1.35; }
     #carPick .car b { font-size: var(--fs-h2); }
     #carPick button { padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.4); background: rgba(143,208,255,0.25);
       color: #fff; cursor: pointer; font-size: var(--fs-text); }
@@ -71,7 +71,7 @@
       row.innerHTML = '<span class="dot"></span><div class="info"><b></b><br><span></span></div><button>Поехать</button>';
       row.querySelector('.dot').style.background = info.color;
       row.querySelector('b').textContent = info.name;
-      row.querySelector('span').textContent = info.desc;
+      row.querySelector('.info span').textContent = info.desc;
       row.querySelector('button').addEventListener('click', () => begin(opts, id));
       listEl.appendChild(row);
     }

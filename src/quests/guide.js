@@ -517,7 +517,9 @@
   }
 
   function updateNav() {
-    const marker = settings.showPath && !insideBuilding() ? g.currentMarker() : null;
+    // Шаг с noPath: true (3.06: домик Веры герой находит сам) — зеленых стрелок и линии пути нет, метка места остается
+    const stepNow = g.state.tracked && g.currentStep(g.state.tracked);
+    const marker = settings.showPath && !insideBuilding() && !(stepNow && stepNow.noPath) ? g.currentMarker() : null;
     if (!marker) {
       nav.key = '';
       nav.job = null;

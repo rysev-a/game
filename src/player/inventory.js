@@ -249,7 +249,10 @@ function renderInventory() {
   if (savesStrip) inventoryEl.appendChild(savesBox);
   inventoryEl.appendChild(chevron);
   inventoryEl.appendChild(grid);
-  if (!savesOn) return;
+  if (!savesOn) {
+    appendWeatherPanel();
+    return;
+  }
   if (!savesStrip) inventoryEl.appendChild(savesBox);
 
   // Дисплей браслета: значки «запомнить» и «стереть», под ними 2 строки по 8 клеток
@@ -286,6 +289,52 @@ function renderInventory() {
     slots.appendChild(c);
   }
   savesBox.appendChild(slots);
+  appendWeatherPanel();
+}
+
+// Прибор управления погодой (вещь weather, квест 3.06): панель под сохранениями в стиле сохранений. Пять клеток — ясно, хмуро, дождь, ливень, туман;
+// нажали — погода меняется, прибор тратит эликсир (weatherCost). Текущая погода подсвечена. Режим лежит в состоянии сюжета (weatherMode, src/quests/weather-story.js)
+const WEATHER_MODES = [
+  ['sun', 'w_sun', 'Ясно'],
+  ['gloom', 'w_cloud', 'Хмуро'],
+  ['rain', 'w_rain', 'Дождь'],
+  ['storm', 'w_storm', 'Ливень'],
+  ['fog', 'w_fog', 'Туман'],
+];
+const weatherCost = 10;
+function appendWeatherPanel() {
+  if (typeof questGame === 'undefined' || !questGame || !hasItem('weather')) return;
+  const now = questGame.state.weatherMode === 'auto' ? 'sun' : questGame.state.weatherMode || 'gloom';
+  const box = document.createElement('div');
+  box.className = 'invSaves invWeather';
+  const tools = document.createElement('div');
+  tools.className = 'invTools';
+  const head = cell('tool');
+  head.appendChild(pixelIcon('weather'));
+  head.title = 'Прибор управления погодой: каждая смена погоды стоит ' + weatherCost + ' эликсира';
+  tools.appendChild(head);
+  box.appendChild(tools);
+  const row = document.createElement('div');
+  row.className = 'invGrid saves';
+  row.style.gridTemplateColumns = 'repeat(' + WEATHER_MODES.length + ', 40px)';
+  for (const [mode, icon, label] of WEATHER_MODES) {
+    const c = cell('slot filled' + (mode === now ? ' weatherNow' : ''));
+    c.appendChild(pixelIcon(icon));
+    c.title = label + (mode === now ? ' (сейчас)' : ' (−' + weatherCost + ' эликсира)');
+    c.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (mode === now) return;
+      if (heroStats.elixir < weatherCost) {
+        showToast('Прибору не хватает эликсира: нужно ' + weatherCost, 2800);
+        return;
+      }
+      questGame.run([{ weather: mode }, { elixir: -weatherCost }, { toast: 'Прибор погоды: ' + label.toLowerCase() + ' (−' + weatherCost + ' эликсира)' }]);
+      renderInventory();
+    });
+    row.appendChild(c);
+  }
+  box.appendChild(row);
+  inventoryEl.appendChild(box);
 }
 
 // Быстрый слот под свернутым инвентарем: пустой — сохраняет, заполненный — загружает
