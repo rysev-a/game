@@ -15,7 +15,7 @@
   const Core = (root.Core = root.Core || {});
 
   // Названия видов врагов (сами враги описаны в игре: src/quests/fights.js)
-  Core.foeKinds = ['cyborg', 'hound', 'cain', 'drone', 'stilt'];
+  Core.foeKinds = ['cyborg', 'hound', 'strider', 'maw', 'cain', 'drone', 'stilt'];
 
   Core.resolveFight = function resolveFight(registry, ref) {
     for (const q of Object.values(registry.quests)) {

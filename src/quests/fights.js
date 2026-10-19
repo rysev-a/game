@@ -49,8 +49,23 @@
         { name: 'burst', max: 18, charge: 14, shots: 4, every: 6, cd: 100, fire: (m) => shoot(m, 'cannon', { kind: 'bullet', color: 0xffa04a, speed: 0.7, life: 50, damage: 3, type: 'kinetic' }) },
       ],
     },
+    // Химерный ходок: красное тело с клыками на четырех длинных ногах, сверху мешок-яйцо. Подкрадывается и бьет вблизи: встает на дыбы и обрушивает клыки
+    strider: {
+      make: createChimericStriderModel, name: 'Химерный ходок', kind: 'bio', voice: 'strider',
+      hp: 150, r: 0.9, height: 3.6, speed: 0.045, stride: 2.2, keep: [0, 1.6],
+      attacks: [{ name: 'stab', max: 2.9, charge: 30, shots: 1, cd: 75, fire: (m, t) => { if (Math.hypot(playerWorldX - t.x, playerWorldZ - t.z) < t.r + 2.2) hitHero({ damage: 12, type: 'melee', x: t.x, z: t.z }); } }],
+    },
+    // Болотная пасть: круглое тело-пасть, три глаза, шипы; плюется едкой слизью, вблизи кусает
+    maw: {
+      make: createMireMawModel, name: 'Болотная пасть', kind: 'bio', voice: 'maw',
+      hp: 160, r: 1.0, height: 2.2, speed: 0.04, stride: 3.0, keep: [2, 8],
+      attacks: [
+        { name: 'bite', max: 2.6, charge: 22, shots: 1, cd: 70, fire: (m, t) => { if (Math.hypot(playerWorldX - t.x, playerWorldZ - t.z) < t.r + 1.7) hitHero({ damage: 14, type: 'melee', x: t.x, z: t.z }); } },
+        { name: 'spit', min: 3, max: 12, charge: 30, shots: 3, every: 8, cd: 140, fire: (m) => shoot(m, 'mouth', { kind: 'spit', color: 0x9adc4a, speed: 0.28, life: 160, damage: 6, type: 'fire' }) },
+      ],
+    },
     hound: {
-      make: createSporeHoundModel, name: 'Спорогончая', kind: 'bio',
+      make: createSporeHoundModel, name: 'Спорогончая', kind: 'bio', voice: 'hound',
       hp: 70, r: 0.8, height: 1.7, speed: 0.12, stride: 4.5, keep: [5, 9], strafe: true,
       attacks: [
         { name: 'bite', max: 2.3, charge: 10, shots: 1, cd: 55, fire: melee(7, 1.6) },
@@ -98,7 +113,7 @@
     const giveUp = aggro + 30;
     const s = {
       heading: Math.PI, phase: 0, move: 0, idle: 0, fall: 0, gone: 0, alert: 0, fight: false, strike: 0,
-      atk: null, cd: {}, busy: 40, downUntil: 0, strafe: Math.random() < 0.5 ? 1 : -1, moving: false, lastAttack: null,
+      atk: null, cd: {}, busy: 40, roared: false, voiceIn: 40 + Math.random() * 200, downUntil: 0, strafe: Math.random() < 0.5 ? 1 : -1, moving: false, lastAttack: null,
     };
     const home = { x, z };
 
@@ -136,6 +151,7 @@
         const def = a.def;
         if (a.t >= def.charge && a.shot < def.shots && (a.t - def.charge) % (def.every || 1) === 0) {
           enemyAttackerKind = c.kind;
+          if (c.voice && typeof playCreatureSound === 'function' && a.shot === 0) playCreatureSound(c.voice, 'attack', dist);
           def.fire(model, t, a.shot);
           enemyAttackerKind = null;
           a.shot++;
@@ -185,6 +201,7 @@
         if (model.userData.spin !== undefined) model.userData.spin = 0.5;
       },
       onDeath: () => {
+        if (c.voice && typeof playCreatureSound === 'function') playCreatureSound(c.voice, 'death', Math.hypot(playerWorldX - t.x, playerWorldZ - t.z));
         s.downUntil = performance.now() + 1500;
         s.atk = null;
         onDead();
@@ -200,6 +217,18 @@
 
         const heroDist = Math.hypot(playerWorldX - t.x, playerWorldZ - t.z);
         const canFight = heroIsTarget();
+        // Голос: заметил героя — вой или визг, потом время от времени рычит и шипит, пока герой поблизости
+        if (c.voice && typeof playCreatureSound === 'function' && !t.dead) {
+          if (s.fight && !s.roared) {
+            s.roared = true;
+            playCreatureSound(c.voice, 'roar', heroDist);
+          }
+          if (!s.fight) s.roared = false;
+          if (--s.voiceIn <= 0) {
+            s.voiceIn = 150 + Math.random() * 280;
+            if (heroDist < 55) playCreatureSound(c.voice, s.fight ? 'snarl' : 'idle', heroDist);
+          }
+        }
         if (!s.fight && canFight && (heroDist < aggro || (s.alert > 0 && heroDist < giveUp))) s.fight = true;
         if (s.fight && (!canFight || heroDist > giveUp)) {
           s.fight = false;
