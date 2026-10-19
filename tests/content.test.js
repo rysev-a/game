@@ -16,7 +16,7 @@ definePlace('village.home', { x: -1318, z: 0, r: 14, name: 'Дом, Соснов
 definePlace('road.city', { x: 200, z: 0, r: 14, name: 'Трасса у города' });
 definePlace('zarechye.road', { x: 606, z: 230, r: 12, name: 'Улица Заречья' });
 definePlace('pizza.shop', { x: -104, z: -22, r: 14, name: 'Пиццерия' });
-for (const [i, [x, z]] of [[0, -29], [70, 56], [220, -20], [398, -9], [448, -8]].entries()) definePlace('pizza.c' + (i + 1), { x, z, r: 14, name: 'Заказ ' + (i + 1) });
+for (const [i, [x, z]] of [[0, -29], [70, 56], [232, 6], [398, -9], [448, -8]].entries()) definePlace('pizza.c' + (i + 1), { x, z, r: 14, name: 'Заказ ' + (i + 1) });
 definePlace('zarechye.parking', { x: 588.3, z: 247.3, r: 6, name: 'Парковка у дома Анны Петровны' });
 definePlace('gas.zarechye', { x: 398, z: -9, r: 14, name: 'Заправка «Заречье»' });
 definePlace('zarechye.house', { x: 400, z: 900, r: 34, name: 'Дом Анны Петровны' });

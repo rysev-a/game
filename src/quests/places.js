@@ -19,7 +19,7 @@ definePlace('zarechye.road', { x: questBuildingAt('grandma_house').x, z: questBu
 definePlace('pizza.shop', { x: -104, z: -22, r: 14, name: 'Пиццерия «Тесто»' });
 definePlace('pizza.c1', { x: 0, z: -29, r: 14, name: 'Заказ 1: торговый центр' });
 definePlace('pizza.c2', { x: 70, z: 56, r: 12, name: 'Заказ 2: башня' });
-definePlace('pizza.c3', { x: 220, z: -20, r: 18, name: 'Заказ 3: библиотека' });
+definePlace('pizza.c3', { x: 232, z: 6, r: 12, name: 'Заказ 3: улица у библиотеки' }); // на дороге перед библиотекой, чуть в стороне от входа: на ступеньки заезжать не нужно
 definePlace('pizza.c4', { x: 398, z: -9, r: 14, name: 'Заказ 4: заправка «Заречье»' });
 definePlace('pizza.c5', { x: 448, z: -8, r: 14, name: 'Заказ 5: дом в кирпичном городе' }); // у дома на западном краю города 2
 
