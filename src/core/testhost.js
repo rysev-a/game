@@ -48,6 +48,7 @@
     h.endPractice = () => (h.practice = null);
     h.heal = (n) => (h.healed = (h.healed || 0) + n);
     h.openPuzzle = (session) => h.dialogs.push(session);
+    h.openShop = (session) => (h.shops = (h.shops || []).concat(session)); // окно магазина в тесте не рисуется
     h.toast = (text) => h.toasts.push(text);
     h.openDialog = (node) => h.dialogs.push(node);
     h.random = () => 0; // всегда первая реплика из списка: тесты не зависят от случая

@@ -23,6 +23,23 @@ defineDialog('mihalych', {
 });
 
 defineCharacter({
+  id: 'merchant',
+  name: 'Торговец',
+  title: 'хозяин прилавков',
+  desc: 'Важный, круглый, в бордовом пиджаке и шляпе. Лично ведет торговлю на прилавках у торгового центра и делает вид, что вещи из будущего — обычная фурнитура.',
+  look: 'merchant', // облик — набор merchant в src/models/person.js; в мире он стоит только пока идет квест 2.13 (world.people)
+});
+defineDialog('merchant', {
+  start: [{ goto: 'hub' }],
+  nodes: {
+    hub: {
+      text: ['Прилавки закрыты, дорогой мой, закрыты. Приходите, когда будет нужда.', 'Товар не для праздных. Вам что-то конкретное нужно?'],
+      options: ['topics', { text: 'Зайду позже.', end: true }],
+    },
+  },
+});
+
+defineCharacter({
   id: 'rustam',
   name: 'Рустам',
   title: 'автомеханик',

@@ -31,13 +31,9 @@ defineScenario('2.13', {
   done: ['1.03'],
   steps: [
     { do: [{ start: '2.13' }, { give: 'bp_shotgun' }, { give: 'bp_machinegun' }, { add: { money: 400 } }], expect: ['quest:2.13', 'count:money>=400'] }, // деньги заработаны на пицце (2.15)
-    { interact: 'spot:stall_pipes' },
-    { interact: 'spot:stall_pipes' },
-    { interact: 'spot:stall_parts' },
-    { interact: 'spot:stall_parts' },
-    { interact: 'spot:stall_parts' },
-    { interact: 'spot:stall_wood', expect: ['step:2.13.shop', 'count:money>=0', 'count:money<100'] },
-    { interact: 'spot:stall_wood' }, // все куплено: подсказка продавца, деньги целы
+    { talk: 'merchant', pick: [0], see: 'чертежи, катушки, память' }, // торговец открывает магазин: окно в тесте не рисуется
+    { shop: '2.13.stalls', buy: ['sg_pipe', 'sg_spring', 'sg_stock', 'mg_pipe', 'mg_gears', 'mg_spring'], expect: ['step:2.13.shop', 'count:money>=0', 'count:money<100'] },
+    { interact: 'spot:stall_wood' }, // прилавок без продавца: подсказка, что товаром ведает торговец
     { talk: 'mihalych', pick: [0, 0], see: 'держи подачу', expect: ['step:2.13.bring', '!has:sg_pipe', '!has:bp_shotgun'] },
     { interact: 'spot:forge' },
     { puzzle: '2.13.shotgun', picks: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5], expect: ['has:shotgun', 'step:2.13.shotgun'] },
@@ -51,8 +47,7 @@ defineScenario('2.13-poor', {
   done: ['1.03'],
   steps: [
     { do: [{ start: '2.13' }, { add: { money: 10 } }] },
-    { interact: 'spot:stall_pipes', expectNot: 'has:sg_pipe' },
-    { interact: 'spot:stall_wood', expectNot: 'has:sg_stock' },
+    { shop: '2.13.stalls', buy: [], expectNot: ['has:sg_pipe', 'has:sg_stock'] },
   ],
 });
 

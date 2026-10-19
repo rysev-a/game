@@ -77,6 +77,8 @@
           bad(where, 'нет факта «' + arg + '»');
         } else if (key === 'puzzle' && !Core.resolvePuzzle(registry, arg)) {
           bad(where, 'нет головоломки «' + arg + '»');
+        } else if (key === 'shop' && !Core.resolveShop(registry, arg)) {
+          bad(where, 'нет магазина «' + arg + '»');
         } else if ((key === 'elixir' || key === 'heal') && typeof arg !== 'number') {
           bad(where, key + ': нужно число');
         } else if (key === 'wait') {
@@ -198,6 +200,17 @@
         for (const foe of f.foes || []) {
           if (!Core.foeKinds.includes(foe.kind)) bad(fw, 'неизвестный вид врага «' + foe.kind + '»');
           if (!registry.places[foe.at]) bad(fw, 'нет места «' + foe.at + '»');
+        }
+      }
+      for (const [name, shop] of Object.entries(q.shops || {})) {
+        const sw = where + ', магазин ' + name;
+        if (!(shop.goods || []).length) bad(sw, 'нет goods');
+        for (const g of shop.goods || []) {
+          if (!g.item) bad(sw, 'у товара нет item');
+          if (!(g.price > 0)) bad(sw, 'у товара «' + g.item + '» нет цены');
+          if (opts.items && g.item && !itemKnown(g.item)) bad(sw, 'нет вещи «' + g.item + '» в товарах');
+          lintCond(g.if, sw);
+          lintEffects(g.do, sw);
         }
       }
       for (const [name, pz] of Object.entries(q.puzzles || {})) {

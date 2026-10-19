@@ -12,6 +12,7 @@
 //   { phone: { from: 'denis', text: '…' } }           сообщение на телефон (попадает и в журнал)
 //   { dialog: '1.03.flash' }                          открыть узел диалога
 //   { puzzle: '2.05.elixir' }                         открыть головоломку (src/core/puzzles.js)
+//   { shop: '2.13.stalls' }                           открыть магазин: окно с товарами, клик по товару покупает (src/core/shops.js)
 //   { elixir: 60 }                                    добавить эликсир герою (шкала снаряжения); отрицательное число — потратить
 //   { wait: '8h' }                                    промотать игровое время ('90m', '8h', '1d')
 //   { waitUntil: '22:00' }                            промотать время до этого часа (ближайшего)
@@ -82,6 +83,7 @@
     phone: (arg, g) => g.addMessage(arg.from, arg.text),
     dialog: (arg, g) => g.host.openDialog && g.host.openDialog(g.dialogueNode(arg)),
     puzzle: (arg, g) => g.host.openPuzzle && g.host.openPuzzle(g.puzzleSession(arg)),
+    shop: (arg, g) => g.host.openShop && g.host.openShop(g.shopSession(arg)),
     elixir: (arg, g) => g.host.addElixir && g.host.addElixir(arg),
     wait: (arg, g) => g.host.advanceTime && g.host.advanceTime(Core.parseDuration(arg)),
     waitUntil: (arg, g) => {

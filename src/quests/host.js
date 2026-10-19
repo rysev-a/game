@@ -102,6 +102,7 @@ const questHost = {
     if (!questToastBusy) questShowNextToast();
   },
   openDialog: (node) => startDialogue(questNarrator, node),
+  openShop: (session) => session && openShopUi(session), // окно магазина: src/quests/shop-ui.js
   openPuzzle: (session) => session && openPuzzleUi(session), // окно головоломки: src/quests/puzzle-ui.js
   setCarLimp: (on) => {
     if (!garage.car) return;

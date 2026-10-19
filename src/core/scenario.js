@@ -62,6 +62,12 @@
           if (!session) fail('нет головоломки ' + step.puzzle);
           else for (const id of step.picks || []) session.pick(id);
         }
+        if (step.shop) {
+          // { shop: '2.13.stalls', buy: ['sg_pipe', …] }: купить товары по порядку (ошибка, если что-то купить нельзя)
+          const session = game.shopSession(step.shop);
+          if (!session) fail('нет магазина ' + step.shop);
+          else for (const id of [].concat(step.buy || [])) if (session.buy(id) !== 'bought') fail('не купилось «' + id + '»');
+        }
         if (step.fight) {
           if (!game.activeFights().some((f) => f.ref === step.fight)) fail('бой «' + step.fight + '» не идет (when ложно или он уже выигран)');
           else game.winFight(step.fight);
