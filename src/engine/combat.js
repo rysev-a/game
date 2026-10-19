@@ -76,6 +76,7 @@ function hitTarget(t, hit) {
   let mult = t.weak[hit.type] !== undefined ? t.weak[hit.type] : 1;
   if (mult > 0 && mult < 1 && t.status.melt > 0) mult += (1 - mult) * t.status.melt; // оплавленная броня (иммунитет не плавится)
   if (hit.hitsAll) mult = Math.max(mult, 1); // плазмомет: ни броня, ни иммунитет его не держат
+  if (mult === 0 && hit.chip) mult = hit.chip; // chip: иммунитет не абсолютный, часть урона все же проходит (пулемет по роботам)
   // Удар по замороженной цели раскалывает лед: двойной урон и осколки во все стороны
   let shatter = false;
   if (hit.type === 'kinetic' && t.status.frozen > 0) {

@@ -86,6 +86,7 @@ function weaponHit(w, t, x, y, z, dx, dz, over = {}) {
     type: over.type || w.type,
     x, z, weapon: w.id,
     hitsAll: !!w.hitsAll,
+    chip: w.chip, // доля урона, которая проходит сквозь иммунитет цели (слабо, но действует)
     effects: over.effects !== undefined ? over.effects : w.effects,
     push: w.push ? { x: dx * w.push, z: dz * w.push } : null,
   });
