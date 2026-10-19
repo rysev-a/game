@@ -618,16 +618,20 @@ function updateTireMarks(car, handbrake) {
   car.sliding = sliding; // визг шин на заносе (src/engine/sound.js)
   // Задние колеса: сзади от центра (нос машины — по -z модели) и по бокам
   const h = car.heading;
-  const back = car.half.l * 0.65;
+  // У мотороллера одно заднее колесо, а значит, одна полоса от шины (kind.singleTrack), у остальных — две
+  const single = !!(car.kind && car.kind.singleTrack);
+  const back = car.half.l * (single ? 0.85 : 0.65);
   const side = car.half.w * 0.78;
   const bx = car.x + Math.sin(h) * back;
   const bz = car.z + Math.cos(h) * back;
-  const wheels = [
-    [bx + Math.cos(h) * side, bz - Math.sin(h) * side],
-    [bx - Math.cos(h) * side, bz + Math.sin(h) * side],
-  ];
-  if (sliding && car.lastWheels) {
-    for (let i = 0; i < 2; i++) addTireMark(car.lastWheels[i][0], car.lastWheels[i][1], wheels[i][0], wheels[i][1], car.y || 0);
+  const wheels = single
+    ? [[bx, bz]]
+    : [
+        [bx + Math.cos(h) * side, bz - Math.sin(h) * side],
+        [bx - Math.cos(h) * side, bz + Math.sin(h) * side],
+      ];
+  if (sliding && car.lastWheels && car.lastWheels.length === wheels.length) {
+    for (let i = 0; i < wheels.length; i++) addTireMark(car.lastWheels[i][0], car.lastWheels[i][1], wheels[i][0], wheels[i][1], car.y || 0);
   }
   car.lastWheels = sliding ? wheels : null;
 }
