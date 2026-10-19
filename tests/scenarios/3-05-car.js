@@ -51,7 +51,7 @@ defineScenario('3.05-late', {
     { at: 'track.start', expect: 'step:3.05.race' },
     { talk: 'rustam', pick: [0, 0], expect: 'step:3.05.win' },
     { talk: 'dealer', pick: [0], expect: 'step:3.05.pick' },
-    { wait: '19m', expect: ['step:3.05.pick', '!step:3.05.chase'] }, // не успел: убили, откат погони, новая попытка
+    { wait: '41m', expect: ['step:3.05.pick', '!step:3.05.chase'] }, // не успел: убили, откат погони, новая попытка
     { at: 'mall.entrance', expect: ['step:3.05.chase', 'done:3.05'] },
   ],
 });
