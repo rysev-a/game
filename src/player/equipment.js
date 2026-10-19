@@ -42,6 +42,8 @@ Object.assign(ITEMS, {
 });
 
 // Прибор на запястье (браслет возврата) — это ячейка «браслет»
+// Ячейка «браслет» появляется только когда браслет у героя: надет или лежит в инвентаре; в начале игры ее нет
+const braceletSlotShown = () => !!wristDevice() || inventory.items.some((id) => equipSlotOf(id) === 'bracelet');
 const wristDevice = () => heroDevices.worn.find((id) => /^wrist/.test(DEVICES[id].wear || ''));
 
 function equipSlotOf(id) {
@@ -777,7 +779,7 @@ function renderEquipPanel() {
   label('Снаряжение');
   const gear = document.createElement('div');
   gear.className = 'row';
-  for (const s of ['bracelet', 'jacket', 'armor', 'boots']) gear.appendChild(gearCell(s));
+  for (const s of ['bracelet', 'jacket', 'armor', 'boots']) if (s !== 'bracelet' || braceletSlotShown()) gear.appendChild(gearCell(s));
   equipPanelEl.appendChild(gear);
   const defense = document.createElement('div');
   defense.className = 'defense';
@@ -822,7 +824,7 @@ function renderEquipHud() {
   if (touchUI) {
     const gear = document.createElement('div');
     gear.className = 'group';
-    gear.appendChild(equipSlotCell('bracelet', wristDevice(), 'Браслет', () => unequipSlot('bracelet')));
+    if (braceletSlotShown()) gear.appendChild(equipSlotCell('bracelet', wristDevice(), 'Браслет', () => unequipSlot('bracelet')));
     for (const s of WEAR_SLOTS) gear.appendChild(equipSlotCell(slotIcons[s], heroEquip[s], slotTitles[s], () => unequipSlot(s)));
     equipHudEl.appendChild(gear);
     const guns = document.createElement('div');

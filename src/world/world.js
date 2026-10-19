@@ -23,4 +23,5 @@ buildRoadMeshes();
   const southD = forestGroundD / 2 - ravineGap.z2;
   flatRect(groundX2 - eastX, northD, 0x1f3a26, 0.004, (eastX + groundX2) / 2, (ravineGap.z1 - forestGroundD / 2) / 2);
   flatRect(groundX2 - eastX, southD, 0x1f3a26, 0.004, (eastX + groundX2) / 2, (ravineGap.z2 + forestGroundD / 2) / 2);
+  flatRect(ravineCross.x2 - ravineCross.x1, ravineGap.z2 - ravineGap.z1, 0x1f3a26, 0.004, (ravineCross.x1 + ravineCross.x2) / 2, (ravineGap.z1 + ravineGap.z2) / 2); // перемычка через овраг
 }

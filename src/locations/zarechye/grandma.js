@@ -242,9 +242,10 @@
     const bedHalf = ravineHalf - 2;
     const bed = -1.3;
     const strip = (profile, color) => {
+     for (const [sx1, sx2] of [[rx1, ravineCross.x1], [ravineCross.x2, rx2]]) {
       const pos = [];
       const idx = [];
-      profile.forEach(([dz, y], i) => pos.push(rx1, y, ravineZ + dz, rx2, y, ravineZ + dz));
+      profile.forEach(([dz, y], i) => pos.push(sx1, y, ravineZ + dz, sx2, y, ravineZ + dz));
       for (let i = 0; i < profile.length - 1; i++) {
         const l = i * 2;
         idx.push(l, l + 1, l + 2, l + 1, l + 3, l + 2);
@@ -253,6 +254,7 @@
       geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
       geo.setIndex(idx);
       cityGroup.add(new THREE.Mesh(geo, new LitMaterial({ color, side: THREE.DoubleSide })));
+     }
     };
     strip([[-slopeEdge, 0.003], [-bedHalf, bed]], 0x6b5238); // северный откос
     strip([[bedHalf, bed], [slopeEdge, 0.003]], 0x6b5238); // южный откос
@@ -261,7 +263,8 @@
   }
   mapObjects.push({ x: (rx1 + rx2) / 2, z: ravineZ, hx: (rx2 - rx1) / 2, hz: ravineHalf + 1, color: '#4a3826', ground: true });
   const logHalf = 0.8;
-  longObstacle(rx1, ravineZ - ravineHalf - 1, gx - logHalf, ravineZ + ravineHalf + 1); // весь вырытый овраг, вместе с откосами
+  longObstacle(rx1, ravineZ - ravineHalf - 1, ravineCross.x1, ravineZ + ravineHalf + 1); // весь вырытый овраг, вместе с откосами; перемычка свободна
+  longObstacle(ravineCross.x2, ravineZ - ravineHalf - 1, gx - logHalf, ravineZ + ravineHalf + 1);
   longObstacle(gx + logHalf, ravineZ - ravineHalf - 1, rx2, ravineZ + ravineHalf + 1);
   // Бревно: низкое, лежит концами на берегах, верх чуть выше земли (0,28); герой идет по нему, а не сквозь (groundExtras поднимает землю под ним)
   const logTop = 0.28;
@@ -283,9 +286,86 @@
   });
   globalThis.navLinks = globalThis.navLinks || [];
   globalThis.navLinks.push({ a: { x: gx, z: ravineZ - ravineHalf - 1.5 }, b: { x: gx, z: ravineZ + ravineHalf + 1.5 } }); // бревно для поиска пути (src/quests/guide.js)
+  // Перемычка через овраг: земляная насыпь с трубой для ручья, ее плоский верх — часть объездной дороги к домику Веры
+  {
+    const cx = (ravineCross.x1 + ravineCross.x2) / 2;
+    const dike = boxWithEdges(ravineCross.x2 - ravineCross.x1, 1.3, ravineHalf * 2 + 2, 0x6b5238);
+    dike.position.set(cx, -0.65 - 0.004, ravineZ);
+    cityGroup.add(dike);
+    flatRect(ravineCross.x2 - ravineCross.x1, ravineHalf * 2 + 2, 0x5d5238, 0.011, cx, ravineZ); // верх насыпи — земля, как у дороги
+    for (const [x, ry] of [[ravineCross.x1 - 0.02, -Math.PI / 2], [ravineCross.x2 + 0.02, Math.PI / 2]]) {
+      const pipe = new THREE.Mesh(new THREE.CircleGeometry(0.62, 14), new THREE.MeshBasicMaterial({ color: 0x15110d, side: THREE.DoubleSide }));
+      pipe.position.set(x, -0.7, ravineZ);
+      pipe.rotation.y = ry;
+      cityGroup.add(pipe);
+    }
+    mapObjects.push({ x: cx, z: ravineZ, hx: (ravineCross.x2 - ravineCross.x1) / 2, hz: ravineHalf + 1, color: '#6a5a44', ground: true });
+  }
+
+  // ОБЪЕЗДНАЯ ДОРОГА к домику Веры: не обозначена знаками и едва заметна. Начинается там, где кончается улица поселка (западный край), огибает участки
+  // с запада, переезжает овраг по перемычке и сквозь лес выходит к поляне с югa, то есть сзади огромного дерева. Так к домику можно доехать
+  // на машине, не ходя каждый раз по тропинке через бревно. Две колеи по траве, посередине трава, по краям лес не растет
+  const detourPts = [
+    [streetX1 + 1, streetZ], [471, streetZ + 4], [464, streetZ + 20], [460, streetZ + 42], [462, ravineZ - 22], [465, ravineZ - 10], [466, ravineZ - 5],
+    [466, ravineZ], [466, ravineZ + 5], [466, ravineZ + 10], [468, ravineZ + 22], [478, ravineZ + 42], [484, ravineZ + 68], [477, ravineZ + 94],
+    [482, ravineZ + 120], [496, ravineZ + 144], [507, ravineZ + 166], [522, ravineZ + 182], [treeX - 2, ravineZ + 184], [treeX, treeZ + 14],
+  ];
+  const detour = [];
+  {
+    const P = detourPts;
+    const at = (i) => P[Math.max(0, Math.min(P.length - 1, i))];
+    for (let i = 0; i < P.length - 1; i++) {
+      const [p0, p1, p2, p3] = [at(i - 1), at(i), at(i + 1), at(i + 2)];
+      const n = Math.max(2, Math.ceil(Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) / 1.5));
+      for (let k = 0; k < n; k++) {
+        const t = k / n;
+        const t2 = t * t;
+        const t3 = t2 * t;
+        const f = (a, b, c, d) => 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+        detour.push({ x: f(p0[0], p1[0], p2[0], p3[0]), z: f(p0[1], p1[1], p2[1], p3[1]) });
+      }
+    }
+    detour.push({ x: P[P.length - 1][0], z: P[P.length - 1][1] });
+    // Лента вдоль точек со смещением от оси (offset) и полушириной hw
+    const ribbon = (hw, offset, color, y) => {
+      const pos = [];
+      for (let i = 0; i < detour.length; i++) {
+        const a = detour[Math.max(0, i - 1)];
+        const b = detour[Math.min(detour.length - 1, i + 1)];
+        const len = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+        const nx = -(b.z - a.z) / len;
+        const nz = (b.x - a.x) / len;
+        const cx = detour[i].x + nx * offset;
+        const cz = detour[i].z + nz * offset;
+        pos.push(cx + nx * hw, y, cz + nz * hw, cx - nx * hw, y, cz - nz * hw);
+      }
+      const idx = [];
+      for (let i = 0; i < detour.length - 1; i++) {
+        const l = i * 2;
+        idx.push(l, l + 1, l + 2, l + 1, l + 3, l + 2);
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      geo.setIndex(idx);
+      cityGroup.add(new THREE.Mesh(geo, new LitMaterial({ color, side: THREE.DoubleSide })));
+    };
+    ribbon(2.3, 0, 0x5d5238, 0.012); // полотно: примятая трава и земля
+    ribbon(0.3, -0.95, 0x40351f, 0.015); // две колеи
+    ribbon(0.3, 0.95, 0x40351f, 0.015);
+    for (let i = 0; i < detour.length - 2; i += 3) {
+      const e = detour[Math.min(detour.length - 1, i + 3)];
+      mapRoads.push({ x1: detour[i].x, z1: detour[i].z, x2: e.x, z2: e.z, color: '#4d4430', width: 2.6 });
+    }
+    // Лес по бокам не растет (коридор шире машины), на повороте у дерева — разворотная площадка
+    for (let i = 0; i < detour.length; i += 2) clearZones.push({ x1: detour[i].x - 4.6, x2: detour[i].x + 4.6, z1: detour[i].z - 4.6, z2: detour[i].z + 4.6 });
+    globalThis.zarechyeDetour = detour; // для проверок проходимости в консоли
+    flatRect(9, 7, 0x5d5238, 0.012, treeX, treeZ + 15);
+    clearZones.push({ x1: treeX - 7, x2: treeX + 7, z1: treeZ + 8, z2: treeZ + 24 });
+  }
+
   // Кусты вдоль оврага
   for (let x = rx1 + 4; x < rx2; x += rand(5, 9)) {
-    if (Math.abs(x - gx) < 3) continue;
+    if (Math.abs(x - gx) < 3 || (x > ravineCross.x1 - 6 && x < ravineCross.x2 + 6)) continue;
     for (const side of [-1, 1]) {
       const bush = createBush(pick(leafyGreens));
       bush.position.set(x, 0, ravineZ + side * (ravineHalf + 1.6));
@@ -358,6 +438,7 @@
   for (let i = 0; i < 16; i++) {
     const ang = (i / 16) * Math.PI * 2 + rand(-0.15, 0.15);
     if (Math.abs(ang - Math.PI * 1.5) < 0.3 || Math.abs(ang + Math.PI * 0.5) < 0.3) continue; // проход для тропинки с севера
+    if (Math.abs(ang - Math.PI * 0.5) < 0.42 || Math.abs(ang - Math.PI * 2.5) < 0.42) continue; // и для объездной дороги с юга (сзади дерева)
     const r = 15 + rand(0, 6);
     const tx = treeX + Math.cos(ang) * r;
     const tz = treeZ + Math.sin(ang) * r;

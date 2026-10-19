@@ -26,3 +26,5 @@ for (const [x1, x2] of floorParts) {
     addFloor(x1, x2, ravineGap.z2, floorZ2);
   } else addFloor(x1, x2, floorZ1, floorZ2);
 }
+// Перемычка: на ней земля в полосе оврага не прерывается (по ней проезжает машина)
+if (typeof demoWorldRadius !== 'number') addFloor(ravineCross.x1, ravineCross.x2, ravineGap.z1, ravineGap.z2);
