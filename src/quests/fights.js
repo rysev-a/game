@@ -303,7 +303,7 @@
   function sync() {
     const active = g.activeFights();
     const activeRefs = new Set(active.map((f) => f.ref));
-    for (const ref of [...live.keys()]) if (!activeRefs.has(ref)) removeFight(ref);
+    for (const ref of [...live.keys()]) if (!activeRefs.has(ref) && !live.get(ref).finishing) removeFight(ref); // победивший бой доживает до конца падения врагов
     // Бой с panic: true — пока он идет, горожане бегают (src/world/people.js)
     npcPanic = GAME_LOCATION === 'main' && active.some((f) => f.def.panic && !(live.get(f.ref) && live.get(f.ref).finishing));
     for (const { ref, def } of active) {
@@ -322,18 +322,16 @@
           // Бой с count: true — после каждого убитого врага сообщение, сколько осталось (вместе с теми, что еще выйдут в следующих волнах)
           if (def.count) {
             const left = f.foes.filter((x) => !x.dead).length;
-            if (left > 0) questHost.toast('Осталось роботов: ' + left);
+            if (left > 0) questHost.toast('Осталось врагов: ' + left);
           }
         });
       }
       if (f.foes.every((x) => x.dead)) {
-        // Подождать, пока последний упадет, и выиграть бой
-        setTimeout(() => {
-          removeFight(ref);
-          g.winFight(ref);
-        }, 1200);
+        // Бой выигран сразу, как упал последний враг (иначе «расчистите этаж» еще секунду, хотя врагов нет); тела убираются через 1,2 секунды
         f.foes.forEach((x) => (x.dead = true));
         f.finishing = true;
+        g.winFight(ref);
+        setTimeout(() => removeFight(ref), 1200);
       }
     }
   }

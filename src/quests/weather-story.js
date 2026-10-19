@@ -59,6 +59,7 @@
 
   const origUpdateRain = updateRain;
   updateRain = function () {
+    if (typeof GAME_INDOORS !== 'undefined' && GAME_INDOORS) return origUpdateRain(); // этаж башни: погоды нет
     withoutSunny(origUpdateRain);
     const t = want(mode());
     for (const k of Object.keys(lv)) lv[k] += (t[k] - lv[k]) * 0.02;

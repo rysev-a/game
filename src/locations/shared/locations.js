@@ -44,6 +44,9 @@ const GAME_LOCATION = (() => {
   return want && LOCATION_WORLDS[want] ? want : 'main';
 })();
 
+// Этажи башни — «внутри здания»: вокруг нет ни земли, ни неба, ни леса, ни забора, просто этаж в темноте, как в торговом центре
+const GAME_INDOORS = /^tower\d$/.test(GAME_LOCATION);
+
 if (GAME_LOCATION !== 'main') {
   var demoWorldRadius = LOCATION_WORLDS[GAME_LOCATION].radius;
   var demoWorldCenter = LOCATION_WORLDS[GAME_LOCATION].center;
@@ -59,8 +62,7 @@ function writeWorldScripts() {
           'src/locations/shared/location.js',
           ...LOCATION_WORLDS[GAME_LOCATION].scripts,
           'src/locations/shared/location-finish.js',
-          'src/world/forest.js',
-          'src/world/fence.js',
+          ...(GAME_INDOORS ? [] : ['src/world/forest.js', 'src/world/fence.js']),
         ];
   for (const src of list) document.write('<script src="' + src + '"><\/script>');
 }

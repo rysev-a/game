@@ -85,6 +85,20 @@ const rippleMatrix = new THREE.Matrix4();
 const rippleTint = new THREE.Color();
 
 function updateRain() {
+  // Этаж башни (GAME_INDOORS, src/locations/shared/locations.js): как внутри здания — ни неба, ни дождя, ни времени суток, просто этаж в полутьме
+  if (typeof GAME_INDOORS !== 'undefined' && GAME_INDOORS) {
+    scene.background.set(0x15171c);
+    scene.fog.color.copy(scene.background);
+    scene.fog.density = 0.0035;
+    setDaylight(0.9);
+    nightTint.style.opacity = '0';
+    rainTint.style.opacity = '0';
+    sunTint.style.opacity = '0';
+    rain.visible = false;
+    ripples.visible = false;
+    snow.visible = false;
+    return;
+  }
   // В зданиях дождя нет
   const target = (rainOn || snowOn) && !insideBuilding() ? 1 : 0;
   weather += (target - weather) * 0.03;

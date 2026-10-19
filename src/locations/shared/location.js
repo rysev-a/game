@@ -11,8 +11,8 @@ function updateIncident() {}
 function updateGasStation() {}
 function updateMallPeople() {}
 
-// Земля всего круга — зеленая: ни в мире, ни на карте нет пустых темных полей
-{
+// Земля всего круга — зеленая: ни в мире, ни на карте нет пустых темных полей. Этаж башни (GAME_INDOORS) — без земли: вокруг только темнота
+if (!GAME_INDOORS) {
   const disc = new THREE.Mesh(new THREE.CircleGeometry(worldRadius + 450, 160), new LitMaterial({ color: 0x356b3a, side: THREE.DoubleSide }));
   disc.rotation.x = -Math.PI / 2;
   disc.position.set(worldCenter.x, 0.003, worldCenter.z);
