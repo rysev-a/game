@@ -147,7 +147,7 @@
   function attemptHere(opts, id) {
     const place = Core.registry.places[opts.at];
     const own = garage.car;
-    const heading = opts.heading === undefined ? Math.PI / 2 : opts.heading;
+    const heading = opts.heading === undefined ? -Math.PI / 2 : opts.heading;
     if (attemptCar) {
       if (drivingCar === attemptCar) drivingCar = null;
       cityGroup.remove(attemptCar.mesh);

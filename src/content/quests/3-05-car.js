@@ -49,7 +49,7 @@ defineQuest({
       done: 'count:cp>=2',
       marker: '@checkpoint', // сначала разгон за линией, потом сама линия
       beacon: 'checkpoint',
-      hint: 'Гонка идет на запад: сначала заезжайте на разгон восточнее арки, затем разворачивайтесь и мчите через линию старта. Секундомер включится в тот миг, когда вы ее пересечете',
+      hint: 'Гонка идет по часовой стрелке: северная змейка — на восток. Сначала заезжайте на разгон западнее арки, затем мчите на восток через линию старта. Секундомер включится в тот миг, когда вы ее пересечете',
     },
     {
       id: 'race',
@@ -65,7 +65,7 @@ defineQuest({
           { toast: 'Не уложились. Рустам машет флажком: еще попытка, можно взять другую машину.' },
           { set: { cp: 0 } },
           { rewind: '3.05.line' },
-          { attempt: { at: 'track.pre', cars: ['own', 'gt', 'race', 'rally', 'muscle', 'drift', 'proto', 'kart', 'hyper', 'bugatti'], heading: Math.PI / 2 } },
+          { attempt: { at: 'track.pre', cars: ['own', 'gt', 'race', 'rally', 'muscle', 'drift', 'proto', 'kart', 'hyper', 'bugatti'], heading: -Math.PI / 2 } },
         ],
       },
     },
@@ -97,7 +97,7 @@ defineQuest({
           { toast: 'Внедорожники догнали вас. Темнота... Вы снова на старте трека.' },
           { kill: true },
           { rewind: '3.05.chase' },
-          { teleport: { to: 'track.pre', car: true, heading: Math.PI / 2 } },
+          { teleport: { to: 'track.pre', car: true, heading: -Math.PI / 2 } },
         ],
         repeat: true,
       },

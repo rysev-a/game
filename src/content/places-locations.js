@@ -6,8 +6,8 @@
 definePlace('track.start', { location: 'track', x: trackPath.start.x, z: trackPath.start.z, r: 16, name: 'Старт и финиш трека' });
 // Восемь контрольных ворот по «колбаскам» (змейкам) — точки на оси трека, считаются по порядку (src/locations/shared/coords.js: trackCheckpoints)
 trackCheckpoints.forEach((c, i) => definePlace('track.cp' + (i + 1), { location: 'track', x: Math.round(c.x), z: Math.round(c.z), r: 16, name: 'Контрольная точка ' + (i + 1) }));
-// Разгон перед линией старта: гонка идет на запад, поэтому счет начинается с этой точки восточнее линии, а секундомер — когда герой пересек саму линию
-definePlace('track.pre', { location: 'track', x: trackPath.start.x + 30, z: trackPath.start.z, r: 14, name: 'Разгон перед стартом' });
+// Разгон перед линией старта: гонка идет по часовой стрелке (по северной змейке на восток), поэтому счет начинается с этой точки западнее линии, а секундомер — когда герой пересек саму линию
+definePlace('track.pre', { location: 'track', x: trackPath.start.x - 30, z: trackPath.start.z, r: 14, name: 'Разгон перед стартом' });
 // Автосалон при въезде на трек (его директор стоит у входа)
 definePlace('track.salon', { location: 'track', x: trackX + 58, z: 100, r: 10, name: 'Автосалон на треке' });
 definePlace('track.gate', { location: 'track', x: trackX, z: 158, r: 10, name: 'Въезд на трек' }); // сюда приезжают из основного мира
