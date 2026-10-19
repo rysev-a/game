@@ -86,7 +86,7 @@
     piecesEl.replaceChildren();
     const b = document.createElement('button');
     b.className = 'piece hit';
-    b.textContent = 'Качнуть мехи (Пробел)';
+    b.textContent = 'Настроить стабилизацию (Пробел)';
     b.addEventListener('click', hit);
     piecesEl.appendChild(b);
     missEl.textContent = 'Ошибок: ' + session.mistakes + ' из ' + (session.mistakesAllowed + 1);
@@ -104,7 +104,7 @@
     if (!session || session.kind !== 'rhythm') return;
     const result = session.pick(phaseNow());
     if (result === 'wrong') {
-      say('Мимо. Бейте, когда бегунок в зеленой зоне.', 'bad');
+      say('Мимо. Жмите, когда бегунок в зеленой зоне.', 'bad');
       panel.classList.remove('shake');
       void panel.offsetWidth;
       panel.classList.add('shake');
