@@ -128,8 +128,41 @@ function syncBackpackOnBack() {
   }
 }
 
+// Кошелек слева сверху рядом с телефоном: значок и сумма одним блоком. Сумма — счетчик money; изменилась — на миг красная (потратили) или зеленая (получили)
+const walletHudEl = document.getElementById('walletHud');
+let walletShown = null;
+let walletFlashTimer = 0;
+function renderWalletHud() {
+  const money = questMoney();
+  const on = hasItem('wallet') && isFinite(money);
+  walletHudEl.classList.toggle('on', on);
+  if (!on) {
+    walletShown = null;
+    return;
+  }
+  const amount = Math.round(money);
+  if (amount === walletShown) return;
+  if (!walletHudEl.firstChild) {
+    walletHudEl.appendChild(pixelIcon('wallet'));
+    const amt = document.createElement('span');
+    amt.className = 'amt';
+    walletHudEl.appendChild(amt);
+  }
+  walletHudEl.querySelector('.amt').textContent = amount.toLocaleString('ru-RU');
+  walletHudEl.title = 'Кошелек: ' + amount.toLocaleString('ru-RU');
+  if (walletShown !== null) {
+    walletHudEl.classList.remove('up', 'down');
+    walletHudEl.classList.add(amount > walletShown ? 'up' : 'down');
+    clearTimeout(walletFlashTimer);
+    walletFlashTimer = setTimeout(() => walletHudEl.classList.remove('up', 'down'), 900);
+  }
+  walletShown = amount;
+}
+setInterval(renderWalletHud, 250); // деньги меняются из квестов и заправок, поэтому проверяем сами
+
 function renderInventory() {
   syncBackpackOnBack();
+  renderWalletHud();
   if (typeof renderEquipPanel === 'function') renderEquipPanel(); // панель снаряжения справа видна, пока инвентарь раскрыт
   inventoryEl.innerHTML = '';
   inventoryEl.className = inventoryOpen ? 'open' : 'closed';

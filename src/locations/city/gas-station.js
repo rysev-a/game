@@ -161,7 +161,7 @@ const refuelInteractable = (driving) => ({
   prompt: () => {
     const car = pumpCar();
     if (car.refuelling) return 'Заправка… ' + Math.round(car.fuel * 100) + '%';
-    return 'E — заправить машину (' + Math.round(car.fuel * 100) + '%)' + (driving ? '. F — выйти' : '');
+    return 'E — заправить машину (' + Math.round(car.fuel * 100) + '%)';
   },
   act: () => {
     const car = pumpCar();

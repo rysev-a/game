@@ -17,12 +17,8 @@ function updatePrompt() {
   const it = dialogueOpen ? null : activeInteractable(); // в разговоре подсказка не нужна
   if (it) {
     promptText = it.prompt();
-  } else if (drivingCar && !touchUI) { // на телефоне выход — кнопка 🚪 рядом с оружием (src/engine/touch.js)
-    promptText =
-      Math.abs(drivingCar.speed) <= exitMaxSpeed
-        ? 'E или F — выйти из машины'
-        : 'W/S — газ, A/D — руль, Space или правая кнопка мыши — ручник (занос). Остановитесь, чтобы выйти';
   }
+  // За рулем внизу ничего не пишем: как управлять машиной, рассказывает окно при первой посадке (supers.js, запись 'driving')
   if (touchUI && promptText) promptText = touchPromptText(promptText); // на телефоне — без клавиш (src/engine/touch.js)
   promptEl.textContent = promptText;
   promptEl.style.display = promptText ? 'block' : 'none';

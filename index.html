@@ -59,6 +59,42 @@
         align-items: flex-start;
         gap: 8px;
       }
+      /* Кошелек рядом с телефоном: значок и сумма одним блоком (src/player/inventory.js, renderWalletHud) */
+      #walletHud {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        box-sizing: border-box;
+        height: 54px;
+        padding: 0 12px 0 8px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        background: rgba(10, 14, 20, 0.62);
+        color: var(--c-text, #f1f3f5);
+        font: 600 var(--fs-h2, 16px) var(--font, monospace);
+        font-variant-numeric: tabular-nums;
+        user-select: none;
+        pointer-events: none;
+      }
+      #walletHud.on {
+        display: flex;
+      }
+      #walletHud img.px {
+        width: 32px;
+        height: 32px;
+        image-rendering: pixelated;
+      }
+      #walletHud .amt {
+        transition: color 0.4s;
+      }
+      #walletHud.down .amt {
+        color: var(--c-danger, #ff6b5b);
+        transition: none;
+      }
+      #walletHud.up .amt {
+        color: var(--c-ok, #3fa35b);
+        transition: none;
+      }
       #inventory {
         position: relative;
         box-sizing: border-box;
@@ -499,6 +535,7 @@
     <div id="mouseHint"></div>
     <div id="topLeft">
       <div id="inventory"></div>
+      <div id="walletHud" title="Кошелек"></div>
     </div>
     <div id="toast"></div>
     <div id="dialogue">

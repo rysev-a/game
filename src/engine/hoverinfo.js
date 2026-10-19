@@ -55,8 +55,6 @@ function personInfo(p) {
   return { kind: 'Человек', name: female ? row[1] : row[0], desc: row[2] };
 }
 
-const heroHoverInfo = { kind: 'Это вы', name: 'Макс', desc: 'Программист из IT-компании. Вернулся, чтобы узнать, что случилось с Верой.' };
-
 function carInfo(c) {
   if (c.info) return c.info;
   if (c.isPlayerCar) {
@@ -103,14 +101,13 @@ function hoverSources() {
   };
   people(npcs);
   for (const def of interiors) people(def.people);
-  for (const c of cars) list.push({ object: c.mesh, info: () => carInfo(c) });
+  for (const c of cars) if (!c.isPlayerCar) list.push({ object: c.mesh, info: () => carInfo(c) }); // про свою машину и про себя справа не пишем
   for (const t of combatTargets) {
     if (t.mesh) list.push({ object: t.mesh, info: { kind: 'Цель', name: t.name, desc: t.desc || '' } });
   }
   for (const p of pickables) {
     if (p.info || p.id) list.push({ object: p.mesh, info: p.info || (() => itemInfo(p.id)) });
   }
-  list.push({ object: player, info: heroHoverInfo });
   return list;
 }
 
