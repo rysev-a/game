@@ -154,6 +154,11 @@
       // marker — место или { main: 'место на карте мира', track: 'место на карте трека' }: у каждой локации своя карта
       let id = step && step.marker && (typeof step.marker === 'object' ? step.marker[game.location()] : step.marker);
       if (id === '@checkpoint') id = game.nextCheckpoint(game.state.tracked); // метка идет по контрольным точкам квеста: сначала первая, потом вторая…
+      // '@foe:имя' — метка идет к ближайшему еще живому врагу боя этого квеста (стрелка всегда ведет на робота, которого еще не убили)
+      if (typeof id === 'string' && id.startsWith('@foe:')) {
+        const foe = host.nearestFoe && host.nearestFoe(game.state.tracked + '.' + id.slice(5));
+        return foe ? { id: 'foe', x: foe.x, z: foe.z, r: foe.r || 8, name: foe.name || '' } : null;
+      }
       const place = id && registry.places[id];
       if (place && (place.location || 'main') !== game.location()) return null;
       return place ? { id: place.id, x: place.x, z: place.z, r: place.r || 10, name: place.name || '' } : null;

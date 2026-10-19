@@ -317,7 +317,14 @@
         const place = reg.places[foe.spec.at];
         if (!place || (place.location || 'main') !== GAME_LOCATION) continue; // враги этого боя стоят в другой локации
         const kind = FOES[foe.spec.kind];
-        foe.obj = createFoe(foe.spec, kind, place.x + (foe.spec.dx || 0), place.z + (foe.spec.dz || 0), () => (foe.dead = true));
+        foe.obj = createFoe(foe.spec, kind, place.x + (foe.spec.dx || 0), place.z + (foe.spec.dz || 0), () => {
+          foe.dead = true;
+          // Бой с count: true — после каждого убитого врага сообщение, сколько осталось (вместе с теми, что еще выйдут в следующих волнах)
+          if (def.count) {
+            const left = f.foes.filter((x) => !x.dead).length;
+            if (left > 0) questHost.toast('Осталось роботов: ' + left);
+          }
+        });
       }
       if (f.foes.every((x) => x.dead)) {
         // Подождать, пока последний упадет, и выиграть бой
@@ -330,6 +337,24 @@
       }
     }
   }
+
+  // Ближайший живой враг боя ref (метка шага '@foe:имя', src/core/game.js): координаты округляются до 12, чтобы путь не искался заново на каждом шаге робота
+  questHost.nearestFoe = (ref) => {
+    const f = live.get(ref);
+    if (!f) return null;
+    let best = null;
+    let bestD = Infinity;
+    for (const foe of f.foes) {
+      if (foe.dead || !foe.obj || foe.obj.target.dead) continue;
+      const t = foe.obj.target;
+      const d = Math.hypot(t.x - playerWorldX, t.z - playerWorldZ);
+      if (d < bestD) {
+        bestD = d;
+        best = { x: Math.round(t.x / 12) * 12, z: Math.round(t.z / 12) * 12, r: 8, name: foe.spec.name || '' };
+      }
+    }
+    return best;
+  };
 
   setInterval(sync, 300);
 })();
