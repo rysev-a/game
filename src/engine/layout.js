@@ -19,5 +19,9 @@ const worldBounds = {
   maxZ: worldCenter.z + worldRadius,
 };
 // Точка внутри круга мира, не ближе margin к забору
+// Проем в заборе (отдельные миры-локации, src/locations/shared/locations.js): полоса шириной 2·hw на север от центра мира и дальше, за забор, на len юнитов:
+// по ней дорога уходит из мира, и там, далеко за забором, мир меняется на основной
+const worldGate = typeof demoWorldGate === 'object' && demoWorldGate ? demoWorldGate : null;
 const insideWorldCircle = (x, z, margin = 0) =>
-  Math.hypot(x - worldCenter.x, z - worldCenter.z) <= worldRadius - margin;
+  Math.hypot(x - worldCenter.x, z - worldCenter.z) <= worldRadius - margin ||
+  (!!worldGate && Math.abs(x - worldCenter.x) <= worldGate.hw - margin && z <= worldCenter.z && z >= worldCenter.z - worldRadius - worldGate.len + margin);

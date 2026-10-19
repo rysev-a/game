@@ -13,8 +13,9 @@
 // Подключается только на странице locations/lab.html: после src/locations/shared/location.js, до location-finish.js.
 
 {
-  const rect = { x1: labX - 56, x2: labX + 56, z1: labZ - 120, z2: labBasementZ2 + 10 };
-  roadV(labZ - 130, labZ - 34, labX, 'asphalt', []); // подъезд к воротам с севера
+  const rect = { x1: labX - 56, x2: labX + 56, z1: -420, z2: labBasementZ2 + 10 };
+  roadV(-405, labZ - 34, labX, 'asphalt', []); // подъезд к воротам с севера: дорога через проем в заборе уходит далеко на север, края ее не видно
+
   registerZone('lab', 'Лаборатория: закрытая территория', rect, {});
   clearZones.push(rect);
 

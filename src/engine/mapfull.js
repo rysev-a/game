@@ -128,7 +128,8 @@ const MAP_LIST = {
     ['lab.entrance', 'Лаборатория'],
     ['track.entrance', 'Гоночный трек'],
   ],
-  track: [['track.start', 'Старт и финиш'], ['track.salon', 'Автосалон'], ['track.exit', 'Выезд в город']],
+  lab: [['lab.exit', 'Дорога из лаборатории'], ['lab.gate', 'Ворота лаборатории'], ['lab.desk', 'Рабочий стол Веры'], ['lab.hatch', 'Потайной люк']],
+  track: [['track.start', 'Старт и финиш'], ['track.salon', 'Автосалон'], ['track.exit', 'Дорога с трека']],
 };
 const mapFullPlacesEl = mapFullEl.querySelector('.places');
 function buildMapList() {

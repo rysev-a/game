@@ -25,8 +25,9 @@ const MAIN_WORLD_SCRIPTS = [
 
 // Отдельные миры: название, круглый мир (центр и радиус) и скрипты мира после общей основы src/locations/shared/location.js
 const LOCATION_WORLDS = {
-  track: { title: 'Гоночный трек', scripts: ['src/locations/track/track.js'], center: { x: -620, z: 200 }, radius: 290 },
-  lab: { title: 'Лаборатория', scripts: ['src/locations/lab/lab.js'], center: { x: -330, z: 215 }, radius: 175 },
+  // gate — проем в заборе на севере по оси центра мира: полуширина hw и на сколько юнитов дорога уходит за забор (len); там и меняется мир
+  track: { title: 'Гоночный трек', scripts: ['src/locations/track/track.js'], center: { x: -620, z: 200 }, radius: 290, gate: { hw: 9, len: 320 } },
+  lab: { title: 'Лаборатория', scripts: ['src/locations/lab/lab.js'], center: { x: -330, z: 215 }, radius: 175, gate: { hw: 9, len: 320 } },
   tower: { title: 'Башня: этажи', scripts: ['src/locations/tower/tower.js'], center: { x: 22, z: 250 }, radius: 200 },
 };
 
@@ -45,6 +46,7 @@ const GAME_LOCATION = (() => {
 if (GAME_LOCATION !== 'main') {
   var demoWorldRadius = LOCATION_WORLDS[GAME_LOCATION].radius;
   var demoWorldCenter = LOCATION_WORLDS[GAME_LOCATION].center;
+  var demoWorldGate = LOCATION_WORLDS[GAME_LOCATION].gate || null;
 }
 
 // Скрипты мира этой страницы по порядку (подключаются на месте вызова: document.write выполняет их до следующих скриптов)

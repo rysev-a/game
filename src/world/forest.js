@@ -20,6 +20,7 @@ for (let gx = wb.minX - 56; gx < wb.maxX + 56; gx += treeSpacing) {
     const dist = Math.hypot(x - worldCenter.x, z - worldCenter.z);
     if (dist > worldRadius + 56) continue; // за кольцом леса вокруг забора ничего не растет
     if (!isDemoWorld && Math.abs(x - riverX) < 18) continue;
+    if (worldGate && Math.abs(x - worldCenter.x) < worldGate.hw + 12 && z < worldCenter.z) continue; // в проеме забора и вдоль дороги за ним деревьев нет
     if (dist < worldRadius - 3) {
       if (inClearZone(x, z)) continue;
       const tree = { x, z, s: rand(0.8, 1.5), leafy: Math.random() < 0.3 };

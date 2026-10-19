@@ -11,14 +11,14 @@ definePlace('track.pre', { location: 'track', x: trackPath.start.x - 30, z: trac
 // Автосалон при въезде на трек (его директор стоит у входа)
 definePlace('track.salon', { location: 'track', x: trackX + 58, z: 100, r: 10, name: 'Автосалон на треке' });
 definePlace('track.gate', { location: 'track', x: trackX, z: 158, r: 10, name: 'Въезд на трек' }); // сюда приезжают из основного мира
-definePlace('track.exit', { location: 'track', x: trackX, z: 30, r: 12, name: 'Выезд с трека' }); // отсюда уезжают в основной мир
+definePlace('track.exit', { location: 'track', x: trackX, z: trackExitZ, r: 12, name: 'Выезд с трека' }); // отсюда уезжают в основной мир
 // В основном мире: конец съезда с трассы (въезд на трек) и место, где выезжают с трека
 definePlace('track.entrance', { x: trackX, z: 150, r: 12, name: 'Дорога к гоночному треку' });
 definePlace('track.back', { x: trackX, z: 30, r: 8, name: 'Дорога с трека' });
 
 // ---- Лаборатория (отдельный мир): территория, потайной люк, подвал с залом капсул, сборочный зал и кабинет Штерна (квесты 4.09, 4.11)
 definePlace('lab.gate', { location: 'lab', x: labX, z: labZ - 40, r: 14, name: 'Ворота лаборатории' });
-definePlace('lab.exit', { location: 'lab', x: labX, z: 8, r: 12, name: 'Выезд из лаборатории' });
+definePlace('lab.exit', { location: 'lab', x: labX, z: labExitZ, r: 12, name: 'Выезд из лаборатории' }); // на дороге севернее ворот, внутри забора мира (раньше стоял за забором и был недостижим)
 definePlace('lab.desk', { location: 'lab', x: labX - 14, z: labZ - 12, r: 6, name: 'Рабочий стол Веры' });
 definePlace('lab.hatch', { location: 'lab', x: labX + 14, z: labZ - 12, r: 6, name: 'Потайной люк' });
 definePlace('lab.basement', { location: 'lab', x: labX, z: labBasementZ1 + 8, r: 10, name: 'Подвал лаборатории' });

@@ -85,7 +85,10 @@
       near: () => !insideBuilding() && !drivingCar && !dialogueOpen && Math.hypot(playerWorldX - x, playerWorldZ - z) < reach,
       prompt: () => sp.label || 'E — осмотреть: ' + (sp.name || ''),
       act: () => {
-        if (!g.interact('spot:' + sp.id)) showToast(sp.desc || sp.name || '', 3500);
+        // Квест перехватил E — его дело. Иначе, если у объекта есть свое действие act (и выполнено actIf), выполняем его (люк и лестница лаборатории), а нет — описание
+        if (g.interact('spot:' + sp.id)) return;
+        if (sp.act && (!sp.actIf || g.check(sp.actIf))) g.run(sp.act);
+        else showToast(sp.desc || sp.name || '', 3500);
       },
     });
     return {

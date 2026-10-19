@@ -13,7 +13,7 @@
 // Подключается как мир локации «Гоночный трек»: после src/locations/shared/location.js, до location-finish.js (дороги строятся там).
 
 {
-  const rect = { x1: trackX - 200, x2: trackX + 215, z1: -90, z2: 430 };
+  const rect = { x1: trackX - 200, x2: trackX + 215, z1: -420, z2: 430 };
   registerZone('track', 'Гоночный трек', { x1: rect.x1, x2: rect.x2, z1: 40, z2: rect.z2 }, {});
   clearZones.push(rect); // лес не растет ни на самом треке, ни на подъезде
 
@@ -56,7 +56,7 @@
     }
   }
   // ---- Подъезд с севера до самого забора; он вливается в первую змейку
-  roadV(-85, trackLaneZ[0] - trackLaneHalfW[0] + 3, trackX, 'asphalt', []);
+  roadV(-405, trackLaneZ[0] - trackLaneHalfW[0] + 3, trackX, 'asphalt', []); // через проем в заборе далеко на север: края дороги не видно, мир меняется на ней
   // Земля вокруг змеек — утоптанная, а не лес
   flatRect(400, 270, 0x4f6a3c, 0.012, trackX + 8, 300);
   mapObjects.push({ x: trackX + 8, z: 300, hx: 200, hz: 135, color: '#4f6a3c', ground: true });
@@ -226,24 +226,4 @@
     addVehicle('bugatti', px + 2, pz + 5, -Math.PI / 2, { open: true });
     addHoverInfo(roof, { kind: 'Здание', name: 'Автосалон', desc: 'Автосалон при гоночном треке: перед ним все гоночные машины, под крышей гиперкар и Бугатти.' });
   }
-}
-
-// Плоская табличка с текстом (Canvas): для вывесок и номеров ворот
-function makeTextPlane(text, w, h, color, bg) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = Math.max(64, Math.round((512 * h) / w));
-  const ctx = canvas.getContext('2d');
-  if (bg && bg !== 'rgba(0,0,0,0)') {
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }
-  ctx.fillStyle = color;
-  ctx.font = '700 ' + Math.round(canvas.height * 0.62) + 'px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 2);
-  const tex = new THREE.CanvasTexture(canvas);
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide }));
-  return mesh;
 }

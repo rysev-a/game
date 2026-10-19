@@ -22,6 +22,8 @@
 
   const railMat = new LitMaterial({ color: 0x7d868e });
   const R = worldRadius;
+  // Проем на севере (worldGate, src/engine/layout.js): угол по кругу, где забора нет. Север — это z меньше центра, точка (0, −R): угол цилиндра π
+  const gapA = worldGate ? 2 * Math.asin(Math.min(1, (worldGate.hw + 1.5) / worldRadius)) : 0;
   const segments = 360; // кольцо из 360 граней: отклонение от круга — доли юнита
   const circumference = 2 * Math.PI * R;
 
@@ -30,7 +32,7 @@
   tex.needsUpdate = true;
   tex.repeat.set(circumference / 2, fenceH / 2);
   const panel = new THREE.Mesh(
-    new THREE.CylinderGeometry(R, R, fenceH, segments, 1, true),
+    new THREE.CylinderGeometry(R, R, fenceH, segments, 1, true, worldGate ? Math.PI + gapA / 2 : 0, Math.PI * 2 - gapA),
     new LitMaterial({ map: tex, transparent: true, alphaTest: 0.3, side: THREE.DoubleSide }),
   );
   panel.position.set(worldCenter.x, fenceH / 2 + 0.1, worldCenter.z);
@@ -38,10 +40,14 @@
 
   // Верхняя и нижняя перекладины — кольца
   for (const y of [0.15, fenceH + 0.1]) {
-    const rail = new THREE.Mesh(new THREE.TorusGeometry(R, 0.07, 4, segments * 2), railMat);
+    const rail = new THREE.Mesh(new THREE.TorusGeometry(R, 0.07, 4, segments * 2, Math.PI * 2 - gapA), railMat);
     rail.rotation.x = Math.PI / 2;
-    rail.position.set(worldCenter.x, y, worldCenter.z);
-    cityGroup.add(rail);
+    // дуга торa идет от угла 0 (на восток) к югу; разворачиваем так, чтобы пропуск пришелся на север
+    const holder = new THREE.Group();
+    holder.rotation.y = -(Math.PI * 1.5 + gapA / 2);
+    holder.position.set(worldCenter.x, y, worldCenter.z);
+    holder.add(rail);
+    cityGroup.add(holder);
   }
 
   // Столбы через каждые 8 юнитов
@@ -54,7 +60,10 @@
   const pm = new THREE.Matrix4();
   for (let i = 0; i < postCount; i++) {
     const a = (i / postCount) * Math.PI * 2;
-    posts.setMatrixAt(i, pm.makeTranslation(worldCenter.x + Math.cos(a) * R, 0, worldCenter.z + Math.sin(a) * R));
+    const px = worldCenter.x + Math.cos(a) * R;
+    const pz = worldCenter.z + Math.sin(a) * R;
+    const inGap = worldGate && pz < worldCenter.z && Math.abs(px - worldCenter.x) < worldGate.hw + 1.5;
+    posts.setMatrixAt(i, pm.makeTranslation(inGap ? 0 : px, inGap ? -50 : 0, inGap ? 0 : pz)); // столбы в проеме убираем под землю
   }
   posts.frustumCulled = false;
   cityGroup.add(posts);

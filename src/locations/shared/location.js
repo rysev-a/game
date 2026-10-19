@@ -37,3 +37,23 @@ garage.doorShape = { x: worldCenter.x, z: worldCenter.z - worldRadius - 500, ux:
   garage.car = car;
 }
 const demoStart = { x: LOCATIONS[GAME_LOCATION].start.x + 5, z: LOCATIONS[GAME_LOCATION].start.z }; // точка старта игрока (src/engine/game.js)
+
+// Плоская табличка с текстом (Canvas): для вывесок и номеров ворот
+function makeTextPlane(text, w, h, color, bg) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = Math.max(64, Math.round((512 * h) / w));
+  const ctx = canvas.getContext('2d');
+  if (bg && bg !== 'rgba(0,0,0,0)') {
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  ctx.fillStyle = color;
+  ctx.font = '700 ' + Math.round(canvas.height * 0.62) + 'px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 2);
+  const tex = new THREE.CanvasTexture(canvas);
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide }));
+  return mesh;
+}
