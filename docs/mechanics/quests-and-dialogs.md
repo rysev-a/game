@@ -17,6 +17,8 @@ defineQuest({
     { id: 'find_smith', text: 'Найти, кто сделает корпус', done: 'talked:mihalych',
       hint: 'В городе говорят, в Каменке есть кузнец' },
     { id: 'bring', text: 'Привезти Михалычу чертеж и медь', done: 'step:2.08.bring', marker: 'kamenka.forge' },
+
+Шаг может назвать человека, над которым появляется ромбик (как над Денисом в первом задании): поле `target: 'lyudmila'` или список `[{ who: 'lyudmila', if: '!has:vibranium' }, { who: 'mihalych', if: 'has:vibranium' }]` (цель только пока выполнено условие). Человек с `done: 'talked:<id>'` подсвечивается и без `target`. Ромбик видно и внутри здания, если человек на том же этаже (`personByChar` в `src/quests/guide.js`).
     { id: 'forge', text: 'Помочь у горна', done: 'puzzle:2.08.bellows' },
     { id: 'charge', text: 'Заправить анализатор эликсиром', done: 'has:analyzer' },
   ],

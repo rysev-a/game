@@ -448,7 +448,7 @@ if (touchUI) {
     e.preventDefault();
     if (!canPlay()) return;
     if (!heroWeapon.id) {
-      toggleWeapon(); // в бой: достаем оружие (нет оружия — подсказка, где его взять)
+      toggleWeapon(); // в бой: достаем оружие (нет оружия — ничего не происходит)
       return;
     }
     btnMain.setPointerCapture(e.pointerId);

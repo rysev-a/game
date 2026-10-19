@@ -30,6 +30,7 @@ defineQuest({
       id: 'bring',
       text: 'Принести Михалычу чертеж и вибраниум',
       done: 'step:2.08.bring',
+      target: [{ who: 'lyudmila', if: '!has:vibranium' }, { who: 'mihalych', if: 'has:vibranium' }], // ромбик над тем, к кому сейчас идти
       marker: 'yard.forge',
       hint: 'Вибраниум есть у Людмилы Сергеевны в торговом центре, спросите про тяжелые заготовки, которые звенят от любого шума',
     },

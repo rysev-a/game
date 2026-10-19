@@ -356,6 +356,41 @@
     return out;
   }
 
+  // С кем говорить на этом шаге: целевой персонаж шага (target) и персонажи из условия done: 'talked:<id>'
+  function talkIdsOf(step, out = []) {
+    const add = (v) => v && !out.includes(v) && out.push(v);
+    for (const t of [].concat(step.target || [])) {
+      if (typeof t === 'string') add(t);
+      else if (!t.if || g.check(t.if)) add(t.who); // { who, if }: цель только пока выполнено условие
+    }
+    const scan = (c) => {
+      if (typeof c === 'string') {
+        const m = /^talked:(\S+)/.exec(c.trim());
+        if (m) add(m[1]);
+      } else if (Array.isArray(c)) c.forEach(scan);
+    };
+    scan(step.done);
+    return out;
+  }
+  // Человек с данным charId, которого сейчас видно: на улице рядом с героем или в том здании, где герой (тот же этаж).
+  // Ромбик строго над головой: по центру его габаритов и чуть выше макушки, без кольца на земле
+  function personByChar(cid) {
+    const list = [];
+    const ci = currentInterior();
+    if (ci) for (const p of ci.def.people || []) if (p.charId === cid && (p.floor === undefined || p.floor === ci.floor)) list.push(p);
+    if (!ci) for (const n of npcs) if (n.charId === cid) list.push(n);
+    for (const p of list) {
+      if (!p.mesh || !hoverShown(p.mesh)) continue;
+      const box = new THREE.Box3().setFromObject(p.mesh);
+      const top = box.max.clone();
+      const mid = box.getCenter(new THREE.Vector3());
+      cityGroup.worldToLocal(top);
+      cityGroup.worldToLocal(mid);
+      if (Math.hypot(mid.x - playerWorldX, mid.z - playerWorldZ) < 80) return { x: mid.x, z: mid.z, y: top.y + 0.45, abs: true, noRing: true };
+    }
+    return null;
+  }
+
   const tmp = new THREE.Vector3();
   const localOf = (mesh) => {
     mesh.getWorldPosition(tmp);
@@ -379,6 +414,11 @@
         cityGroup.worldToLocal(mid);
         if (Math.hypot(mid.x - playerWorldX, mid.z - playerWorldZ) < 40) return { x: mid.x, z: mid.z, y: top.y + 0.45, abs: true, noRing: true };
       }
+    }
+    // 1б. человек, с которым нужно поговорить (шаг: done 'talked:<id>' или target: '<id>'): ромбик над головой, и внутри здания тоже
+    for (const cid of talkIdsOf(step)) {
+      const p = personByChar(cid);
+      if (p) return p;
     }
     const marker = g.currentMarker();
     if (!marker || insideBuilding()) return null;
@@ -837,5 +877,6 @@
     updateDoors(sec);
   };
   nav.ray = glowRay; // луч наведения на двери и кнопки (для проверок: подменяют intersectObjects)
+  nav.targets = resolveObjects; // для отладки: что сейчас подсвечено ромбиками
   window.questGuide = nav; // для отладки: путь, цель, nav.frame(секунды) — один кадр подсказок вручную
 })();
