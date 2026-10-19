@@ -242,12 +242,22 @@ function createScooter(options = {}) {
   k.part(0.64, 0.12, 0.6, o.bodyColor).position.set(0, 1.4, 1.0); // красная крышка бокса
   k.lamp(0, 0.82, -0.6, 0xfff2b0, 0.22, 0.14);
   k.lamp(0, 0.5, 1.02, 0xe03030, 0.4, 0.1);
-  // Курьер: торс, шлем, ноги на площадке
-  k.part(0.4, 0.5, 0.26, 0x2f6fb0).position.set(0, 1.12, 0.35);
-  const helmet = new THREE.Mesh(new THREE.IcosahedronGeometry(0.19, 1), new LitMaterial({ color: o.bodyColor }));
-  helmet.position.set(0, 1.55, 0.3);
-  k.body.add(helmet);
-  for (const x of [-0.14, 0.14]) k.part(0.12, 0.12, 0.5, 0x2a3040).position.set(x, 0.42, 0.0);
+  // Курьер — сам Максим (красная кепка, черная футболка, джинсы): сидит на сиденье, ноги на площадке, руки тянутся к рулю.
+  // Если модели людей на странице нет, остаются простые коробки
+  if (typeof createPerson === 'function') {
+    const rider = createPerson('maxim');
+    rider.setSit(true);
+    rider.scale.setScalar(0.9); // мотороллер небольшой, водитель чуть меньше обычного роста
+    rider.position.set(0, 0.32, 0.4);
+    rider.updateWalk(0, 0);
+    k.body.add(rider);
+  } else {
+    k.part(0.4, 0.5, 0.26, 0x2f6fb0).position.set(0, 1.12, 0.35);
+    const helmet = new THREE.Mesh(new THREE.IcosahedronGeometry(0.19, 1), new LitMaterial({ color: o.bodyColor }));
+    helmet.position.set(0, 1.55, 0.3);
+    k.body.add(helmet);
+    for (const x of [-0.14, 0.14]) k.part(0.12, 0.12, 0.5, 0x2a3040).position.set(x, 0.42, 0.0);
+  }
   k.wheel(0, -0.8, 0.26, 0.14, 0x151515, 0xd0d4da);
   k.wheel(0, 0.8, 0.26, 0.16, 0x151515, 0xd0d4da);
   k.exhaust.position.set(0.2, 0.3, 1.0);
