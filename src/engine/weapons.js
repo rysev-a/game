@@ -91,6 +91,14 @@ function weaponHit(w, t, x, y, z, dx, dz, over = {}) {
     push: w.push ? { x: dx * w.push, z: dz * w.push } : null,
   });
   spawnHitFx(w, x, y, z);
+  // Взрыв шара (w.splash, плазмомет): все вокруг цели получают долю урона; луч (over.damage) осколков не дает
+  if (w.splash && over.damage === undefined) {
+    for (const o of combatTargets) {
+      if (o === t || o.dead) continue;
+      if (Math.hypot(o.x - t.x, o.z - t.z) > w.splash.radius + o.r) continue;
+      hitTarget(o, { damage: Math.round(w.damage * w.splash.share), type: w.type, x: o.x, z: o.z, weapon: w.id, hitsAll: !!w.hitsAll, chip: w.chip });
+    }
+  }
   return dmg;
 }
 
@@ -139,7 +147,8 @@ const heroWeapon = {
   cooldown: 0, // кадров до следующего выстрела
   sinceShot: 999, // кадров после последнего выстрела
   mouseHeld: false,
-  turbo: false, // ПКМ с оружием в руках — «турбо»: стреляет непрерывно, как будто ЛКМ зажата (повторный ПКМ — выключить)
+  turbo: false, // ПКМ с оружием в руках зажата — «турбо»: частые отдельные щелчки ЛКМ (не зажатая ЛКМ: это другой режим: очередь, заряд, луч). Пока держите ПКМ
+  tapIn: 0, // кадров до следующего щелчка турбо
   spin: 0, // раскрутка стволов 0..1 (оружие со spinUp)
   holdAt: 0, // когда зажали кнопку (оружие с beam)
   spinAt: 0,
@@ -544,14 +553,14 @@ function updateSpin(w) {
   const now = performance.now();
   const dt = Math.min(0.1, (now - (heroWeapon.spinAt || now)) / 1000);
   heroWeapon.spinAt = now;
-  const held = (heroWeapon.mouseHeld || keys['KeyK']) && canUseWeapon();
+  const held = (heroWeapon.mouseHeld || heroWeapon.turbo || keys['KeyK']) && canUseWeapon();
   const before = heroWeapon.spin;
   heroWeapon.spin = Math.max(0, Math.min(1, heroWeapon.spin + (held ? dt / w.spinUp : -dt / (w.spinUp * 2))));
   if (held && before === 0) playWeaponSound('spinup');
-  if (held && heroWeapon.spin >= 1) fireWeapon(heroWeapon.mouseHeld ? mouseAimPoint() : null);
+  if (held && heroWeapon.spin >= 1) fireWeapon(heroWeapon.mouseHeld || heroWeapon.turbo ? mouseAimPoint() : null);
   else if (held) {
     // Пока раскручивается — корпус уже смотрит на цель
-    heroWeapon.aimHeading = aimHeadingFor(w, heroWeapon.mouseHeld ? mouseAimPoint() : null).heading;
+    heroWeapon.aimHeading = aimHeadingFor(w, heroWeapon.mouseHeld || heroWeapon.turbo ? mouseAimPoint() : null).heading;
     heroWeapon.aimFrames = 45;
   }
   const spin = heroWeapon.mesh && heroWeapon.mesh.userData.spin;
@@ -752,10 +761,15 @@ function updateWeapons() {
   if (heroWeapon.id && (!heroEquip.weapons.includes(heroWeapon.id) || drivingCar || pushingCar)) holsterWeapon(true);
 
   const w = WEAPONS[heroWeapon.id];
-  // Турбо: ЛКМ как будто зажата всегда (у оружия с накоплением заряда турбо не работает: выстрел там — отпускание)
-  if (w && heroWeapon.turbo && !w.charge) {
-    if (!heroWeapon.mouseHeld) heroWeapon.holdAt = performance.now();
-    heroWeapon.mouseHeld = true;
+  // Турбо (ПКМ зажата): как будто игрок часто-часто щелкает ЛКМ отдельными нажатиями. Это не то же, что держать ЛКМ: зажатая ЛКМ — другой режим (очередь, заряд,
+  // луч плазмомета), и пока она зажата, турбо щелчки не делает. Скорость ограничена перезарядкой оружия. Пулемет со стволами: нажатие не стреляет, ему нужна раскрутка,
+  // поэтому турбо держит ее
+  if (w && heroWeapon.turbo && !heroWeapon.mouseHeld && !w.spinUp) {
+    if (--heroWeapon.tapIn <= 0) {
+      heroWeapon.tapIn = 4; // 15 щелчков в секунду
+      if (w.charge) fireWeapon(mouseAimPoint(), 0.06); // щелчок по оружию с накоплением — самая слабая волна
+      else fireWeapon(mouseAimPoint());
+    }
   }
   if (heroWeapon.cooldown > 0) heroWeapon.cooldown--;
   heroWeapon.sinceShot++;
@@ -1210,23 +1224,21 @@ renderer.domElement.addEventListener('mousedown', (e) => {
   const w = WEAPONS[heroWeapon.id];
   if (!w.charge && !w.spinUp) fireWeapon(mouseAimPoint()); // с накоплением — выстрел, когда отпустят; пулемет — когда раскрутится
 });
-// ПКМ с оружием в руках — турбо: непрерывная стрельба (повторный ПКМ — выключить)
+// ПКМ с оружием в руках: пока она зажата — турбо, частые отдельные щелчки ЛКМ (см. updateWeapons)
 renderer.domElement.addEventListener('mousedown', (e) => {
   if (e.button !== 2 || !heroWeapon.id || drivingCar || settingsOpen || dialogueOpen) return;
   e.preventDefault();
-  const w = WEAPONS[heroWeapon.id];
-  if (w.charge) {
-    showToast('Турбо не работает с этим оружием: заряд копится, пока зажата кнопка', 2500);
-    return;
-  }
-  heroWeapon.turbo = !heroWeapon.turbo;
-  if (!heroWeapon.turbo) heroWeapon.mouseHeld = false;
-  showToast(heroWeapon.turbo ? 'Турбо: стреляет без остановки (ПКМ — выключить)' : 'Турбо выключено', 1800);
+  heroWeapon.turbo = true;
+  heroWeapon.tapIn = 0; // первый щелчок сразу
 });
 renderer.domElement.addEventListener('contextmenu', (e) => {
   if (heroWeapon.id) e.preventDefault(); // без меню браузера: правая кнопка — турбо
 });
 document.addEventListener('mouseup', (e) => {
-  if (e.button === 0) heroWeapon.mouseHeld = heroWeapon.turbo && !(heroWeapon.id && WEAPONS[heroWeapon.id].charge);
+  if (e.button === 0) heroWeapon.mouseHeld = false;
+  if (e.button === 2) heroWeapon.turbo = false;
 });
-window.addEventListener('blur', () => (heroWeapon.mouseHeld = heroWeapon.turbo));
+window.addEventListener('blur', () => {
+  heroWeapon.mouseHeld = false;
+  heroWeapon.turbo = false;
+});
