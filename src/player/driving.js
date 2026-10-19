@@ -613,6 +613,48 @@ function addTireMark(x1, z1, x2, z2, y = 0) {
   tireMarks.instanceMatrix.needsUpdate = true;
 }
 
+// ДЫМ ИЗ-ПОД КОЛЕС. Быстрее 100 км/ч на заносе (ручник, крутой поворот, дрифт) из-под задних колес идет дым: чем выше скорость, тем его больше,
+// он гуще и держится дольше. Пул из готовых клубов (материал у каждого свой — своя прозрачность), новые занимают место погасших
+const tireSmokeMax = 160;
+const tireSmokeGeo = new THREE.IcosahedronGeometry(0.5, 0);
+const tireSmoke = [];
+const tireSmokeMinKmh = 100;
+function emitTireSmoke(x, z, y, kmh, car) {
+  let p = tireSmoke.find((q) => q.life <= 0);
+  if (!p) {
+    if (tireSmoke.length >= tireSmokeMax) return;
+    const m = new THREE.Mesh(tireSmokeGeo, new LitMaterial({ color: 0xe6e6ea, transparent: true, opacity: 0, depthWrite: false }));
+    m.visible = false;
+    cityGroup.add(m);
+    p = { m, life: 0, max: 1, vx: 0, vz: 0, size: 1, peak: 0.5 };
+    tireSmoke.push(p);
+  }
+  const k = Math.min(1, (kmh - tireSmokeMinKmh) / 220); // 0 на ста километрах, 1 на трехстах двадцати
+  p.max = p.life = 36 + k * 60;
+  p.size = 0.7 + k * 1.3;
+  p.peak = 0.3 + k * 0.45;
+  // клубы сносит назад и вбок от колеса: по ходу машины они чуть отстают
+  const h = car.heading + (car.slip || 0);
+  p.vx = Math.sin(h) * 0.03 + (Math.random() - 0.5) * 0.05;
+  p.vz = Math.cos(h) * 0.03 + (Math.random() - 0.5) * 0.05;
+  p.m.position.set(x + (Math.random() - 0.5) * 0.5, y + 0.3, z + (Math.random() - 0.5) * 0.5);
+  p.m.rotation.set(Math.random() * 3, Math.random() * 3, 0);
+  p.m.visible = true;
+}
+function updateTireSmoke() {
+  for (const p of tireSmoke) {
+    if (p.life <= 0) continue;
+    p.life--;
+    const t = 1 - p.life / p.max; // 0 — родился, 1 — рассеялся
+    p.m.position.x += p.vx;
+    p.m.position.z += p.vz;
+    p.m.position.y += 0.025;
+    p.m.scale.setScalar(p.size * (0.5 + t * 2.2));
+    p.m.material.opacity = p.peak * Math.min(1, t * 6) * (1 - t);
+    if (p.life <= 0) p.m.visible = false;
+  }
+}
+
 function updateTireMarks(car, handbrake) {
   const sliding = Math.abs(car.speed) > 0.08 && (handbrake || Math.abs(car.slip) > 0.12);
   car.sliding = sliding; // визг шин на заносе (src/engine/sound.js)
@@ -634,6 +676,12 @@ function updateTireMarks(car, handbrake) {
     for (let i = 0; i < wheels.length; i++) addTireMark(car.lastWheels[i][0], car.lastWheels[i][1], wheels[i][0], wheels[i][1], car.y || 0);
   }
   car.lastWheels = sliding ? wheels : null;
+  // Дым: быстрее 100 км/ч на заносе
+  const kmh = Math.abs(car.speed) * kmhPerSpeed;
+  if (sliding && kmh > tireSmokeMinKmh && !car.airborne) {
+    const per = kmh < 150 ? (Math.random() < 0.5 ? 1 : 0) : kmh < 220 ? 1 : kmh < 300 ? 2 : 3; // клубов на колесо за кадр
+    for (const w of wheels) for (let i = 0; i < per; i++) emitTireSmoke(w[0], w[1], car.y || 0, kmh, car);
+  }
 }
 
 // БТР ДАВИТ БИОСУЩЕСТВ: на ходу живое существо, которого коснулся корпус, погибает сразу (броня и
@@ -813,6 +861,7 @@ function updateCarMeshes() {
     if (c.update) c.update(c); // дым подбитого БТР и т. п. (src/world/vehicles.js)
   }
   if (typeof updateVehicleFx === 'function') updateVehicleFx();
+  updateTireSmoke(); // дым из-под колес на заносе
   updateCockpit();
 }
 
