@@ -12,7 +12,7 @@ defineScenario('2.11', {
 });
 
 defineScenario('3.04', {
-  title: 'Корпус для браслета проходится: голубятня, три ночи, станок, эликсир',
+  title: 'Браслет возврата проходится: голубятня, три ночи, станок, эликсир',
   done: ['1.03'],
   steps: [
     { do: [{ start: '3.04' }] },
@@ -27,7 +27,7 @@ defineScenario('3.04', {
     { puzzle: '3.04.bellows', picks: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5], expect: ['puzzle:3.04.bellows', 'step:3.04.forge'] },
     { interact: 'station:workbench', expectNot: 'flag:braceletCased' }, // эликсира нет: квест лишь подсказывает
     { do: [{ elixir: 20 }] },
-    { interact: 'station:workbench', expect: ['flag:braceletCased', 'fact:Ф23', 'done:3.04', 'quest:3.05'] },
+    { interact: 'station:workbench', expect: ['flag:braceletCased', 'has:bracelet', 'fact:Ф23', 'done:3.04', 'quest:3.05'] },
   ],
 });
 

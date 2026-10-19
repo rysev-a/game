@@ -135,27 +135,12 @@ defineBuilding('treehouse', {
         showToast('Бесконечный рюкзак! Он бездонный: влезает сколько угодно вещей, и они ничего не весят.', 4500);
       };
       addPickable({ id: 'backpack', mesh: backpack, canPick: () => !hasItem('backpack'), pick: takeBackpack });
-      // Рядом с рюкзаком — супер-браслет Веры (без него сохранений нет); взять — надеть на руку
-      const bracelet = createItemModel('bracelet', 0.55);
-      bracelet.position.set(7.2, 0.9, -1.1);
-      bracelet.children[0].onBeforeRender = () => {
-        bracelet.rotation.y = -performance.now() / 900;
-      };
-      room.group.add(bracelet);
-      const braceletOnChest = chest.onBeforeRender;
-      chest.onBeforeRender = (...a) => {
-        braceletOnChest(...a);
-        bracelet.visible = !isWorn('bracelet');
-      };
-      const takeBracelet = () => wearDevice('bracelet');
-      addPickable({ id: 'bracelet', mesh: bracelet, canPick: () => !isWorn('bracelet'), pick: takeBracelet });
       stations.push({
         floor: 0, x: 5.3, z: -1.5,
-        label: () => (hasItem('backpack') && isWorn('bracelet') ? 'E — сундук' : 'E — взять: ' + (hasItem('backpack') ? 'супер-браслет' : 'рюкзак и супер-браслет')),
+        label: () => (hasItem('backpack') ? 'E — сундук' : 'E — взять: рюкзак'),
         act: () => {
           if (!hasItem('backpack')) takeBackpack();
-          if (!isWorn('bracelet')) takeBracelet();
-          else if (hasItem('backpack')) showToast('Сундук. Позже здесь можно будет хранить вещи и приборы.', 3500);
+          else showToast('Сундук. Позже здесь можно будет хранить вещи и приборы.', 3500);
         },
       });
       // Гамак между двумя столбами (юго-восток)

@@ -21,6 +21,6 @@ defineScenario('1.06', {
 
     // Рюкзак на сундуке: последний шаг, квест закончен
     { expectNot: 'done:1.06' },
-    { do: [{ give: 'backpack' }, { give: 'bracelet' }], expect: ['step:1.06.backpack', 'done:1.06', 'quest:2.02'] }, // следом выдается квест 2.02
+    { do: [{ give: 'backpack' }], expect: ['step:1.06.backpack', 'done:1.06', 'quest:2.02'] }, // следом выдается квест 2.02
   ],
 });
