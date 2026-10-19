@@ -202,6 +202,7 @@ function drawMapView(ctx, W, H, cx, cz, mmScale, rot, ci, highlight) {
 
   // Дороги (не тоньше пикселя-двух, чтобы были видны и на малом масштабе)
   for (const r of mapRoads) {
+    ctx.lineCap = r.round ? 'round' : 'butt'; // round: плавная лента из коротких отрезков (змейки трека)
     ctx.lineWidth = Math.max(r.width || roadWidth, 1.6 * px);
     ctx.strokeStyle = r.color;
     ctx.beginPath();
@@ -209,6 +210,7 @@ function drawMapView(ctx, W, H, cx, cz, mmScale, rot, ci, highlight) {
     ctx.lineTo(r.x2 - cx, r.z2 - cz);
     ctx.stroke();
   }
+  ctx.lineCap = 'butt';
 
   // Здания
   for (const b of mapObjects) if (!b.ground && near(b.x, b.z)) drawObject(b);

@@ -40,7 +40,7 @@ definePlace('tower.base', { x: 70, z: 70, r: 40, name: 'Башня' });
 definePlace('tower.door', { x: 70, z: 56, r: 8, name: 'Вход в башню' });
 definePlace('tower.pad', { x: 90, z: 54, r: 8, name: 'Площадка' });
 for (let i = 1; i <= 9; i++) definePlace('tower.f' + i, { x: -130 + (i - 1) * 38, z: 250, r: 16, name: i + ' этаж' });
-for (const id of ['track.entrance', 'track.gate', 'track.exit', 'track.back', 'lab.entrance', 'lab.exit', 'lab.back']) definePlace(id, { x: 0, z: 0, r: 10, name: id });
+for (const id of ['track.salon', 'track.entrance', 'track.gate', 'track.exit', 'track.back', 'lab.entrance', 'lab.exit', 'lab.back']) definePlace(id, { x: 0, z: 0, r: 10, name: id });
 definePlace('track.start', { x: -620, z: 190, r: 16, name: 'Старт' });
 for (let i = 1; i <= 8; i++) definePlace('track.cp' + i, { x: -770 + i * 20, z: 200 + i, r: 16, name: 'КП ' + i });
 definePlace('river.yacht', { x: 350, z: -90, r: 24, name: 'Яхта' });

@@ -654,7 +654,39 @@
   // ---------- Большой мигающий значок над точкой задания ----------
   // Шаг с полем beacon: 'boxes' (курьер, 2.15) показывает над местом доставки крупный значок с коробками: он мигает, как метка, и виден издалека;
   // как только герой въехал или вошел в зону места (радиус r), значок исчезает. Значок — плоская картинка, всегда повернутая к камере
+  // checkpoint (гонка, 3.05): метка идет по контрольным точкам трека (marker: '@checkpoint'): над следующей точкой мигает флаг в клетку
   const BEACON_ART = {
+    checkpoint(c, S) {
+      const u = S / 96;
+      const R = (x, y, w, h, col) => {
+        c.fillStyle = col;
+        c.fillRect(Math.round(x * u), Math.round(y * u), Math.round(w * u), Math.round(h * u));
+      };
+      const glow = c.createRadialGradient(S / 2, S * 0.45, S * 0.05, S / 2, S * 0.45, S * 0.52);
+      glow.addColorStop(0, 'rgba(255, 138, 31, 0.6)');
+      glow.addColorStop(1, 'rgba(255, 138, 31, 0)');
+      c.fillStyle = glow;
+      c.fillRect(0, 0, S, S);
+      R(22, 8, 5, 68, '#15110d'); // древко с контуром
+      R(24, 10, 2, 64, '#e8e8ea');
+      R(24, 10, 52, 36, '#15110d'); // флаг с контуром
+      for (let i = 0; i < 6; i++) {
+        for (let j = 0; j < 4; j++) R(26 + i * 8, 12 + j * 8, 8, 8, (i + j) % 2 ? '#15110d' : '#f4f4f0');
+      }
+      // стрелка вниз, на точку
+      c.fillStyle = '#15110d';
+      c.beginPath();
+      c.moveTo(34 * u, 78 * u);
+      c.lineTo(70 * u, 78 * u);
+      c.lineTo(52 * u, 95 * u);
+      c.fill();
+      c.fillStyle = '#ff8a1f';
+      c.beginPath();
+      c.moveTo(39 * u, 80 * u);
+      c.lineTo(65 * u, 80 * u);
+      c.lineTo(52 * u, 91 * u);
+      c.fill();
+    },
     boxes(c, S) {
       const u = S / 96;
       const R = (x, y, w, h, col) => {

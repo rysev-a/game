@@ -5,7 +5,7 @@
 const roadWidth = 7;
 const mapObjects = []; // для миникарты: { x, z, hx, hz, color, ground? }
 const obstacles = []; // непроходимые прямоугольники (оси мира): { x, z, hx, hz }
-const mapRoads = []; // для миникарты: { x1, z1, x2, z2, color }
+const mapRoads = []; // для миникарты: { x1, z1, x2, z2, color, width?, round? }
 const mapIcons = []; // значки мест на миникарте: { x, z, icon: 'home' | 'gas' }
 const clearZones = []; // где лес не растет: { x1, x2, z1, z2 } — модули мира добавляют свои зоны
 

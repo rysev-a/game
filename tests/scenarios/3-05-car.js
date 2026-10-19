@@ -20,6 +20,7 @@ defineScenario('3.05', {
     ...raceSteps,
     { at: 'track.start', expect: ['count:cp>=9', 'step:3.05.race'] },
     { talk: 'rustam', pick: [0, 0], see: 'Это не езда, это танец', expect: ['step:3.05.win', 'weather:auto'] },
+    { talk: 'dealer', pick: [6], see: 'победитель', expect: 'step:3.05.pick' }, // директор автосалона отдает машину на выбор (гиперкар)
     { at: 'mall.entrance', expect: ['step:3.05.chase', 'done:3.05', 'quest:3.12'] },
   ],
 });
@@ -39,11 +40,12 @@ defineScenario('3.05-late', {
     { wait: '40m', expect: 'step:3.05.morning' },
     { drive: true },
     { at: 'track.cp1', expect: 'count:cp>=1' },
-    { wait: '56m', expect: ['count:cp<1', 'step:3.05.morning', '!step:3.05.race', 'quest:3.05'] }, // время вышло: счет с нуля, новая попытка
+    { wait: '116m', expect: ['count:cp<1', 'step:3.05.morning', '!step:3.05.race', 'quest:3.05'] }, // время вышло: счет с нуля, новая попытка
     ...raceSteps,
     { at: 'track.start', expect: 'step:3.05.race' },
     { talk: 'rustam', pick: [0, 0], expect: 'step:3.05.win' },
-    { wait: '19m', expect: ['step:3.05.win', '!step:3.05.chase'] }, // не успел: убили, откат погони, новая попытка
+    { talk: 'dealer', pick: [0], expect: 'step:3.05.pick' },
+    { wait: '19m', expect: ['step:3.05.pick', '!step:3.05.chase'] }, // не успел: убили, откат погони, новая попытка
     { at: 'mall.entrance', expect: ['step:3.05.chase', 'done:3.05'] },
   ],
 });

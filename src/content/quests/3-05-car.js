@@ -45,12 +45,13 @@ defineQuest({
     },
     {
       id: 'race',
-      text: 'Проехать круг за 55 секунд и пройти все контрольные точки по порядку',
+      text: 'Проехать круг по «колбаскам» за 115 секунд и пройти все контрольные точки по порядку',
       done: 'count:cp>=9',
-      marker: 'track.start',
-      hint: 'Восемь ворот по кольцу по часовой стрелке и финиш на старте. Занос поворачивает быстрее, но не теряйте скорость',
+      marker: '@checkpoint', // метка и зеленая линия идут от одних ворот к следующим, а над ними мигает флаг в клетку
+      beacon: 'checkpoint',
+      hint: 'Четыре змейки одна под другой: едете по ним зигзагом, дальше замыкающая дуга и финиш на старте. Восемь контрольных ворот по порядку. Занос поворачивает быстрее, но не теряйте скорость',
       timer: {
-        limit: '55m',
+        limit: '115m',
         warn: { '70%': [{ toast: 'Время утекает. Держите скорость!' }] },
         onExpire: [{ toast: 'Не уложились. Рустам машет флажком: назад на старт, еще попытка.' }, { set: { cp: 0 } }, { teleport: { to: 'track.start', car: true } }],
         repeat: true,
@@ -62,6 +63,14 @@ defineQuest({
       done: 'step:3.05.win',
       marker: 'track.start',
       hint: 'Рустам стоит у стартовой арки',
+    },
+    {
+      id: 'pick',
+      text: 'Выбрать машину у директора автосалона на треке',
+      done: 'step:3.05.pick',
+      marker: 'track.salon',
+      target: 'dealer',
+      hint: 'Автосалон у въезда на трек, севернее змеек. Директор стоит у входа. Времени мало: люди в черном уже у ворот',
     },
     {
       id: 'chase',
@@ -93,7 +102,7 @@ defineQuest({
   onDone: [{ toast: 'Оторвались. Отличная тачка, Рустам, спасибо.' }, { start: '3.12' }],
 
   world: {
-    people: [{ who: 'rustam', at: 'track.start', dx: 16, dz: -5, yaw: Math.PI / 2, replace: true, if: ['quest:3.05', 'step:3.05.talk', '!step:3.05.win'] }],
+    people: [{ who: 'rustam', at: 'track.start', dx: 8, dz: -19, yaw: Math.PI / 2, replace: true, if: ['quest:3.05', 'step:3.05.talk', '!step:3.05.win'] }],
   },
 
   checkpoints: {
@@ -109,13 +118,14 @@ defineQuest({
       id: 'practice',
       text: 'Потренироваться вечером на треке (выбрать машину)',
       if: ['step:3.05.talk', '!step:3.05.race', '!flag:practicing', 'flag:braceletCased'],
-      do: [{ practice: { at: 'track.start', cars: ['own', 'gt', 'race', 'rally', 'muscle', 'proto'] } }],
+      do: [{ practice: { at: 'track.start', cars: ['own', 'gt', 'race', 'rally', 'muscle', 'drift', 'proto', 'kart', 'hyper', 'bugatti'] } }],
     },
     { id: 'back', text: 'Вернуться назад браслетом', if: 'flag:practicing', do: [{ practiceEnd: true }] },
     { id: 'sleep', text: 'Переждать до утра (до 08:00)', if: ['step:3.05.talk', '!step:3.05.morning', 'dayssince:deal<1', '!flag:practicing'], do: [{ waitUntil: '08:00' }] },
   ],
 
   starts: {
+    dealer: [{ if: ['quest:3.05', 'step:3.05.win', '!step:3.05.pick'], goto: '3.05.dealer' }],
     rustam: [
       { if: ['quest:3.05', 'step:3.05.win'], goto: '3.05.go' },
       { if: ['quest:3.05', 'step:3.05.race'], goto: '3.05.win' },
@@ -130,7 +140,7 @@ defineQuest({
       options: [{ text: 'Что от меня нужно?', goto: 'deal' }],
     },
     deal: {
-      text: 'Есть трек за городом, я там катаюсь. Завтра в восемь утра: один круг на любой машине за пятьдесят пять секунд, все контрольные точки по порядку. Пройдешь, отдам любую тачку из моих, хоть болид. Придешь?',
+      text: 'Есть трек за городом, я там катаюсь: змейки одна под другой, мы зовем их колбасками. Завтра в восемь утра: один круг по колбаскам на любой машине за сто пятнадцать секунд, все контрольные ворота по порядку. Пройдешь, получишь любую тачку из автосалона при треке, хоть болид. Придешь?',
       do: [{ repairCar: true }, { markDay: 'deal' }, { step: '3.05.talk' }],
       options: [{ text: 'Приду. Машину починили?', goto: 'fixed' }, { text: 'Приду.', end: true }],
     },
@@ -143,16 +153,29 @@ defineQuest({
       options: [{ text: 'Буду.', end: true }],
     },
     win: {
-      text: 'Это не езда, это танец! Сорок секунд, и ни одной точки не пропустил. Договор есть договор: выбирай любую из моих. Только быстро: у въезда, смотри, три черных внедорожника без номеров. Они за тобой?',
-      options: [
-        { text: 'Беру болид.', do: [{ playerCar: 'race' }, { repairCar: true }, { fuelEconomy: 50 }, { step: '3.05.win' }], goto: 'go' },
-        { text: 'Беру купе GT.', do: [{ playerCar: 'gt' }, { repairCar: true }, { fuelEconomy: 50 }, { step: '3.05.win' }], goto: 'go' },
-        { text: 'Беру гиперкар.', do: [{ playerCar: 'hyper' }, { repairCar: true }, { fuelEconomy: 50 }, { step: '3.05.win' }], goto: 'go' },
-      ],
+      text: 'Это не езда, это танец! Весь круг по колбаскам, и ни одной точки не пропустил. Договор есть договор: иди к Борису Аркадьевичу, директору автосалона, я ему уже позвонил: выберешь любую. Только быстро: у въезда, смотри, три черных внедорожника без номеров. Они за тобой?',
+      options: [{ text: 'Иду выбирать машину.', do: [{ step: '3.05.win' }], goto: 'go' }],
     },
     go: {
-      text: 'Ключ в замке, и я тебе еще расход подкрутил: бензина теперь хватит надолго. Уезжай в город к торговому центру, там людей много, они не рискнут. Только быстро: на хромой или на обычной машине тебя догонят. А пешком, брат, ты уже не уйдешь.',
+      text: 'Бери любую, какая нравится: ключ в замке, бак полный, я еще расход подкрутил, бензина хватит надолго. Потом уезжай в город к торговому центру, там людей много, они не рискнут. Только быстро: на хромой или на обычной машине тебя догонят. А пешком, брат, ты уже не уйдешь.',
       options: [{ text: 'Поехали.', end: true }],
+    },
+    dealer: {
+      text: 'А вот и наш победитель! Рустам звонил: весь круг по колбаскам, и ни одной точки не пропустили. Любая машина из автосалона ваша, одна на выбор. Выбирайте, но недолго: на дороге уже стоят черные внедорожники.',
+      options: [
+        { text: 'Болид.', do: [{ playerCar: 'race' }, { repairCar: true }, { fuelEconomy: 50 }, { step: '3.05.pick' }], goto: 'ready' },
+        { text: 'Купе GT.', do: [{ playerCar: 'gt' }, { repairCar: true }, { fuelEconomy: 50 }, { step: '3.05.pick' }], goto: 'ready' },
+        { text: 'Раллийный хэтчбек.', do: [{ playerCar: 'rally' }, { repairCar: true }, { fuelEconomy: 50 }, { step: '3.05.pick' }], goto: 'ready' },
+        { text: 'Маслкар.', do: [{ playerCar: 'muscle' }, { repairCar: true }, { fuelEconomy: 50 }, { step: '3.05.pick' }], goto: 'ready' },
+        { text: 'Дрифт-купе.', do: [{ playerCar: 'drift' }, { repairCar: true }, { fuelEconomy: 50 }, { step: '3.05.pick' }], goto: 'ready' },
+        { text: 'Прототип.', do: [{ playerCar: 'proto' }, { repairCar: true }, { fuelEconomy: 50 }, { step: '3.05.pick' }], goto: 'ready' },
+        { text: 'Гиперкар.', do: [{ playerCar: 'hyper' }, { repairCar: true }, { fuelEconomy: 50 }, { step: '3.05.pick' }], goto: 'ready' },
+        { text: 'Бугатти.', do: [{ playerCar: 'bugatti' }, { repairCar: true }, { fuelEconomy: 50 }, { step: '3.05.pick' }], goto: 'ready' },
+      ],
+    },
+    ready: {
+      text: 'Прекрасный выбор. Ключ уже в замке, бак полный, а расход Рустам подкрутил: бензина хватит надолго. Пока вы здесь, жму вам руку. Уезжайте в город к торговому центру, там людей много. Только быстро!',
+      options: [{ text: 'Спасибо. Поехали.', end: true }],
     },
   },
 

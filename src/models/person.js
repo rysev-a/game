@@ -962,6 +962,11 @@ const PERSON_PRESETS = {
     belly: 1.0, hat: 'fedora', hatColor: 0x2a2530, hair: 'bald', hairColor: 0x9a948a, mustache: true, jacket: 0x6b1f30, shirtColor: 0xf0e8d8,
     tie: true, tieColor: 0xd8b040, pantsColor: 0x2a2a30, shoeColor: 0x1a1a1c, buttons: true, watch: true, skinColor: 0xe0a884,
   },
+  // Директор автосалона на треке (3.05): синий костюм, галстук, зачесанные волосы
+  dealer: {
+    jacket: 0x28406e, shirtColor: 0xf4f4f0, tie: true, tieColor: 0xc83a3a, pantsColor: 0x22304e, shoeColor: 0x16161a, hairColor: 0x2a2220, watch: true,
+    skinColor: 0xe0b08a,
+  },
   // 11. Рустам, автомеханик: майка, оранжевые рабочие штаны, борода
   rustam: {
     sleeveless: true, shirtColor: 0x7a7c80, pantsColor: 0xd8742a, hairColor: 0x1c1c1e, beard: true,

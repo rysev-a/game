@@ -2,21 +2,17 @@
 // МЕСТА ОТДЕЛЬНЫХ ЛОКАЦИЙ (трек, лаборатория, этажи башни) и входы в них из основного мира. У места поле location: на какой странице оно
 // существует (по умолчанию 'main'); на другой странице расстояния до него нет (src/core/game.js). Координаты — src/locations/shared/coords.js.
 
-// ---- Гоночный трек (отдельный мир, src/locations/shared/locations.js): старт и финиш, восемь контрольных точек по часовой стрелке (квест 3.05)
-definePlace('track.start', { location: 'track', x: trackX, z: trackZ - trackHalfD, r: 16, name: 'Старт и финиш трека' });
-{
-  const x1 = trackX - trackHalfW;
-  const x2 = trackX + trackHalfW;
-  const z1 = trackZ - trackHalfD;
-  const z2 = trackZ + trackHalfD;
-  const points = [[x1 + 100, z1], [x2, z1 + 40], [x2, z2 - 40], [x2 - 50, z2], [trackX, z2], [x1 + 50, z2], [x1, z2 - 40], [x1, z1 + 40]];
-  points.forEach(([x, z], i) => definePlace('track.cp' + (i + 1), { location: 'track', x, z, r: 16, name: 'Контрольная точка ' + (i + 1) }));
-}
-definePlace('track.gate', { location: 'track', x: trackX, z: 34, r: 10, name: 'Въезд на трек' }); // сюда приезжают из основного мира
-definePlace('track.exit', { location: 'track', x: trackX, z: -12, r: 12, name: 'Выезд с трека' }); // отсюда уезжают в основной мир
+// ---- Гоночный трек (отдельный мир, src/locations/shared/locations.js): старт и финиш, восемь контрольных точек по «Складкам», автосалон (квест 3.05)
+definePlace('track.start', { location: 'track', x: trackPath.start.x, z: trackPath.start.z, r: 16, name: 'Старт и финиш трека' });
+// Восемь контрольных ворот по «колбаскам» (змейкам) — точки на оси трека, считаются по порядку (src/locations/shared/coords.js: trackCheckpoints)
+trackCheckpoints.forEach((c, i) => definePlace('track.cp' + (i + 1), { location: 'track', x: Math.round(c.x), z: Math.round(c.z), r: 16, name: 'Контрольная точка ' + (i + 1) }));
+// Автосалон при въезде на трек (его директор стоит у входа)
+definePlace('track.salon', { location: 'track', x: trackX + 58, z: 100, r: 10, name: 'Автосалон на треке' });
+definePlace('track.gate', { location: 'track', x: trackX, z: 158, r: 10, name: 'Въезд на трек' }); // сюда приезжают из основного мира
+definePlace('track.exit', { location: 'track', x: trackX, z: 30, r: 12, name: 'Выезд с трека' }); // отсюда уезжают в основной мир
 // В основном мире: конец съезда с трассы (въезд на трек) и место, где выезжают с трека
-definePlace('track.entrance', { x: trackX, z: 58, r: 12, name: 'Съезд на гоночный трек' });
-definePlace('track.back', { x: trackX, z: 30, r: 8, name: 'Съезд с трека' });
+definePlace('track.entrance', { x: trackX, z: 150, r: 12, name: 'Дорога к гоночному треку' });
+definePlace('track.back', { x: trackX, z: 30, r: 8, name: 'Дорога с трека' });
 
 // ---- Лаборатория (отдельный мир): территория, потайной люк, подвал с залом капсул, сборочный зал и кабинет Штерна (квесты 4.09, 4.11)
 definePlace('lab.gate', { location: 'lab', x: labX, z: labZ - 40, r: 14, name: 'Ворота лаборатории' });

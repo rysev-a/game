@@ -141,11 +141,19 @@
       game.bump();
     };
 
+    // Следующая контрольная точка квеста (quest.checkpoints) или null, если проезд сейчас не идет
+    game.nextCheckpoint = (qid) => {
+      const def = registry.quests[qid] && registry.quests[qid].checkpoints;
+      if (!def || !game.check(def.when)) return null;
+      return def.order[game.state.counters[def.counter] || 0] || null;
+    };
+
     // Метка текущего шага отслеживаемого квеста: место на карте или null
     game.currentMarker = () => {
       const step = game.state.tracked && game.currentStep(game.state.tracked);
       // marker — место или { main: 'место на карте мира', track: 'место на карте трека' }: у каждой локации своя карта
-      const id = step && step.marker && (typeof step.marker === 'object' ? step.marker[game.location()] : step.marker);
+      let id = step && step.marker && (typeof step.marker === 'object' ? step.marker[game.location()] : step.marker);
+      if (id === '@checkpoint') id = game.nextCheckpoint(game.state.tracked); // метка идет по контрольным точкам квеста: сначала первая, потом вторая…
       const place = id && registry.places[id];
       if (place && (place.location || 'main') !== game.location()) return null;
       return place ? { id: place.id, x: place.x, z: place.z, r: place.r || 10, name: place.name || '' } : null;

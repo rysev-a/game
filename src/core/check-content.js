@@ -159,7 +159,7 @@
           for (const list of Object.values(s.timer.warn || {})) lintEffects(list, where + ', таймер шага ' + s.id);
         }
         for (const m of s.marker ? (typeof s.marker === 'object' ? Object.values(s.marker) : [s.marker]) : []) {
-          if (!registry.places[m]) bad(where, 'у шага «' + s.id + '» нет места «' + m + '»');
+          if (m !== '@checkpoint' && !registry.places[m]) bad(where, 'у шага «' + s.id + '» нет места «' + m + '»');
         }
       }
       if (q.timer) {
