@@ -3,7 +3,7 @@
 //   • Выбор любого задания: игра переходит в такое состояние, как будто игрок сам дошел до этого задания. Все прежние задания по цепочке (src/content/quests)
 //     выполнены, у героя то, что он получил по дороге (телефон, кошелек, рюкзак, приборы, оружие, чертежи, подаренная машина), открыты факты, выигранные бои и
 //     решенные головоломки, деньги и эликсир соответствуют. Само выбранное задание запускается заново, как обычно (его onStart).
-//   • Галочки: бесконечный бензин, бесконечный эликсир, +1 минута ко всем таймерам заданий (settings.infiniteFuel, infiniteElixir, timerPlus).
+//   • Галочки: бесконечный бензин, бесконечный эликсир (settings.infiniteFuel, infiniteElixir) и кнопка «+1 минута к таймеру» (каждое нажатие — минута идущим таймерам).
 // Набор вещей по заданиям — таблица KIT ниже: задания выдают вещи в диалогах с развилками и в окнах, а повторять их все здесь незачем.
 
 (function () {
@@ -219,6 +219,8 @@
     #dbgPanel select { width: 100%; box-sizing: border-box; padding: 6px; border-radius: 6px; background: #1a2030; color: inherit; border: 1px solid rgba(255,255,255,0.3); font: inherit; }
     #dbgPanel button.go { margin-top: 8px; width: 100%; padding: 8px; border-radius: 7px; border: 1px solid #8fe3a8; background: rgba(63, 163, 91, 0.35); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
     #dbgPanel button.go:hover { background: rgba(63, 163, 91, 0.6); }
+    #dbgPanel button.plus { margin-top: 10px; width: 100%; padding: 7px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.4); background: rgba(143, 208, 255, 0.2); color: #fff; font: inherit; cursor: pointer; }
+    #dbgPanel button.plus:hover { background: rgba(143, 208, 255, 0.4); }
     #dbgPanel label { display: flex; gap: 8px; align-items: center; margin-top: 10px; cursor: pointer; }
     #dbgPanel .hint { margin-top: 8px; font-size: var(--fs-small, 11px); opacity: 0.6; line-height: 1.35; }
   `;
@@ -246,7 +248,7 @@
       '<div class="hint">Прежние задания будут выполнены, вещи и приборы выданы, как будто вы дошли до этого задания сами.</div>' +
       '<label><input type="checkbox" data-k="infiniteFuel"> Бесконечный бензин</label>' +
       '<label><input type="checkbox" data-k="infiniteElixir"> Бесконечный эликсир</label>' +
-      '<label><input type="checkbox" data-k="timerPlus"> +1 минута к таймеру</label>';
+      '<button class="plus">+1 минута к таймеру</button>';
     const sel = panel.querySelector('select');
     const cur = g.state.tracked;
     if (cur && order.includes(cur)) sel.value = cur;
@@ -254,6 +256,7 @@
       setOpen(false);
       jumpTo(sel.value);
     });
+    panel.querySelector('button.plus').addEventListener('click', addMinute);
     for (const cb of panel.querySelectorAll('input[type=checkbox]')) {
       cb.checked = !!settings[cb.dataset.k];
       cb.addEventListener('change', () => setSetting(cb.dataset.k, cb.checked));
@@ -282,12 +285,17 @@
     }
   }, 250);
 
-  // +1 минута: включили галочку — к идущим таймерам сразу добавляется минута, новые таймеры тоже на минуту длиннее (host.timerBonus)
-  onSettingChange((key) => {
-    if (key !== 'timerPlus' || !settings.timerPlus) return;
-    for (const k of Object.keys(g.state.timers)) if (!k.includes(':') && g.state.timers[k] > 0) g.state.timers[k] += 60;
+  // Кнопка «+1 минута к таймеру»: каждое нажатие добавляет минуту всем идущим таймерам заданий
+  function addMinute() {
+    let n = 0;
+    for (const k of Object.keys(g.state.timers)) {
+      if (k.includes(':') || !(g.state.timers[k] > 0)) continue; // предупреждения и уже сработавшие таймеры не трогаем
+      g.state.timers[k] += 60;
+      n++;
+    }
     g.bump();
-  });
+    window.showToast && showToast(n ? 'Таймер: +1 минута' : 'Сейчас нет идущего таймера', 1800);
+  }
 
   window.questDebugJump = jumpTo;
 })();
