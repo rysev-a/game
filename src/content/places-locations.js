@@ -37,4 +37,11 @@ for (let i = 1; i <= 9; i++) {
   definePlace('tower.up' + i, { location: loc, x: towerFloor.up.x - 12, z: towerFloor.up.z, r: 6, name: 'Лестница вверх, ' + i + ' этаж' });
   definePlace('tower.down' + i, { location: loc, x: towerFloor.down.x + 12, z: towerFloor.down.z, r: 6, name: 'Лестница вниз, ' + i + ' этаж' });
 }
+definePlace('tower.remote9', { location: 'tower9', x: 0, z: 10, r: 6, name: 'Ящик с пультом вертолетика' });
 definePlace('tower.exit9', { location: 'tower9', x: -44, z: -36, r: 6, name: 'Аварийный выход, 9 этаж' });
+
+// ---- Башня снаружи (основной мир): сюда ведут лестница с первого этажа, аварийный выход с девятого и взрыв по таймеру. Определены здесь, а не в src/quests/places.js,
+// потому что эти переходы идут из миров-этажей, где places.js не подключен
+definePlace('tower.base', { x: towerX, z: towerZ, r: 40, name: 'Башня' });
+definePlace('tower.door', { x: towerX, z: towerZ - 14, r: 8, name: 'Вход в башню' });
+definePlace('tower.pad', { x: towerX + 20, z: towerZ - 16, r: 8, name: 'Площадка вертолетика' });

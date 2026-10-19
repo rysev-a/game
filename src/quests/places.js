@@ -67,10 +67,8 @@ highwayChaseXs.forEach((x, i) => definePlace('chase.b' + (i + 1), { x, z: highwa
 // Прилавки у торгового центра (квест 2.13): справа от парковки
 definePlace('mall.stalls', { x: 40, z: -18, r: 12, name: 'Прилавки у торгового центра' });
 
-// Башня в центре (src/locations/tower/tower.js): подножие, вход, площадка вертолетика и девять площадок-этажей (квест 4.12)
-definePlace('tower.base', { x: towerX, z: towerZ, r: 40, name: 'Башня' });
-definePlace('tower.door', { x: towerX, z: towerZ - 14, r: 8, name: 'Вход в башню' });
-definePlace('tower.pad', { x: towerX + 20, z: towerZ - 16, r: 8, name: 'Площадка вертолетика' });
+// Башня в центре: подножие, вход и площадка вертолетика (tower.base, tower.door, tower.pad) определены в src/content/places-locations.js: на них ведут переходы из миров-этажей,
+// где эта страница (main:) не подключена
 
 // Река и яхта Барона (квест 3.12): стоянка у моста выше по течению, два места происшествий у трассы между городами
 definePlace('river.yacht', { x: riverX, z: -90, r: 34, name: 'Яхта Барона' }); // яхта у западного берега, роботы сходят на берег левее

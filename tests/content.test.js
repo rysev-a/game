@@ -45,6 +45,7 @@ for (let i = 1; i <= 9; i++) {
   definePlace('tower.down' + i, { x: -50, z: 34, r: 6, name: 'Лестница вниз' });
 }
 definePlace('tower.exit9', { x: -44, z: -36, r: 6, name: 'Аварийный выход' });
+definePlace('tower.remote9', { x: 0, z: 10, r: 6, name: 'Ящик с пультом' });
 for (const id of ['track.salon', 'track.entrance', 'track.gate', 'track.exit', 'track.back', 'lab.entrance', 'lab.exit', 'lab.back']) definePlace(id, { x: 0, z: 0, r: 10, name: id });
 definePlace('track.start', { x: -620, z: 190, r: 16, name: 'Старт' });
 definePlace('track.pre', { x: -590, z: 190, r: 14, name: 'Разгон' });

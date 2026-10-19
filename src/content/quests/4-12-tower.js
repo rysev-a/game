@@ -68,7 +68,7 @@ towerSteps.push(
     id: 'remote',
     text: 'Найти на девятом этаже пульт вертолетика: десятый этаж заперт изнутри',
     done: 'has:rc_remote',
-    marker: { main: 'tower.door', tower1: 'tower.up1', tower2: 'tower.up2', tower3: 'tower.up3', tower4: 'tower.up4', tower5: 'tower.up5', tower6: 'tower.up6', tower7: 'tower.up7', tower8: 'tower.up8', tower9: 'tower.f9' },
+    marker: { main: 'tower.door', tower1: 'tower.up1', tower2: 'tower.up2', tower3: 'tower.up3', tower4: 'tower.up4', tower5: 'tower.up5', tower6: 'tower.up6', tower7: 'tower.up7', tower8: 'tower.up8', tower9: 'tower.remote9' },
     hint: 'На девятом этаже ящик с запчастями от моделей, дверь выше заперта',
   },
   {
