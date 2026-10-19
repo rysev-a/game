@@ -187,53 +187,131 @@ defineBuilding('grandma_house', {
   exitLabel: 'E — выйти во двор',
 
   exterior({ full }) {
-    const group = createHouse({
-      width: grandmaW, depth: grandmaD, wallHeight: 7.4, roofRise: 4.2, floors: 2, windows: 5,
-      roof: 'gable', ridgeAlongX: true, wallColor: 0xc9a46c, roofColor: 0x5a6a4a, doorColor: 0x3a2a1a,
-    });
+    // Современный дом из дерева, темного камня и стекла (как на картинке home.jpg): справа высокий объем с крутой темной двускатной крышей и
+    // огромным остеклением под коньком, слева низкое крыло с раздвижными стеклянными дверями, каменная труба, деревянная терраса со ступенями
+    const group = new THREE.Group();
     const front = grandmaD / 2;
-    // Крыльцо с навесом и балкон над ним
-    const porch = boxWithEdges(5, 0.4, 2.6, 0x8a6a3c);
-    porch.position.set(0, 0.2, front + 1.3);
-    group.add(porch);
-    for (const x of [-2.2, 2.2]) {
-      const post = boxWithEdges(0.2, 2.8, 0.2, 0x6b4a2e);
-      post.position.set(x, 1.6, front + 2.4);
-      group.add(post);
+    const wood = 0xc98a4a;
+    const woodDark = 0xa8692f;
+    const stone = 0x565b62;
+    const roofCol = 0x25282d;
+    const frameCol = 0x14161a;
+    const glowGlass = new THREE.MeshBasicMaterial({ color: 0xf2b866 }); // стекло светится теплым изнутри
+    const coolGlass = new LitMaterial({ color: 0x35495e });
+    const edge = cityEdgeMat;
+    const add = (mesh, x, y, z) => {
+      mesh.position.set(x, y, z);
+      group.add(mesh);
+      return mesh;
+    };
+    const solid = (w, h, d, color, x, y, z) => add(boxWithEdges(w, h, d, color), x, y, z);
+    // Призма по контуру в плоскости XY, длиной depth по Z (центр по Z — в нуле)
+    const prism = (pts, depth, color, x, y, z) => {
+      const shape = new THREE.Shape();
+      pts.forEach(([px, py], k) => (k ? shape.lineTo(px, py) : shape.moveTo(px, py)));
+      const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false });
+      geo.translate(0, 0, -depth / 2);
+      const mesh = new THREE.Mesh(geo, new LitMaterial({ color }));
+      mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edge));
+      return add(mesh, x, y, z);
+    };
+    const pane = (w, h, x, y, z, glass = glowGlass) => {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.1), glass);
+      return add(m, x, y, z);
+    };
+
+    // Главный объем: x от −3,6 до 12, крыша коньком вдоль Z, фронтон к улице
+    const mx0 = -3.6;
+    const mx1 = grandmaW / 2;
+    const mw = mx1 - mx0;
+    const mc = (mx0 + mx1) / 2;
+    const eave = 5.6;
+    const rise = 5.6;
+    solid(mw, eave, grandmaD, wood, mc, eave / 2, 0);
+    // Фронтон: деревянный треугольник под самой крышей, спереди и сзади
+    prism([[-mw / 2, 0], [mw / 2, 0], [0, rise]], grandmaD, wood, mc, eave, 0);
+    // Крыша: две толстые темные плиты с выносом на 0,8 вперед и назад
+    const slopeLen = Math.hypot(mw / 2 + 0.7, rise + 0.3);
+    const ang = Math.atan2(rise + 0.3, mw / 2 + 0.7);
+    for (const s of [-1, 1]) {
+      const slab = boxWithEdges(slopeLen, 0.34, grandmaD + 1.6, roofCol);
+      slab.rotation.z = -s * ang; // правая плита опускается к правому краю, левая — к левому
+      add(slab, mc + s * (mw / 4 + 0.35), eave + (rise + 0.3) / 2 - 0.12, 0);
     }
-    const awning = boxWithEdges(5.4, 0.15, 3.0, 0x5a6a4a);
-    awning.position.set(0, 3.1, front + 1.5);
-    group.add(awning);
-    // Кирпичная труба над печью
-    const chimney = boxWithEdges(1.1, 5, 1.1, 0x9a5a48);
-    chimney.position.set(-7, 9, -2.4);
-    group.add(chimney);
-    // Гараж справа: низкий объем с двускатной крышей, широкая подъемная дверь в полосах
+    solid(0.3, 0.3, grandmaD + 1.6, roofCol, mc, eave + rise + 0.2, 0); // коньковый брус
+    // Каменная полоса между деревом и остеклением, труба справа
+    solid(2.1, 6.6, 0.5, stone, 3.5, 3.3, front + 0.12);
+    solid(1.7, 5.4, 1.7, stone, mx1 - 1.2, eave + 2.2, -3.4); // труба пробивает крышу
+    solid(2.0, 0.25, 2.0, 0x2f3338, mx1 - 1.2, eave + 4.95, -3.4); // оголовок
+    // Остекление справа: высокие окна на два этажа и треугольник под коньком
+    solid(7.4, 5.0, 0.12, frameCol, 8.1, 2.9, front + 0.1); // рама
+    for (let i = 0; i < 3; i++) pane(2.3, 4.6, 5.9 + i * 2.2, 2.9, front + 0.18);
+    solid(7.4, 0.14, 0.14, frameCol, 8.1, 5.45, front + 0.2); // перекладина между этажами
+    const gl = 0.12;
+    const roofY = (x) => eave + (mx1 - x) * (rise / (mw / 2)) * (x >= mc ? 1 : 0) + (x < mc ? (x - mx0) * (rise / (mw / 2)) : 0);
+    prism([[4.7, 5.7], [10.4, 5.7], [4.7, roofY(4.7) - 0.7]], gl, frameCol, 0, 0, front + 0.1);
+    prism([[5.0, 5.85], [9.9, 5.85], [5.0, roofY(5.0) - 0.95]], gl, 0xf2b866, 0, 0, front + 0.18);
+    solid(0.1, 3.4, 0.16, frameCol, 6.3, 7.4, front + 0.24); // импосты верхнего окна
+    solid(0.1, 2.3, 0.16, frameCol, 7.9, 6.9, front + 0.24);
+    // Дерево слева: узкие теплые окна, дверь, настенный светильник
+    for (const [wx, wy] of [[-2.4, 6.6], [-2.4, 2.4]]) {
+      solid(1.4, 2.2, 0.12, frameCol, wx, wy, front + 0.1);
+      pane(1.1, 1.9, wx, wy, front + 0.17);
+    }
+    solid(1.5, 2.5, 0.14, frameCol, 0, 1.25, front + 0.1); // входная дверь с узким окном
+    solid(1.2, 2.3, 0.1, 0x6b4a2e, 0, 1.15, front + 0.18);
+    pane(0.3, 1.6, 0.35, 1.45, front + 0.25);
+    solid(0.18, 0.5, 0.18, 0x222428, 1.7, 3.2, front + 0.28); // светильник
+    pane(0.1, 0.34, 1.7, 3.2, front + 0.38);
+
+    // Левое крыло: ниже, темная облицовка, односкатная крыша и раздвижные стеклянные двери во всю ширину
+    const lx0 = -grandmaW / 2;
+    const lx1 = mx0;
+    const lw = lx1 - lx0;
+    const lc = (lx0 + lx1) / 2;
+    const lEave = 4.9;
+    solid(lw, lEave, grandmaD, 0x3b3f45, lc, lEave / 2, 0);
+    const lSlope = Math.hypot(lw + 1.2, 1.8);
+    const lSlab = boxWithEdges(lSlope, 0.34, grandmaD + 1.6, roofCol);
+    lSlab.rotation.z = Math.atan2(1.8, lw + 1.2); // подъем к главному объему
+    add(lSlab, lc - 0.1, lEave + 0.9, 0);
+    solid(lw + 0.3, 0.2, 0.2, frameCol, lc, lEave, front + 0.12);
+    solid(lw - 0.6, 3.3, 0.12, frameCol, lc, 1.9, front + 0.1);
+    for (let i = 0; i < 4; i++) pane((lw - 1.0) / 4 - 0.1, 3.0, lx0 + 0.8 + ((lw - 1.0) / 4) * (i + 0.5) + 0.0, 1.9, front + 0.17);
+    solid(lw - 1, 1.2, 0.12, frameCol, lc, 4.0, front + 0.1);
+    for (let i = 0; i < 3; i++) pane((lw - 1.4) / 3, 0.9, lx0 + 0.9 + ((lw - 1.4) / 3 + 0.05) * (i + 0.5), 4.0, front + 0.17, coolGlass); // верхние окна второго этажа
+
+    // Терраса вдоль фасада, ступени по центру, кашпо и камни перед домом
+    solid(grandmaW - 2, 0.45, 3.4, 0xb87a42, -1.6, 0.22, front + 1.7);
+    for (let i = 0; i < 2; i++) solid(4.4, 0.2, 0.7, woodDark, 0, 0.1 + i * 0.0, front + 3.6 + i * 0.7 - 0.0);
+    solid(2.4, 0.5, 0.7, 0x6b4a2e, 4.8, 0.7, front + 0.7); // длинное кашпо у стекла
+    solid(2.1, 0.28, 0.5, 0x3f7a35, 4.8, 1.08, front + 0.7);
+    for (const [px, pz] of [[-8.4, front + 0.9], [-6.6, front + 1.1]]) {
+      const pot = boxWithEdges(0.75, 0.7, 0.75, 0x1b1d21); // черные кадки
+      add(pot, px, 0.8, pz);
+      add(boxWithEdges(0.9, 0.9, 0.9, 0x3f7a35), px, 1.5, pz);
+    }
+    for (const [rx, rz, rs] of [[-8.5, front + 4.6, 0.9], [-9.7, front + 3.9, 0.6], [-7.4, front + 5.2, 0.5], [9.6, front + 4.8, 0.8], [8.2, front + 5.6, 0.5]]) {
+      const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(rs, 0), new LitMaterial({ color: 0x7c8087 }));
+      rock.scale.y = 0.7;
+      add(rock, rx, rs * 0.55, rz);
+    }
+
+    // Гараж справа: темные стены, плоская двускатная крыша, дверь из деревянных панелей
     const gx0 = grandmaW / 2 + grandmaGarageW / 2;
     const garage = createHouse({
-      width: grandmaGarageW, depth: 10, wallHeight: 3.4, roofRise: 1.8, floors: 1, roof: 'gable', ridgeAlongX: false,
-      wallColor: 0xb89860, roofColor: 0x4a4a52,
+      width: grandmaGarageW, depth: 10, wallHeight: 3.4, roofRise: 1.6, floors: 1, roof: 'gable', ridgeAlongX: false,
+      wallColor: 0x3b3f45, roofColor: roofCol,
     });
     garage.position.set(gx0, 0, front - 5);
     group.add(garage);
-    const garageDoor = boxWithEdges(grandmaGarageW - 1.4, 2.8, 0.14, 0xe8e6de);
-    garageDoor.position.set(gx0, 1.4, front + 0.08);
-    group.add(garageDoor);
-    for (const y of [0.7, 1.4, 2.1]) {
-      const seam = boxWithEdges(grandmaGarageW - 1.4, 0.07, 0.16, 0x9a9a94);
-      seam.position.set(gx0, y, front + 0.1);
-      group.add(seam);
-    }
+    solid(grandmaGarageW - 1.4, 2.8, 0.14, 0xb87a42, gx0, 1.4, front + 0.08);
+    for (const y of [0.7, 1.4, 2.1]) solid(grandmaGarageW - 1.4, 0.07, 0.16, 0x7a4a22, gx0, y, front + 0.1);
+
     // Колодец и поленница
-    const well = boxWithEdges(1.6, 0.9, 1.6, 0x8a8a88);
-    well.position.set(-grandmaW / 2 - 3, 0.45, front + 3);
-    group.add(well);
-    const wellRoof = boxWithEdges(2, 0.12, 1.4, 0x6b4a2e);
-    wellRoof.position.set(-grandmaW / 2 - 3, 2.1, front + 3);
-    group.add(wellRoof);
-    const logs = boxWithEdges(3.4, 1.2, 0.9, 0x9a6a3a); // поленница у задней стены
-    logs.position.set(-4, 0.6, -front - 0.9);
-    group.add(logs);
+    solid(1.6, 0.9, 1.6, 0x8a8a88, -grandmaW / 2 - 3, 0.45, front + 3);
+    solid(2, 0.12, 1.4, 0x6b4a2e, -grandmaW / 2 - 3, 2.1, front + 3);
+    solid(3.4, 1.2, 0.9, 0x9a6a3a, -4, 0.6, -front - 0.9); // поленница у задней стены
     return {
       group,
       obstacles: [
@@ -243,8 +321,8 @@ defineBuilding('grandma_house', {
         { x: -4, z: -front - 0.9, hx: 1.7, hz: 0.45 },
       ],
       mapShapes: [
-        { x: 0, z: 0, hx: grandmaW / 2, hz: grandmaD / 2, color: '#c9a46c' },
-        { x: gx0, z: front - 5, hx: grandmaGarageW / 2, hz: 5, color: '#b89860' },
+        { x: 0, z: 0, hx: grandmaW / 2, hz: grandmaD / 2, color: '#a8692f' },
+        { x: gx0, z: front - 5, hx: grandmaGarageW / 2, hz: 5, color: '#3b3f45' },
       ],
       door: { x: 0, z: front + 2.8 },
       people: full
