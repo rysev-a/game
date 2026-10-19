@@ -13,7 +13,7 @@ defineQuest({
       id: 'office',
       text: 'Обыскать кабинет Штерна и вскрыть сейф',
       done: 'step:4.11.office',
-      marker: 'lab.office',
+      marker: { main: 'lab.entrance', lab: 'lab.office' },
       hint: 'Кабинет в восточном углу сборочного зала: нужен сейф',
     },
   ],
