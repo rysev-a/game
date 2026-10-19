@@ -5,9 +5,8 @@ defineScenario('1.03', {
   steps: [
     // Игра начинается со звонка Дениса; бак заполнен на дорогу до реки
     { expect: ['quest:1.03', '!step:1.03.phone', '!step:1.03.arrive', 'fuel:>=0.5'] },
-    // Дома: телефон со столика (он звонит), навигатор в телефоне (миникарта), ключи из прихожей и открыть машину ключами
+    // Дома: телефон со столика (он звонит; миникарта и таймер появляются сами), ключи из прихожей и открыть машину ключами
     { do: [{ give: 'phone' }], expect: 'step:1.03.phone' },
-    { do: [{ flag: 'nav' }], expect: 'step:1.03.nav' },
     { do: [{ give: 'keys' }], expect: 'step:1.03.keys' },
     { do: [{ flag: 'carOpen' }], expect: 'step:1.03.car' },
 
@@ -29,7 +28,7 @@ defineScenario('1.03', {
 defineScenario('1.03-late', {
   title: 'Не успели к мосту: таймер возвращает героя домой, бак снова полный, попытка повторяется',
   steps: [
-    { do: [{ give: 'phone' }, { flag: 'nav' }, { give: 'keys' }, { flag: 'carOpen' }, { fuel: 0.1 }] },
+    { do: [{ give: 'phone' }, { give: 'keys' }, { flag: 'carOpen' }, { fuel: 0.1 }] },
     { wait: '191m', expect: ['quest:1.03', '!step:1.03.arrive', 'fuel:>=0.5'] },
   ],
 });
@@ -37,7 +36,7 @@ defineScenario('1.03-late', {
 defineScenario('1.03-skip-ahead', {
   title: 'Осмотр тела до разговора: шаг отмечается сразу, квест заканчивается, когда выполнено всё',
   steps: [
-    { do: [{ give: 'phone' }, { flag: 'nav' }, { give: 'keys' }, { flag: 'carOpen' }] },
+    { do: [{ give: 'phone' }, { give: 'keys' }, { flag: 'carOpen' }] },
     { dialog: '1.03.flash', pick: [0, 0], expect: 'step:1.03.body' },
     { expectNot: 'done:1.03' },
     { at: 'bridge.scene', expect: 'step:1.03.arrive' },

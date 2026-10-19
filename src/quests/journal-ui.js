@@ -140,8 +140,6 @@
 
   function go(next) {
     screen = next;
-    // Навигатор — уже открыт в телефоне: с этого момента появляется миникарта (флаг nav, src/quests/gates.js)
-    if (next === 'nav' && !g.state.flags.nav) g.run([{ flag: 'nav' }]);
     render();
   }
 
@@ -220,7 +218,6 @@
       for (const [id, label, icon] of apps) {
         const b = el('button', 'app');
         b.append(el('span', 'ico', icon), document.createTextNode(label));
-        if (id === 'nav' && !g.state.flags.nav) b.classList.add('hot');
         b.addEventListener('click', () => go(id));
         grid.appendChild(b);
       }
@@ -307,7 +304,6 @@
       if (document.exitPointerLock) document.exitPointerLock();
       dialogueOpen = true;
       screen = startScreen && !startScreen.startsWith('call:') ? startScreen : 'home';
-      if (screen === 'nav' && !g.state.flags.nav) g.run([{ flag: 'nav' }]);
       render();
     } else if (!dialogueNode) {
       dialogueOpen = false; // если в это время не начался настоящий разговор
