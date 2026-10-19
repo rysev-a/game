@@ -20,8 +20,8 @@ definePlace('pizza.shop', { x: -104, z: -22, r: 14, name: 'Пиццерия «Т
 definePlace('pizza.c1', { x: 0, z: -29, r: 14, name: 'Заказ 1: торговый центр' });
 definePlace('pizza.c2', { x: 70, z: 56, r: 12, name: 'Заказ 2: башня' });
 definePlace('pizza.c3', { x: 220, z: -20, r: 18, name: 'Заказ 3: библиотека' });
-definePlace('pizza.c4', { x: 350, z: -90, r: 20, name: 'Заказ 4: пристань' });
-definePlace('pizza.c5', { x: 398, z: -9, r: 14, name: 'Заказ 5: заправка «Заречье»' });
+definePlace('pizza.c4', { x: 398, z: -9, r: 14, name: 'Заказ 4: заправка «Заречье»' });
+definePlace('pizza.c5', { x: 448, z: -8, r: 14, name: 'Заказ 5: дом в кирпичном городе' }); // у дома на западном краю города 2
 
 // Парковка у дома Анны Петровны (src/locations/zarechye/grandma.js): свободное место на подъездной дорожке перед гаражом, рядом с машиной бабушки
 definePlace('zarechye.parking', { x: questBuildingAt('grandma_house').x - 17.7, z: questBuildingAt('grandma_house').z - 13.7, r: 6, name: 'Парковка у дома Анны Петровны' });

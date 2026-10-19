@@ -649,6 +649,87 @@
     });
   }
 
+  // ---------- Большой мигающий значок над точкой задания ----------
+  // Шаг с полем beacon: 'boxes' (курьер, 2.15) показывает над местом доставки крупный значок с коробками: он мигает, как метка, и виден издалека;
+  // как только герой въехал или вошел в зону места (радиус r), значок исчезает. Значок — плоская картинка, всегда повернутая к камере
+  const BEACON_ART = {
+    boxes(c, S) {
+      const u = S / 96;
+      const R = (x, y, w, h, col) => {
+        c.fillStyle = col;
+        c.fillRect(Math.round(x * u), Math.round(y * u), Math.round(w * u), Math.round(h * u));
+      };
+      const box = (x, y, w, h, body, top, label) => {
+        R(x - 2, y - 2, w + 4, h + 4, '#15110d'); // контур
+        R(x, y, w, h, body);
+        R(x, y, w, Math.round(h * 0.28), top); // крышка
+        R(x, y + h - 3, w, 3, 'rgba(0,0,0,0.25)'); // тень снизу
+        if (label) {
+          R(x + w * 0.3, y + h * 0.4, w * 0.4, h * 0.4, label);
+        }
+      };
+      const glow = c.createRadialGradient(S / 2, S * 0.45, S * 0.05, S / 2, S * 0.45, S * 0.52);
+      glow.addColorStop(0, 'rgba(255, 226, 122, 0.55)');
+      glow.addColorStop(1, 'rgba(255, 226, 122, 0)');
+      c.fillStyle = glow;
+      c.fillRect(0, 0, S, S);
+      box(14, 56, 68, 18, '#c98a4a', '#e2aa66', '#f4efe6'); // нижняя коробка
+      box(22, 36, 56, 18, '#d99a55', '#efba78', '#e0483a'); // средняя
+      box(30, 16, 44, 18, '#f4efe6', '#ffffff', '#e0483a'); // верхняя, белая, с красной этикеткой
+      R(40, 21, 8, 8, '#ffe27a'); // ломтик пиццы на крышке
+      R(50, 21, 8, 8, '#e0483a');
+      // стрелка вниз, на место
+      c.fillStyle = '#15110d';
+      c.beginPath();
+      c.moveTo(32 * u, 78 * u);
+      c.lineTo(64 * u, 78 * u);
+      c.lineTo(48 * u, 95 * u);
+      c.fill();
+      c.fillStyle = '#ffe27a';
+      c.beginPath();
+      c.moveTo(36 * u, 80 * u);
+      c.lineTo(60 * u, 80 * u);
+      c.lineTo(48 * u, 91 * u);
+      c.fill();
+    },
+  };
+  const beaconTex = {};
+  const beaconSprite = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthTest: false, depthWrite: false }));
+  beaconSprite.renderOrder = 50;
+  beaconSprite.visible = false;
+  cityGroup.add(beaconSprite);
+  function beaconTexture(kind) {
+    if (!BEACON_ART[kind]) return null;
+    if (!beaconTex[kind]) {
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = 192; // 96 «пикселей» по два
+      const c = cv.getContext('2d');
+      BEACON_ART[kind](c, 192);
+      const tex = new THREE.CanvasTexture(cv);
+      tex.magFilter = THREE.NearestFilter;
+      beaconTex[kind] = tex;
+    }
+    return beaconTex[kind];
+  }
+  function updateBeacon(t) {
+    const step = g.state.tracked && g.currentStep(g.state.tracked);
+    const marker = step && step.beacon && !insideBuilding() ? g.currentMarker() : null;
+    const tex = marker && beaconTexture(step.beacon);
+    // Внутри зоны значка нет: герой уже на месте
+    if (!tex || Math.hypot(playerWorldX - marker.x, playerWorldZ - marker.z) <= marker.r) {
+      beaconSprite.visible = false;
+      return;
+    }
+    beaconSprite.visible = true;
+    beaconSprite.material.map = tex;
+    beaconSprite.material.needsUpdate = true;
+    const blink = 0.5 + 0.5 * Math.sin(t * 5.2); // мигает: от почти прозрачного до полной яркости
+    beaconSprite.material.opacity = 0.18 + 0.82 * blink * blink;
+    const size = 13 + 1.1 * Math.sin(t * 2.6); // большой: виден издалека
+    beaconSprite.scale.set(size, size, 1);
+    beaconSprite.position.set(marker.x, groundHeightAt(marker.x, marker.z, 9) + 12 + Math.sin(t * 2.2) * 0.5, marker.z);
+  }
+
   // ---------- Подсветка входов при наведении ----------
   // Дверь, лестница или кнопка, которыми можно воспользоваться сейчас, чуть ярчают, когда на них наведена мышь: цвет сетки объекта
   // становится светлее и теплее и плавно возвращается (записи interactables с glowMeshes() — список сеток объекта). Сканер подписывает
@@ -863,6 +944,7 @@
         objectTargets = settings.showObjects ? resolveObjects() : [];
       }
       updateMark(sec);
+      updateBeacon(sec);
       updateDoors(sec);
     } catch (e) {
       console.warn('Подсказки по квесту:', e);
@@ -874,6 +956,7 @@
     updateArrows(sec);
     objectTargets = settings.showObjects ? resolveObjects() : [];
     updateMark(sec);
+    updateBeacon(sec);
     updateDoors(sec);
   };
   nav.ray = glowRay; // луч наведения на двери и кнопки (для проверок: подменяют intersectObjects)
