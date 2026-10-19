@@ -418,7 +418,7 @@
     // 1б. человек, с которым нужно поговорить (шаг: done 'talked:<id>' или target: '<id>'): ромбик над головой, и внутри здания тоже
     for (const cid of talkIdsOf(step)) {
       const p = personByChar(cid);
-      if (p) return p;
+      if (p) return step.target ? { ...p, solo: true } : p; // явная цель шага (target) — подсвечен только этот человек, без прилавков и станков рядом
     }
     const marker = g.currentMarker();
     if (!marker || insideBuilding()) return null;
@@ -484,6 +484,7 @@
   function resolveObjects() {
     const out = [];
     const goal = resolveGoalObject();
+    if (goal && goal.solo) return [goal];
     if (goal) out.push(goal);
     for (const t of interactionTargets()) if (!out.some((o) => Math.hypot(o.x - t.x, o.z - t.z) < 2)) out.push(t);
     return out.slice(0, 4);

@@ -30,7 +30,7 @@ defineScenario('2.13', {
   title: 'Сборка оружия проходится: прилавки, Михалыч, дробовик, пулемет',
   done: ['1.03'],
   steps: [
-    { do: [{ start: '2.13' }, { give: 'bp_shotgun' }, { give: 'bp_machinegun' }, { add: { money: 400 } }], expect: ['quest:2.13', 'count:money>=400'] }, // деньги заработаны на пицце (2.15)
+    { do: [{ start: '2.13' }, { give: 'bp_shotgun' }, { give: 'bp_machinegun' }, { add: { money: 3100 } }], expect: ['quest:2.13', 'count:money>=3100'] }, // деньги заработаны на пицце (2.15)
     { talk: 'merchant', pick: [0], see: 'чертежи, катушки, память' }, // торговец открывает магазин: окно в тесте не рисуется
     { shop: '2.13.stalls', buy: ['sg_pipe', 'sg_spring', 'sg_stock', 'mg_pipe', 'mg_gears', 'mg_spring'], expect: ['step:2.13.shop', 'count:money>=0', 'count:money<100'] },
     { interact: 'spot:stall_wood' }, // прилавок без продавца: подсказка, что товаром ведает торговец

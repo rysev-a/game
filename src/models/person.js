@@ -157,6 +157,7 @@ function createWalkingMan(options = {}) {
       height: 1,
       width: 1,
       belly: 0,
+      coatFlaps: false, // полы, которые распахиваются (root.setCoatOpen): под ними полки с товаром (торговец)
       head: 1,
       bag: null, // 'backpack' | 'tote'
       bagColor: 0x5a4632,
@@ -897,6 +898,71 @@ function createWalkingMan(options = {}) {
     return obj;
   };
 
+  // Распахнутое пальто торговца, как у фарцовщика в «Иване Васильевиче»: две полы на петлях по бокам живота. Закрытые, они лежат поперек живота;
+  // root.setCoatOpen(true) плавно разводит их в стороны, и под ними оказываются полки с часами, пузырьками, катушками и приборами — на подкладке и на поле каждой полы.
+  // Анимация идет на отрисовке самих пол (onBeforeRender), поэтому никакого цикла снаружи не нужно
+  if (o.coatFlaps) {
+    const frontZ0 = bellyFrontZ(1.16) - 0.015;
+    const hingeX = chestW / 2 + 0.05 * o.belly;
+    const rack = new THREE.Group(); // полки на животе: видны только когда пальто открыто
+    rack.visible = false;
+    at(part(hingeX * 2, 0.7, 0.02, 0x3a1020), 0, 1.2, frontZ0 + 0.02, rack);
+    const wares = [0xe8c547, 0x7ad0e0, 0xd23c3c, 0x9ad060, 0xc8c8d0, 0xd88040, 0x6a7ae0, 0xf0f0e8];
+    // Товар рядами на панели: колонки по x от left до right, ряды по высоте; каждая вещь — маленький бокс своего цвета и размера
+    const stock = (parent, x0, x1, y0, y1, z, seed) => {
+      let k = seed;
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 4; c++) {
+          const w = 0.04 + ((k * 7) % 5) * 0.012;
+          const h = 0.06 + ((k * 3) % 4) * 0.018;
+          const item = part(w, h, 0.045, wares[k % wares.length]);
+          const x = x0 + ((c + 0.5) * (x1 - x0)) / 4;
+          const y = y0 + ((r + 0.5) * (y1 - y0)) / 5 + (h - 0.08) / 2;
+          at(item, x, y, z, parent);
+          k++;
+        }
+      }
+    };
+    stock(rack, -hingeX + 0.02, hingeX - 0.02, 0.9, 1.5, frontZ0 - 0.03, 3);
+    body.add(rack);
+    const flaps = [];
+    [-1, 1].forEach((s) => {
+      const pivot = new THREE.Group(); // петля у бока живота
+      pivot.position.set(s * hingeX, 1.2, frontZ0);
+      const w = hingeX; // полы встречаются посередине
+      const outer = at(part(w, 0.7, 0.03, o.jacket !== null ? o.jacket : torsoColor), -s * (w / 2), 0, -0.01, pivot);
+      const lining = new THREE.Group(); // изнанка пол с товаром смотрит на живот, а при открытии — вперед
+      at(part(w - 0.02, 0.64, 0.01, 0x3a1020), -s * (w / 2), 0, 0.012, lining);
+      stock(lining, -s * (w - 0.04), -s * 0.02 + (s > 0 ? -0.01 : 0.01), -0.3, 0.3, 0.04, s > 0 ? 5 : 11);
+      pivot.add(lining);
+      lining.position.y = 0;
+      lining.position.x = 0;
+      lining.position.z = 0;
+      lining.visible = false;
+      body.add(pivot);
+      flaps.push({ pivot, lining, s });
+    });
+    let coat = { target: 0, cur: 0 };
+    root.setCoatOpen = (on) => {
+      coat.target = on ? 1 : 0;
+    };
+    outerHook(flaps, rack, coat);
+  }
+  function outerHook(flaps, rack, coat) {
+    // Одна из пол выполняет роль «такта»: на каждой отрисовке пальто чуть ближе к цели
+    const driver = flaps[0].pivot.children[0];
+    driver.onBeforeRender = () => {
+      if (Math.abs(coat.target - coat.cur) < 0.002) return;
+      coat.cur += (coat.target - coat.cur) * 0.12;
+      const k = coat.cur;
+      for (const f of flaps) {
+        f.pivot.rotation.y = f.s * k * 2.35; // полы разводятся в стороны и чуть вперед
+        f.lining.visible = k > 0.05;
+      }
+      rack.visible = k > 0.05;
+    };
+  }
+
   root.setPush(false); // применить сутулость (stoop)
   // Для готовой 3D-модели из файла (person-models.js): что прятать и что перевешивать на кости
   root.userData.rig = { hips, attached: [] };
@@ -960,7 +1026,7 @@ const PERSON_PRESETS = {
   // Торговец у прилавков (2.13): важный толстяк в бордовом пиджаке и шляпе, золотой галстук, усы
   merchant: {
     belly: 1.0, hat: 'fedora', hatColor: 0x2a2530, hair: 'bald', hairColor: 0x9a948a, mustache: true, jacket: 0x6b1f30, shirtColor: 0xf0e8d8,
-    tie: true, tieColor: 0xd8b040, pantsColor: 0x2a2a30, shoeColor: 0x1a1a1c, buttons: true, watch: true, skinColor: 0xe0a884,
+    tie: true, tieColor: 0xd8b040, pantsColor: 0x2a2a30, shoeColor: 0x1a1a1c, buttons: true, watch: true, skinColor: 0xe0a884, coatFlaps: true,
   },
   // Директор автосалона на треке (3.05): синий костюм, галстук, зачесанные волосы
   dealer: {

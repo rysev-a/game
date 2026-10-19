@@ -324,7 +324,7 @@ function fireWeapon(aim, power) {
   if (w.elixir && !spendWeaponElixir(w.elixir)) {
     if (heroWeapon.sinceShot > 20) {
       playWeaponSound('dry');
-      showToast(w.name + ': нет эликсира. Дробовик и пулемет стреляют без него');
+      showToast(w.name + ': нет эликсира. Дробовик и «Метроном» стреляют без него');
     }
     heroWeapon.sinceShot = 0;
     return false;

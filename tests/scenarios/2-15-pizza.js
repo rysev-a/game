@@ -8,13 +8,13 @@ defineScenario('2.15', {
     { at: 'pizza.shop', expect: 'step:2.15.go' },
     { talk: 'gennady', pick: [0, 0], see: 'Первым едешь', expect: ['step:2.15.talk', '!step:2.15.ride'] },
     { drive: 'scooter', expect: 'step:2.15.ride' },
-    { at: 'pizza.c1', expect: ['step:2.15.o1', 'count:money>=80'] },
+    { at: 'pizza.c1', expect: ['step:2.15.o1', 'count:money>=620'] },
     { at: 'pizza.c2', expect: 'step:2.15.o2' },
     { at: 'pizza.c3', expect: 'step:2.15.o3' },
     { at: 'pizza.c4', expect: 'step:2.15.o4' },
-    { at: 'pizza.c5', expect: ['step:2.15.o5', 'count:money>=400'] },
+    { at: 'pizza.c5', expect: ['step:2.15.o5', 'count:money>=3100'] },
     { at: 'pizza.shop' },
-    { talk: 'gennady', pick: [0], see: 'ни одна не остыла', expect: ['step:2.15.back', 'count:money>=500', 'done:2.15', 'quest:2.13'] },
+    { talk: 'gennady', pick: [0], see: 'ни одна не остыла', expect: ['step:2.15.back', 'count:money>=3200', 'done:2.15', 'quest:2.13'] },
   ],
 });
 
@@ -28,6 +28,6 @@ defineScenario('2.15-late', {
     { drive: 'scooter' },
     { at: 'pizza.c1', expect: 'step:2.15.o1' },
     { wait: '31m', expect: ['quest:2.15', '!step:2.15.o2', 'step:2.15.o1'] }, // не успел ко второму заказу: попытка заново
-    { at: 'pizza.c2', expect: ['step:2.15.o2', 'count:money>=160'] },
+    { at: 'pizza.c2', expect: ['step:2.15.o2', 'count:money>=1240'] },
   ],
 });

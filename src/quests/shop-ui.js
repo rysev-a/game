@@ -114,6 +114,12 @@
     session = null;
     root.classList.remove('on');
     dialogueOpen = false;
+    setMerchantCoat(false);
+  }
+
+  // Торговец распахивает пальто, пока открыт список товаров (как фарцовщик в «Иване Васильевиче»): под ним полки с вещами (src/models/person.js, coatFlaps)
+  function setMerchantCoat(on) {
+    for (const n of typeof npcs !== 'undefined' ? npcs : []) if (n.charId === 'merchant' && n.mesh && n.mesh.setCoatOpen) n.mesh.setCoatOpen(on);
   }
 
   function open(s) {
@@ -125,6 +131,7 @@
     say('');
     render();
     root.classList.add('on');
+    setMerchantCoat(true);
   }
 
   // Окно открывает ядро (действие { shop }), обычно из варианта ответа в диалоге: ждем, пока диалог закроется
