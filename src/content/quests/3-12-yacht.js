@@ -13,11 +13,18 @@ defineQuest({
 
   steps: [
     {
-      id: 'clues',
-      text: 'Осмотреть два места ночных происшествий у трассы',
-      done: 'count:clues>=2',
+      id: 'clue1',
+      text: 'Осмотреть место ночного происшествия у трассы перед рекой',
+      done: 'flag:inc1',
       marker: 'city.inc1',
-      hint: 'Желтая лента: одно у города перед рекой, другое за мостом. Ищите на трассе, E у оцепления',
+      hint: 'Желтая лента у трассы, перед городом: на въезде с запада. Подойдите и нажмите E у оцепления',
+    },
+    {
+      id: 'clues',
+      text: 'Осмотреть второе место происшествия, за рекой',
+      done: 'count:clues>=2',
+      marker: 'city.inc2',
+      hint: 'Второе место за мостом, у трассы: склад с продавленной дверью и мигалка. Подойдите и нажмите E',
     },
     {
       id: 'evening',
@@ -51,7 +58,7 @@ defineQuest({
   actions: [{ id: 'wait', text: 'Подождать до вечера (19:00)', if: ['step:3.12.clues', '!step:3.12.evening'], do: [{ waitUntil: '19:00' }] }],
 
   interactions: [
-    { on: 'spot:inc1', if: ['quest:3.12', '!flag:inc1'], do: [{ flag: 'inc1' }, { add: { clues: 1 } }, { dialog: '3.12.inc1' }] },
+    { on: 'spot:inc1', if: ['quest:3.12', '!flag:inc1'], do: [{ flag: 'inc1' }, { add: { clues: 1 } }, { dialog: '3.12.inc1' }, { toast: 'Осмотрено 1 из 2. Следы ведут к реке: второе место происшествия за мостом.' }] },
     { on: 'spot:inc2', if: ['quest:3.12', '!flag:inc2'], do: [{ flag: 'inc2' }, { add: { clues: 1 } }, { dialog: '3.12.inc2' }] },
     { on: 'spot:wreck', if: ['quest:3.12', 'fight:3.12.yacht', '!step:3.12.parts'], do: [{ give: 'chips' }, { dialog: '3.12.serials' }] },
   ],
