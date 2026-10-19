@@ -73,6 +73,6 @@ definePlace('tower.door', { x: towerX, z: towerZ - 14, r: 8, name: 'Вход в 
 definePlace('tower.pad', { x: towerX + 20, z: towerZ - 16, r: 8, name: 'Площадка вертолетика' });
 
 // Река и яхта Барона (квест 3.12): стоянка у моста выше по течению, два места происшествий у трассы между городами
-definePlace('river.yacht', { x: riverX, z: -90, r: 24, name: 'Яхта Барона' });
+definePlace('river.yacht', { x: riverX, z: -90, r: 34, name: 'Яхта Барона' }); // яхта у западного берега, роботы сходят на берег левее
 definePlace('city.inc1', { x: 112, z: 9, r: 8, name: 'Место происшествия у города' });
 definePlace('city.inc2', { x: 415, z: -9, r: 8, name: 'Место происшествия за рекой' });

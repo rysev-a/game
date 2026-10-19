@@ -116,6 +116,9 @@
       atk: null, cd: {}, busy: 40, roared: false, voiceIn: 40 + Math.random() * 200, downUntil: 0, strafe: Math.random() < 0.5 ? 1 : -1, moving: false, lastAttack: null,
     };
     const home = { x, z };
+    // Обход: враг ходит по точкам spec.patrol ([[dx, dz], ...] от места появления), пока не заметил героя; потом снова идет по кругу
+    const patrol = (spec.patrol || []).map(([dx, dz]) => ({ x: x + dx, z: z + dz }));
+    let patrolAt = 0;
 
     const walkTo = (t, goal, speed) => {
       const dx = goal.x - t.x;
@@ -237,7 +240,9 @@
         const movable = typeof canMove === 'function' ? canMove(t) : !t.dead;
         if (!t.dead && movable) {
           if (s.fight) fightStep(t);
-          else if (Math.hypot(home.x - t.x, home.z - t.z) > 1.5) walkTo(t, home, c.speed * 0.6); // вернуться на место
+          else if (patrol.length) {
+            if (walkTo(t, patrol[patrolAt], c.speed * 0.7)) patrolAt = (patrolAt + 1) % patrol.length;
+          } else if (Math.hypot(home.x - t.x, home.z - t.z) > 1.5) walkTo(t, home, c.speed * 0.6); // вернуться на место
         } else if (s.atk && !movable) s.atk = null;
         const turnRate = angleDiff(before, s.heading);
         if (!s.moving && Math.abs(turnRate) > 0.01 && c.stride) s.phase += Math.abs(turnRate) * 2.5;
@@ -299,6 +304,8 @@
     const active = g.activeFights();
     const activeRefs = new Set(active.map((f) => f.ref));
     for (const ref of [...live.keys()]) if (!activeRefs.has(ref)) removeFight(ref);
+    // Бой с panic: true — пока он идет, горожане бегают (src/world/people.js)
+    npcPanic = GAME_LOCATION === 'main' && active.some((f) => f.def.panic && !(live.get(f.ref) && live.get(f.ref).finishing));
     for (const { ref, def } of active) {
       if (!live.has(ref)) live.set(ref, { foes: def.foes.map((spec) => ({ spec, dead: false, obj: null })) });
       const f = live.get(ref);

@@ -105,17 +105,21 @@ function npcBlocked(self, x, z) {
 
 // Один шаг прогулки туда-сюда по отрезку a—b. isBlocked(человек, x, z) — мешает ли
 // что-то на пути: тогда он ждет, а если долго — идет назад
+// Паника в городе (бой с флагом panic, src/quests/fights.js: роботы на улицах): прохожие бегут вдвое быстрее
+let npcPanic = false;
+
 function stepPatrol(n, isBlocked) {
+  const speed = n.speed * (npcPanic && !n.charId ? 2.6 : 1);
   const target = n.dir > 0 ? n.b : n.a;
   const dx = target.x - n.x;
   const dz = target.z - n.z;
   const dist = Math.hypot(dx, dz);
-  if (dist < n.speed * 2) {
+  if (dist < speed * 2) {
     n.dir = -n.dir; // дошел до конца отрезка — разворот
   } else {
     const ux = dx / dist;
     const uz = dz / dist;
-    if (isBlocked(n, n.x + ux * n.speed, n.z + uz * n.speed)) {
+    if (isBlocked(n, n.x + ux * speed, n.z + uz * speed)) {
       n.wait++;
       if (n.wait > 90) {
         n.dir = -n.dir; // долго стоит — идет назад
@@ -123,9 +127,9 @@ function stepPatrol(n, isBlocked) {
       }
     } else {
       n.wait = 0;
-      n.x += ux * n.speed;
-      n.z += uz * n.speed;
-      n.phase += 0.2;
+      n.x += ux * speed;
+      n.z += uz * speed;
+      n.phase += 0.2 * (npcPanic && !n.charId ? 2.2 : 1);
     }
     // Плавно поворачиваемся лицом по ходу движения (модель смотрит в -Z)
     let dyaw = Math.atan2(-ux, -uz) - n.yaw;

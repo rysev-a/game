@@ -1,12 +1,11 @@
-// Сценарии прохождения квеста 3.12 «Яхта Барона» (формат — src/core/scenario.js): места происшествий, вечер, киборги, платы, накладная.
+// Сценарии прохождения квеста 3.12 «Яхта Барона» (формат — src/core/scenario.js): роботы в городе, вечер, четыре волны у яхты, платы, накладная.
 
 defineScenario('3.12', {
   title: 'Яхта Барона проходится: следы, вечер, бой с киборгами, серийные номера',
   done: ['1.03'],
   steps: [
     { do: [{ start: '3.12' }], expect: ['quest:3.12', 'fact:Ф41'] },
-    { interact: 'spot:inc1', expect: 'count:clues>=1' },
-    { interact: 'spot:inc2', expect: ['count:clues>=2', 'step:3.12.clues'] },
+    { fight: '3.12.city', expect: ['fight:3.12.city', 'step:3.12.city'] }, // роботы в городе уничтожены, люди успокоились
     { at: 'river.yacht', expectNot: 'step:3.12.evening' }, // днем у яхты рано
     { action: '3.12/wait', expect: 'step:3.12.evening' }, // дождались 19:00 прямо у яхты
     { fight: '3.12.yacht', expect: 'step:3.12.yacht' },

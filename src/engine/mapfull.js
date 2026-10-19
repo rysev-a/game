@@ -18,7 +18,11 @@ mapFullStyle.textContent = `
     border-radius: 7px; border: 1px solid rgba(255, 255, 255, 0.45); background: rgba(10, 14, 20, 0.7);
     color: white; font-size: var(--fs-h2); line-height: 1; cursor: pointer; pointer-events: auto;
   }
-  #mmExpand:hover { background: rgba(60, 60, 60, 0.85); }
+  #mmExpand:hover, #mmNorth:hover { background: rgba(60, 60, 60, 0.85); }
+  #mmNorth { position: absolute; top: 6px; left: 42px; width: 30px; height: 30px; padding: 0; z-index: 11; border-radius: 7px;
+    border: 1px solid rgba(255, 255, 255, 0.45); background: rgba(10, 14, 20, 0.7); color: white; font: 700 var(--fs-text) var(--font); line-height: 1; cursor: pointer; pointer-events: auto; }
+  #mmNorth.on, #mapFull button.on { background: rgba(143, 208, 255, 0.55); border-color: #8fd0ff; }
+  body.touch #mmNorth { width: 26px; height: 26px; top: 4px; left: 34px; }
   body.touch #mmExpand { width: 26px; height: 26px; font-size: var(--fs-h2); top: 4px; left: 4px; }
   body.mapFullOn #toast { z-index: 70; }
   #mapFull { position: fixed; inset: 0; z-index: 60; display: none; background: #111; touch-action: none; }
@@ -52,6 +56,27 @@ mmExpandBtn.addEventListener('click', (e) => {
 });
 for (const ev of ['touchstart', 'mousedown']) mmExpandBtn.addEventListener(ev, (e) => e.stopPropagation(), { passive: true });
 
+// Кнопка «север всегда сверху» (N): на миникарте и на большой карте; тот же параметр, что в настройках (mapNorthUp)
+const mmNorthBtn = document.createElement('button');
+mmNorthBtn.id = 'mmNorth';
+mmNorthBtn.title = 'Север всегда сверху';
+mmNorthBtn.textContent = 'N';
+document.getElementById('minimapWrap').appendChild(mmNorthBtn);
+function syncNorthButtons() {
+  mmNorthBtn.classList.toggle('on', !!settings.mapNorthUp);
+  const b = typeof mapFullEl !== 'undefined' ? mapFullEl.querySelector('[data-a="north"]') : null;
+  if (b) b.classList.toggle('on', !!settings.mapNorthUp);
+  if (settings.mapNorthUp && typeof mapFull !== 'undefined') mapFull.rot = 0;
+}
+mmNorthBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  setSetting('mapNorthUp', !settings.mapNorthUp);
+});
+for (const ev of ['touchstart', 'mousedown']) mmNorthBtn.addEventListener(ev, (e) => e.stopPropagation(), { passive: true });
+onSettingChange((key) => {
+  if (key === 'mapNorthUp') syncNorthButtons();
+});
+
 const mapFullEl = document.createElement('div');
 mapFullEl.id = 'mapFull';
 mapFullEl.innerHTML =
@@ -61,6 +86,7 @@ mapFullEl.innerHTML =
   '<button data-a="out" title="Отдалить">−</button>' +
   '<button data-a="left" title="Повернуть">⟲</button>' +
   '<button data-a="right" title="Повернуть">⟳</button>' +
+  '<button data-a="north" title="Север всегда сверху">N</button>' +
   '<button data-a="me" title="К игроку">⌖</button>' +
   '</div><div class="info"></div>';
 document.body.appendChild(mapFullEl);
@@ -72,7 +98,7 @@ const mapFullHint = ''; // подсказок под картой нет: про
 function mapFullToMe() {
   mapFull.cx = playerWorldX;
   mapFull.cz = playerWorldZ;
-  mapFull.rot = worldRotation; // как сейчас смотрит камера
+  mapFull.rot = settings.mapNorthUp ? 0 : worldRotation; // как сейчас смотрит камера (север сверху — без поворота)
 }
 
 function setMapFullOpen(open) {
@@ -96,6 +122,7 @@ mapFullEl.querySelector('.btns').addEventListener('click', (e) => {
   if (a === 'close') setMapFullOpen(false);
   else if (a === 'in') mapFullZoomAt(W / 2, H / 2, 1.4);
   else if (a === 'out') mapFullZoomAt(W / 2, H / 2, 1 / 1.4);
+  else if (a === 'north') setSetting('mapNorthUp', !settings.mapNorthUp);
   else if (a === 'left') mapFullTurnAt(W / 2, H / 2, -Math.PI / 8);
   else if (a === 'right') mapFullTurnAt(W / 2, H / 2, Math.PI / 8);
   else if (a === 'me') mapFullToMe();
@@ -125,6 +152,7 @@ function mapFullZoomAt(sx, sy, k) {
 }
 
 function mapFullTurnAt(sx, sy, da) {
+  if (settings.mapNorthUp) return; // север сверху: карта не крутится
   const w = mapFullToWorld(sx, sy);
   mapFull.rot += da;
   mapFullPin(w, sx, sy);
@@ -213,7 +241,7 @@ mapFullCanvas.addEventListener('pointermove', (e) => {
     const ang1 = Math.atan2(b.y - a.y, b.x - a.x);
     const ang2 = Math.atan2(b2.y - a2.y, b2.x - a2.x);
     mapFull.scale = Math.min(mapFullMaxScale, Math.max(mapFullMinScale, (mapFull.scale * d2) / d1));
-    mapFull.rot -= ang2 - ang1; // карта поворачивается вслед за пальцами
+    if (!settings.mapNorthUp) mapFull.rot -= ang2 - ang1; // карта поворачивается вслед за пальцами (север сверху — не крутится)
     mapFullPin(w, (a2.x + b2.x) / 2, (a2.y + b2.y) / 2);
   } else if (mfDown) {
     if (!mfDown.moved && Math.hypot(e.clientX - mfDown.x, e.clientY - mfDown.y) < 6) return;
@@ -275,6 +303,7 @@ window.addEventListener(
 let mapFullInfoShown = '';
 function drawMapFull() {
   if (!mapFull.open) return;
+  if (settings.mapNorthUp) mapFull.rot = 0;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const W = Math.round(window.innerWidth * dpr);
   const H = Math.round(window.innerHeight * dpr);
@@ -301,3 +330,5 @@ function drawMapFull() {
   mapFullInfo.querySelector('.n').textContent = h.info.name || '';
   mapFullInfo.querySelector('.d').textContent = h.info.desc || '';
 }
+
+syncNorthButtons(); // начальное состояние кнопок N

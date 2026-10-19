@@ -361,6 +361,7 @@ defineSpot({
 defineSpot({
   id: 'yacht',
   at: 'river.yacht',
+  dx: -11.3, // борт вплотную к западному берегу (русло по верху берегов от riverX − 16): иначе роботы ходили бы по воде
   if: 'quest:3.12',
   noInteract: true,
   solid: true,
@@ -378,7 +379,7 @@ defineSpot({
 defineSpot({
   id: 'pier',
   at: 'river.yacht',
-  dx: -9,
+  dx: -17.5,
   if: 'quest:3.12',
   noInteract: true,
   name: 'Пристань',
@@ -389,28 +390,10 @@ defineSpot({
     [0.3, 1.2, 0.3, 0x5a3d26, 3, 0.6, -5.4],
   ],
 });
-for (const [id, place, name] of [['inc1', 'city.inc1', 'Оцепление'], ['inc2', 'city.inc2', 'Место происшествия']]) {
-  defineSpot({
-    id,
-    at: place,
-    if: 'quest:3.12',
-    name,
-    desc: 'Желтая лента и мигалка: здесь ночью что-то случилось.',
-    label: 'E — осмотреть место происшествия',
-    r: 5,
-    parts: [
-      [0.3, 1.6, 0.3, 0x555555, -3, 0.8, 0],
-      [0.3, 1.6, 0.3, 0x555555, 3, 0.8, 0],
-      [6.2, 0.1, 0.1, 0xe8c82a, 0, 1.4, 0],
-      [1.6, 0.8, 1.4, 0xd23c3c, 0.5, 0.4, 3], // опрокинутая бочка
-      [0.4, 0.2, 0.4, 0xf0d020, -1, 0.1, 2], // метка улики
-    ],
-  });
-}
 defineSpot({
   id: 'wreck',
   at: 'river.yacht',
-  dx: -16,
+  dx: -26,
   dz: 2,
   if: ['quest:3.12', 'fight:3.12.yacht'],
   name: 'Обломки киборгов',
