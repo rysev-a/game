@@ -188,6 +188,9 @@ const settingsTabs = [
     id: 'combat',
     name: 'Режим боя',
     items: [
+      // Та же настройка, что и во вкладке «Игра»: вид из глаз героя, в бою главный (оружие в руках, мышь захвачена)
+      { type: 'check', key: 'firstPerson', label: 'Вид от первого лица', desk: true,
+        note: 'Камера в глазах героя: оружие в руках видно перед собой, прицел по центру, мышь поворачивает взгляд. Включено здесь и во вкладке «Игра» одновременно; за рулем то же даст вид из салона (V — переключить)' },
       { type: 'check', key: 'autoAim', label: 'Автонаведение',
         note: 'Выстрел по взгляду сам доводится на ближайшую цель впереди; без него заряд летит ровно туда, куда смотрит прицел' },
     ],
@@ -507,6 +510,9 @@ function buildSettingItem(it, compact = false) {
       input.blur(); // чтобы пробел не переключал галочку вместо игры
     });
     settingsRefresh.push(() => (input.checked = settings[it.key]));
+    onSettingChange((k) => {
+      if (k === it.key) input.checked = settings[k]; // та же настройка в другой вкладке (вид от первого лица)
+    });
   } else if (it.type === 'select') {
     el.innerHTML = (isCompact ? '<span class="lbl">' + it.label + '</span>' : '<div class="row"><span>' + it.label + '</span></div>') + '<select>' +
       it.options.map(([v, t]) => '<option value="' + v + '">' + t + '</option>').join('') + '</select>' + (isCompact ? helpIcon() : note);
