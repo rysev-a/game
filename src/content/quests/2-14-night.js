@@ -80,7 +80,7 @@ defineQuest({
         { kind: 'hound', name: 'Ночное существо', at: 'zarechye.tree', dx: 11, dz: -8, wave: 0, aggro: 45 },
         { kind: 'hound', name: 'Ночное существо', at: 'zarechye.tree', dx: 0, dz: -13, wave: 0, aggro: 45 },
         { kind: 'hound', name: 'Ночное существо', at: 'zarechye.tree', dx: -8, dz: 9, wave: 0, aggro: 45 },
-        { kind: 'hound', name: 'Хозяин ночи', scale: 1.8, hp: 260, at: 'zarechye.tree', dx: 3, dz: -17, wave: 1, aggro: 55 },
+        { kind: 'hound', name: 'Хозяин ночи', scale: 1.8, hp: 260, at: 'zarechye.tree', dx: 3, dz: -14, wave: 1, aggro: 55 },
       ],
       onWin: [{ add: { money: 200 } }, { heal: 100 }, { toast: 'Анна Петровна сует вам в руки пирог и 200 на дорогу.' }],
     },
