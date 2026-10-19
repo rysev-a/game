@@ -60,7 +60,7 @@ const heroHoverInfo = { kind: 'Это вы', name: 'Макс', desc: 'Прогр
 function carInfo(c) {
   if (c.info) return c.info;
   if (c.isPlayerCar) {
-    return { kind: 'Машина', name: 'Ваша машина', desc: 'Бирюзовая, с багажником на крыше. Бензина: ' + Math.round(c.fuel * 100) + '%.' };
+    return { kind: 'Машина', name: 'Ваша машина', desc: 'Nissan Almera Classic 2006–2011, черная. Бензина: ' + Math.round(c.fuel * 100) + '%.' };
   }
   return { kind: 'Машина', name: 'Машина', desc: c.locked ? 'Чужая машина. Закрыта.' : 'Чужая машина.' };
 }

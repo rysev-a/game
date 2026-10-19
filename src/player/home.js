@@ -432,10 +432,10 @@ function buildHomeExterior(info) {
   // Машина игрока — в гараже носом к двери
   const heading = frontZ > houseZ ? Math.PI : 0; // нос к улице
   const car = addCar(cx, houseZ, heading, {
-    color: 0x1fb3a6, // бирюзовая, такого цвета нет ни у одной другой машины
+    color: 0x16181d, // черная Nissan Almera Classic (2006–2011): такой машины нет ни у кого больше
     fuel: 0.65, // бак заполнен на 65%
     keyId: 'keys',
-    model: { stripeColor: 0xf4f1e6, roofRack: true, plateText: 'ДЕТ 001' }, // белые полосы, багажник, номер
+    model: { style: 'almera', cabinColor: 0x1d2c3d, plateText: 'ДЕТ 001' }, // Almera Classic из седанного профиля, номер
   });
   car.isPlayerCar = true;
   markPlayerCar(car);

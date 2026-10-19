@@ -26,7 +26,7 @@
 const ITEMS = {
   wrench: { name: 'Гаечный ключ', icon: 'wrench', desc: 'Тяжелый, надежный. Пригодится в гараже.' },
   screwdriver: { name: 'Отвертка', icon: 'screwdriver', desc: 'Крестовая. Открывает корпуса приборов.' },
-  keys: { name: 'Ключи от машины', icon: 'keys', pocket: true, desc: 'Ключи от вашей бирюзовой машины.' },
+  keys: { name: 'Ключи от машины', icon: 'keys', pocket: true, desc: 'Ключи от вашей Nissan Almera Classic.' },
   wallet: { name: 'Кошелек', icon: 'wallet', desc: 'Немного денег и старый пропуск в спортзал.' },
   phone: { name: 'Телефон', icon: 'phone', pocket: true, desc: 'Связь, карта и фонарик, пока не сядет батарейка.' },
   itpass: { name: 'Пропуск в IT-компанию', icon: 'itpass', desc: 'Пропуск через турникет IT-компании.' },

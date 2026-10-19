@@ -48,7 +48,7 @@
   const carInfo = (id) => {
     if (id === 'own') {
       const c = garage.car;
-      return { name: 'Ваша машина', desc: c && c.limp ? 'Хромает: еле едет' : 'Ваша бирюзовая «ДЕТ 001».', color: '#1fb3a6' };
+      return { name: 'Ваша машина', desc: c && c.limp ? 'Хромает: еле едет' : 'Ваша черная Nissan Almera Classic «ДЕТ 001».', color: '#2b2f38' };
     }
     const k = VEHICLE_KINDS[id];
     return { name: k.name, desc: k.desc, color: '#' + k.color.toString(16).padStart(6, '0') };
