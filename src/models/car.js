@@ -112,6 +112,16 @@ function buildAlmeraBody(body, o, part, edgeMat) {
   put(basic(1.4, 0.12, 0.05, black), 0, Yg(36), Zg(-276));
   // Зеркала: на стыке двери и стойки, чуть выше пояса
   for (const sx of [-1, 1]) put(part(0.16, 0.11, 0.2, o.bodyColor), sx * 0.86, Yg(112), Zg(58));
+  // Хромированный пояс под стеклами, черные пороги, антенна на крыше и выхлопная труба
+  for (const sx of [-1, 1]) {
+    put(basic(0.012, 0.016, 2.1, 0xaab2bd), sx * 0.812, Yg(108.5), Zg(-25));
+    put(basic(0.024, 0.09, 2.5, 0x0b0c0e), sx * 0.812, Yg(33), Zg(-20));
+    put(basic(0.012, 0.012, 0.9, 0x3a3f47), sx * 0.812, Yg(86), Zg(-20)); // линия штамповки по двери
+  }
+  const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.01, 0.42, 5), new THREE.MeshBasicMaterial({ color: 0x15171b }));
+  put(ant, 0.42, Yg(165) + 0.2, Zg(-85), 0, -0.25);
+  const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.14, 8), new THREE.MeshBasicMaterial({ color: 0x9aa2ad }));
+  put(pipe, -0.46, 0.27, Zg(-282), 0, Math.PI / 2);
   // Колесные арки: темные диски на боку за колесами
   for (const sx of [-1, 1]) {
     for (const zm of [145, -152]) {
@@ -260,6 +270,31 @@ function createCar(options = {}) {
     const cyl = new THREE.Mesh(wheelGeo, wheelMat);
     cyl.rotation.z = Math.PI / 2;
     hub.add(cyl);
+    if (almera) {
+      // Литой диск: серебристая шайба на обеих сторонах колеса, пять темных спиц и колпачок; крутится вместе с колесом
+      const rimMat = new THREE.MeshBasicMaterial({ color: 0xb4bbc6 });
+      const darkMat = new THREE.MeshBasicMaterial({ color: 0x2a2d33 });
+      for (const f of [-1, 1]) {
+        const rim = new THREE.Mesh(new THREE.CircleGeometry(wheelR * 0.68, 16), rimMat);
+        rim.rotation.y = (f * Math.PI) / 2;
+        rim.position.x = f * 0.125;
+        hub.add(rim);
+        for (let i = 0; i < 5; i++) {
+          const arm = new THREE.Group(); // спица: полоса вдоль радиуса, группа поворачивает ее на пятую часть круга
+          arm.rotation.x = (i / 5) * Math.PI * 2;
+          arm.position.x = f * 0.127;
+          const spoke = new THREE.Mesh(new THREE.PlaneGeometry(0.05, wheelR * 0.62), darkMat);
+          spoke.rotation.y = (f * Math.PI) / 2;
+          spoke.position.y = wheelR * 0.33;
+          arm.add(spoke);
+          hub.add(arm);
+        }
+        const cap = new THREE.Mesh(new THREE.CircleGeometry(wheelR * 0.16, 10), darkMat);
+        cap.rotation.y = (f * Math.PI) / 2;
+        cap.position.x = f * 0.129;
+        hub.add(cap);
+      }
+    }
     pivot.add(hub);
     root.add(pivot);
     wheels.push(hub);
