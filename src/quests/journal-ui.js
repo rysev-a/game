@@ -298,6 +298,7 @@
     }
     if (value === open || (value && (dialogueOpen || settingsOpen))) return;
     open = value;
+    window.questPhoneOpen = open; // телефон открыт: время и таймеры квестов не останавливаются (host.paused)
     root.classList.toggle('on', open);
     if (open) {
       for (const k of Object.keys(keys)) keys[k] = false; // отпускаем зажатые клавиши
