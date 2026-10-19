@@ -59,18 +59,19 @@ defineScenario('4.11', {
 });
 
 defineScenario('5.02', {
-  title: 'Вдвоем: артефакт, прошлое, Вера, Штерн, утро',
+  title: 'Вдвоем: роботы, Штерн, рой и туман, компьютер, Вера у бабушки',
   done: ['1.03'],
   steps: [
     { do: [{ start: '5.02' }, { give: 'artifact' }, { give: 'weather' }] },
-    { zone: 'treehouse', expect: 'step:5.02.home' },
-    { interact: 'station:workbench', expectNot: 'step:5.02.charge' }, // эликсира нет: подсказка
-    { do: [{ elixir: 50 }] },
-    { interact: 'station:workbench' },
-    { dialog: '5.02.travel', pick: [0], expect: 'step:5.02.charge' },
-    { talk: 'vera', pick: [0, 0], see: 'Ты меня наконец-то узнал', expect: 'step:5.02.vera' },
-    { talk: 'vera', see: 'Идем' },
-    { action: '5.02/fog', expect: ['weather:fog', 'step:5.02.fog'] }, // люди в черном ищут: туман на весь город
-    { fight: '5.02.stern', expect: ['fight:5.02.stern', 'step:5.02.end', 'done:5.02', 'weather:sun'] },
+    { at: 'zarechye.tree', expect: 'step:5.02.tree' },
+    { fight: '5.02.robots', expect: ['fight:5.02.robots', 'step:5.02.robots'] },
+    { fight: '5.02.stern', expect: ['fight:5.02.stern', 'step:5.02.stern'] },
+    { dialog: '5.02.dying', pick: [0], expect: ['flag:swarm'] },
+    { action: '5.02/fog', expect: ['weather:fog'] }, // в тумане существа не трогают
+    { at: 'village.home', expect: 'step:5.02.home' },
+    { interact: 'station:computer' },
+    { dialog: '5.02.insert', pick: [0], expect: ['step:5.02.insert', '!flag:swarm', '!has:artifact', '!has:weather', 'weather:sun'] },
+    { at: 'zarechye.house', expect: 'step:5.02.grandma' },
+    { talk: 'vera', pick: [0, 0], see: 'Что с лицом', expect: ['step:5.02.end', 'done:5.02'] },
   ],
 });

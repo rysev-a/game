@@ -98,7 +98,7 @@ const questHost = {
   hour: () => gameHour(),
   itemCount: (id) => (hasItem(id) ? 1 : 0),
   giveItem: (id) => (DEVICES[id] ? (wearDevice(id), true) : addItem(id)), // прибор (браслет) сразу надевается на руку
-  takeItem: (id) => removeItem(id),
+  takeItem: (id) => (DEVICES[id] ? takeOffDevice(id) : removeItem(id)), // прибор (браслет) снимается с руки
   playerPos: () => ({ x: playerWorldX, z: playerWorldZ }),
   zone: () => currentZone().id,
   inside: () => insideBuilding(),
@@ -201,5 +201,26 @@ function questSwapPlayerCar(kindId, nearHero) {
   garage.car = car;
   if (wasDriving) enterCar(car);
 }
+
+// Конец сюжета (5.02): у героя снова его старая машина (черная Almera Classic) — она встает у дома, а прежняя (подаренная, с трека) исчезает
+questHost.restoreOldCar = () => {
+  const old = garage.car;
+  if (!garage.makeOwnCar || (old && old.isOwnAlmera)) return;
+  const wasDriving = drivingCar === old;
+  if (wasDriving) drivingCar = null;
+  if (old) {
+    cityGroup.remove(old.mesh);
+    cars.splice(cars.indexOf(old), 1);
+  }
+  const car = garage.makeOwnCar(garage.ownSpot.x, garage.ownSpot.z, garage.ownHeading, 1);
+  car.isOwnAlmera = true;
+  car.fuelEconomy = 1;
+  garage.car = car;
+  questGame.state.fuelEconomy = 1;
+};
+// Конец сюжета: часы встают на начало истории (утро 18 сентября)
+questHost.resetClock = () => {
+  gameMinutes = 0;
+};
 
 const questGame = Core.createGame({ registry: Core.registry, host: questHost });

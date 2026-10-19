@@ -219,7 +219,7 @@
         s.moving = false;
 
         const heroDist = Math.hypot(playerWorldX - t.x, playerWorldZ - t.z);
-        const canFight = heroIsTarget();
+        const canFight = heroIsTarget() && !(spec.swarm && g.state.weatherMode === 'fog'); // рой в тумане героя не трогает
         // Голос: заметил героя — вой или визг, потом время от времени рычит и шипит, пока герой поблизости
         if (c.voice && typeof playCreatureSound === 'function' && !t.dead) {
           if (s.fight && !s.roared) {
@@ -354,5 +354,43 @@
     return best;
   };
 
+  // ---------- Рой ----------
+  // Флаг сюжета swarm (эффект { flag: 'swarm' }): вокруг героя в основном мире непрерывно появляются биосущества, убитые тут же заменяются новыми.
+  // Они нападают даже на героя в машине (heroSwarmThreat, src/engine/enemy-attacks.js). Пока погода сюжета — туман (weather: 'fog'), они бродят и героя не трогают.
+  // Снят флаг (unflag) — весь рой исчезает.
+  const SWARM_KINDS = ['hound', 'hound', 'strider', 'maw', 'hound', 'strider'];
+  const SWARM_MAX = 22;
+  const swarm = [];
+  const swarmDrop = (m, delay) => {
+    const i = swarm.indexOf(m);
+    if (i >= 0) swarm.splice(i, 1);
+    if (delay) setTimeout(() => m.obj.remove(), delay);
+    else m.obj.remove();
+  };
+  function swarmTick() {
+    const on = GAME_LOCATION === 'main' && !!g.state.flags.swarm;
+    const fog = g.state.weatherMode === 'fog';
+    heroSwarmThreat = on && !fog;
+    if (!on) {
+      for (const m of [...swarm]) swarmDrop(m, 0);
+      return;
+    }
+    for (const m of [...swarm]) if (Math.hypot(m.obj.target.x - playerWorldX, m.obj.target.z - playerWorldZ) > 95) swarmDrop(m, 0);
+    for (let n = 0; swarm.length < SWARM_MAX && n < 4; n++) {
+      const kind = pick(SWARM_KINDS);
+      const a = Math.random() * Math.PI * 2;
+      const d = (fog ? 12 : 24) + Math.random() * (fog ? 22 : 24);
+      const x = playerWorldX + Math.cos(a) * d;
+      const z = playerWorldZ + Math.sin(a) * d;
+      if (blockedOutside(x, z, 1.2)) continue;
+      const spec = { kind, swarm: true, aggro: 80 };
+      if (fog) spec.patrol = [[rand(-9, 9), rand(-9, 9)], [rand(-9, 9), rand(-9, 9)]]; // в тумане бродят
+      const m = { obj: null };
+      m.obj = createFoe(spec, FOES[kind], x, z, () => swarmDrop(m, 2500));
+      swarm.push(m);
+    }
+  }
+
   setInterval(sync, 300);
+  setInterval(swarmTick, 300);
 })();

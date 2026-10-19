@@ -30,10 +30,12 @@ const enemyFx = []; // молнии, вспышки взрывов, лужи
 
 let enemyAttackerKind = null;
 const heroArmored = () => !!(drivingCar && drivingCar.kind && drivingCar.kind.armored);
+// Рой существ (src/quests/fights.js, флаг сюжета swarm без тумана): нападают и на героя в обычной машине
+let heroSwarmThreat = false;
 const heroIsTarget = () =>
-  (!drivingCar || heroArmored()) && !(typeof insideBuilding === 'function' && insideBuilding()) && performance.now() > heroDownUntil;
-// Радиус попадания: герой — тонкий, бронемашина — широкая
-const heroHitRadius = () => (heroArmored() ? drivingCar.half.w + 0.3 : heroRadius);
+  (!drivingCar || heroArmored() || heroSwarmThreat) && !(typeof insideBuilding === 'function' && insideBuilding()) && performance.now() > heroDownUntil;
+// Радиус попадания: герой — тонкий, машина — широкая
+const heroHitRadius = () => (drivingCar && (heroArmored() || heroSwarmThreat) ? drivingCar.half.w + 0.3 : heroRadius);
 
 // Красная вспышка по краям экрана при попадании
 const heroHurtEl = document.createElement('div');

@@ -21,6 +21,8 @@
 //   { markDay: 'deal' }                               запомнить сегодняшние сутки (условие dayssince:deal>=1 — прошла полночь)
 //   { breakCar: true } { repairCar: true }            машина героя хромает (еле едет) / починена
 //   { playerCar: 'hyper' }                            подарить герою машину этого вида вместо его (и запомнить в сохранении)
+//   { oldCar: true }                                  вернуть герою его старую машину (черная Almera Classic у дома) вместо любой подаренной
+//   { resetClock: true }                              дата и время встают на начало истории (утро 18 сентября): последняя временная линия
 //   { fuelEconomy: 50 }                               настроить расход: бензин машины героя кончается во столько раз медленнее
 //   { weather: 'storm' }                              погода сюжета (src/quests/weather-story.js): gloom хмуро, storm ужасный ливень (скользко),
 //                                                     sun солнце, auto солнце и редкие дожди (прибор их разгоняет), rain призванный ливень (роботы коротят), fog туман
@@ -107,6 +109,15 @@
       g.state.playerCar = arg;
       g.bump();
       if (g.host.swapPlayerCar) g.host.swapPlayerCar(arg, true); // подаренная машина встает рядом с героем
+    },
+    oldCar: (arg, g) => {
+      g.state.playerCar = null;
+      g.bump();
+      if (g.host.restoreOldCar) g.host.restoreOldCar();
+    },
+    resetClock: (arg, g) => {
+      if (g.host.resetClock) g.host.resetClock();
+      g.bump();
     },
     fuelEconomy: (arg, g) => {
       g.state.fuelEconomy = arg;

@@ -167,6 +167,11 @@ function createHomeInterior() {
       furniture(1.4, 0.8, 3.0, 0xa07850, -8.0, -3.0, '#a07850');
       part(0.6, 0.5, 0.6, 0x3a5a8a, -6.7, 0.25, -3.0); // кресло
       pickup('notebook', -8.0, -3.0, 0.85);
+      // Домашний компьютер на том же столе (станция computer: последний квест 5.02 вставляет в него прибор)
+      part(0.12, 0.55, 0.8, 0x1b1e24, -8.45, 1.08, -3.9); // монитор
+      part(0.02, 0.45, 0.7, 0x3a9bd5, -8.37, 1.08, -3.9); // светящийся экран
+      part(0.3, 0.04, 0.6, 0x2a2a30, -8.1, 0.82, -3.9); // клавиатура
+      part(0.3, 0.3, 0.3, 0x2a2a30, -8.5, 0.95, -4.3); // системный блок
       furniture(3.0, 2.0, 0.5, 0x5a3a2a, -3.6, -5.7, '#5a3a2a'); // книжный шкаф у северной стены
     }
 
@@ -281,6 +286,27 @@ addInteractable({
   },
   prompt: () => 'E — лечь спать до утра',
   act: () => sleepUntilMorning(),
+});
+
+// Домашний компьютер в кабинете (1 этаж): обычное действие — описание; квест может перехватить E (station:computer, interactions)
+const homeComputerSpot = { x: -8.3, z: -3.9 };
+addInteractable({
+  priority: 2,
+  stationId: 'computer',
+  stationPos: () => ({ x: homeComputerSpot.x, z: homeFloorZ[0] + homeComputerSpot.z, top: 1.4 }),
+  near: () => {
+    const ci = currentInterior();
+    return !dialogueOpen && !!ci && ci.def === homeInterior && ci.floor === 0 && Math.hypot(playerWorldX - homeComputerSpot.x, playerWorldZ - homeFloorZ[0] - homeComputerSpot.z) < 2.6;
+  },
+  clickPoint: () => {
+    const ci = currentInterior();
+    return ci && ci.def === homeInterior && ci.floor === 0 && !dialogueOpen ? { x: homeComputerSpot.x, z: homeFloorZ[0] + homeComputerSpot.z, y: 1.0, r: 3.2 } : null;
+  },
+  prompt: () => 'E — домашний компьютер',
+  act: () => {
+    if (typeof questGame !== 'undefined' && questGame && questGame.interact('station:computer')) return;
+    showToast('Домашний компьютер: письма, архив дел, чужие фото. Сейчас ничего срочного.', 4000);
+  },
 });
 
 // Покачивание вещей
@@ -433,14 +459,23 @@ function buildHomeExterior(info) {
 
   // Машина игрока — в гараже носом к двери
   const heading = frontZ > houseZ ? Math.PI : 0; // нос к улице
-  const car = addCar(cx, houseZ, heading, {
-    color: 0x22252c, // черная Nissan Almera Classic (2006–2011): такой машины нет ни у кого больше
-    fuel: 0.65, // бак заполнен на 65%
-    keyId: 'keys',
-    model: { style: 'almera', cabinColor: 0x5d6488, plateText: 'ДЕТ 001' }, // Almera Classic из седанного профиля, номер
-  });
-  car.isPlayerCar = true;
-  markPlayerCar(car);
+  // Собственная машина героя; ее же ставит конец сюжета (эффект oldCar, src/quests/host.js), когда у героя снова старая машина
+  garage.makeOwnCar = (x, z, h, fuel = 0.65) => {
+    const c = addCar(x, z, h, {
+      color: 0x22252c, // черная Nissan Almera Classic (2006–2011): такой машины нет ни у кого больше
+      fuel, // бак заполнен на 65%
+      keyId: 'keys',
+      model: { style: 'almera', cabinColor: 0x5d6488, plateText: 'ДЕТ 001' }, // Almera Classic из седанного профиля, номер
+    });
+    if (c) {
+      c.isPlayerCar = true;
+      markPlayerCar(c);
+    }
+    return c;
+  };
+  garage.ownHeading = heading;
+  garage.ownSpot = { x: cx, z: houseZ };
+  const car = garage.makeOwnCar(cx, houseZ, heading);
   garage.car = car;
 
   // Входная дверь дома: перед ней на улице; внутри — у выхода
