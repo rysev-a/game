@@ -3,7 +3,7 @@
 //   defineCharacter({ ..., at: 'yard.forge', dx, dz, yaw, gender })    персонаж всегда стоит в этом месте
 //   defineQuest({ ..., world: { people: [{ who, at, dx, dz, yaw, if }] } })   персонаж только пока выполняется if
 //   defineQuest({ ..., world: { vehicles: [{ kind, at, dx, dz, heading, if }] } })   транспорт (VEHICLE_KINDS) стоит, пока выполняется if
-//   defineSpot({ id, at, dx, dz, name, desc, label, r, parts: [[w, h, d, цвет, x, y, z], ...], if })
+//   defineSpot({ id, at, dx, dz, name, desc, label, r, parts: [[w, h, d, цвет, x, y, z], ...], if, act, actIf, solid, solidAll, noClick })
 //       объект на улице из боксов (наковальня, горн, голубятня…); E рядом отдает взаимодействие квесту
 //       ('spot:<id>' в interactions, src/core/game.js), а если квесту не нужен — коротко описывает объект
 // Места (definePlace) заданы в src/quests/places.js. Раз в полсекунды мир сверяется с условиями if: нужное
@@ -71,7 +71,7 @@
     const solids = [];
     if (sp.solid) {
       for (const [w, h, d, , px, , pz] of sp.parts) {
-        if (h < 1) continue;
+        if (h < 1 && !sp.solidAll) continue; // solidAll: твердыми считаются и низкие части (ступени лестницы)
         const ob = { x: x + px, z: z + pz, hx: w / 2, hz: d / 2 };
         solids.push({ ob, shape: addObstacle(ob) });
       }
@@ -81,7 +81,7 @@
     const reach = sp.r || 3.2;
     const it = sp.noInteract ? null : addInteractable({
       priority: 2,
-      clickPoint: () => (insideBuilding() || drivingCar || dialogueOpen ? null : { x, z, y: 1.2, r: reach + 0.6 }), // клик по объекту — как E (src/player/click-move.js)
+      clickPoint: () => (sp.noClick || insideBuilding() || drivingCar || dialogueOpen ? null : { x, z, y: 1.2, r: reach + 0.6 }), // клик по объекту — как E (src/player/click-move.js); noClick — только E (лестницы башни)
       near: () => !insideBuilding() && !drivingCar && !dialogueOpen && Math.hypot(playerWorldX - x, playerWorldZ - z) < reach,
       prompt: () => sp.label || 'E — осмотреть: ' + (sp.name || ''),
       act: () => {

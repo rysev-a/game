@@ -1,24 +1,30 @@
 // src/content/quests/4-12-tower.js
 // 4.12 «Бомба на крыше». Помощник Штерна оставил ночью бомбу на крыше десятиэтажной башни в центре. Времени мало (таймер квеста):
-// герой поднимается по девяти этажам, на каждом монстры (бой — данные; каждый этаж — свой мир tower1…tower9, широкий офисный этаж, src/locations/tower/tower.js), но десятый
+// герой поднимается по девяти этажам: на каждом очень много биомонстров (конечное число, бой — данные; каждый этаж — свой мир tower1…tower9, широкий офисный
+// этаж, src/locations/tower/tower.js), они мешают, но лестница всегда открыта: монстров можно не добивать. Десятый
 // этаж заперт изнутри. На девятом он находит пульт радиоуправляемого вертолетика, спускается на улицу, запускает его с площадки
 // и летит вдоль башни до крыши (управление как в GTA Vice City: src/quests/heli.js), где обезвреживает бомбу.
 // Не успел до взрыва — квест откатывается к первому этажу, а героя выносит взрывной волной на улицу: можно пройти заново.
 // Этажи, их враги и лестницы собраны циклами: результат — обычные данные.
 
-const towerFloors = [
-  ['hound', 'hound'],
-  ['hound', 'hound', 'hound'],
-  ['hound', 'hound', 'drone'],
-  ['cyborg', 'hound'],
-  ['drone', 'drone', 'hound'],
-  ['cyborg', 'hound', 'hound'],
-  ['stilt', 'drone'],
-  ['cyborg', 'stilt', 'hound'],
-  ['cain', 'hound', 'hound'],
-];
-const towerFoeNames = { hound: 'Монстр', drone: 'Дрон-уборщик', cyborg: 'Киборг-изгой', stilt: 'Ходульный авангард', cain: 'Страж этажа' };
-const towerSpread = [[-30, 14], [4, -10], [30, 24]]; // этажи широкие: враги стоят в разных местах, но не дальше пары десятков шагов от лестницы, где герой выходит
+// На каждом этаже очень много биомонстров, но число конечное (чем выше, тем больше: от 14 до 30). Они мешают и кусаются, но этаж можно не зачищать:
+// по лестнице можно подниматься в любом случае. Ставим их по детерминированному разбросу, подальше от площадок у лестниц, где герой выходит.
+const towerKinds = ['hound', 'hound', 'hound', 'strider', 'hound', 'maw', 'hound', 'strider'];
+const towerFoeNames = { hound: 'Монстр', strider: 'Лесной ходок', maw: 'Болотная пасть' };
+const towerSpots = (floor) => {
+  const n = 12 + floor * 2; // 14 … 30
+  let seed = 7919 * floor + 13;
+  const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+  const out = [];
+  while (out.length < n) {
+    const x = Math.round(-62 + rnd() * 124);
+    const z = Math.round(-44 + rnd() * 88);
+    if (Math.hypot(x - 50, z + 34) < 26 || Math.hypot(x + 50, z - 34) < 26) continue; // не у площадок перед лестницами
+    if (Math.abs(x - 62) < 14 && Math.abs(z + 34) < 14) continue;
+    out.push([x, z]);
+  }
+  return out;
+};
 
 const towerSteps = [
   {
@@ -31,45 +37,38 @@ const towerSteps = [
 ];
 const towerFights = {};
 const towerInteractions = [
-  { on: 'spot:tower_door', if: ['quest:4.12', '!step:4.12.f1'], do: [{ teleport: 'tower.down1' }, { toast: 'Лифты обесточены. Наверх только по лестницам, а на этажах кто-то шевелится.' }] },
+  { on: 'spot:tower_door', if: ['quest:4.12', '!step:4.12.f1'], do: [{ teleport: 'tower.down1' }, { toast: 'Лифты обесточены. Наверх только по лестницам, а на этажах полно монстров.' }] },
 ];
-towerFloors.forEach((kinds, k) => {
-  const i = k + 1;
-  towerSteps.push({
-    id: 'f' + i,
-    text: i + ' этаж: расчистить от монстров и подняться по лестнице',
-    done: 'fight:4.12.f' + i,
-    // Каждый этаж — свой мир: на улице метка ведет к двери башни, на этаже ниже — к лестнице вверх, на самом этаже — к его центру, где враги
-    marker: { main: 'tower.door', ...(i > 1 ? { ['tower' + (i - 1)]: 'tower.up' + (i - 1) } : {}), ['tower' + i]: '@foe:f' + i }, // на этаже зеленая стрелка всегда ведет к ближайшему живому врагу
-    hint: i < 3 ? 'Монстров берет огонь. Лестница вверх у восточной стены на севере, рядом светится зеленая стрелка; лестница вниз в другой части этажа' : 'Роботов не берут огонь и пули, биосуществ — ток и импульс: плазмомет берет всех. Лестница вверх с зеленой стрелкой, лестница вниз с оранжевой',
-  });
-  towerFights['f' + i] = {
-    when: ['quest:4.12', i === 1 ? 'step:4.12.go' : 'step:4.12.f' + (i - 1)],
-    count: true, // после каждого убитого — сколько осталось
-    foes: kinds.map((kind, j) => ({
-      kind,
-      name: towerFoeNames[kind],
-      at: 'tower.f' + i,
-      dx: towerSpread[j][0],
-      dz: towerSpread[j][1],
-      aggro: 40,
-      ...(kind === 'cain' ? { scale: 0.9, hp: 450 } : {}),
-    })),
-    onWin: [{ toast: i + ' этаж свободен. Лестница вверх открыта.' }],
-  };
+for (let i = 1; i <= 9; i++) {
+  // Метка шага: на улице к двери башни, на любом этаже до нужного — к лестнице вверх (зеленая стрелка)
+  const markerTo = (lastFloor, target) => ({ main: 'tower.door', ...Object.fromEntries(Array.from({ length: lastFloor }, (_, j) => ['tower' + (j + 1), 'tower.up' + (j + 1)])), ...target });
   if (i < 9) {
-    towerInteractions.push({ on: 'spot:stairs' + i, if: ['quest:4.12', 'fight:4.12.f' + i], do: [{ teleport: 'tower.down' + (i + 1) }, { heal: 25 }] }); // выходит у лестницы вниз следующего этажа
-    towerInteractions.push({ on: 'spot:stairs' + i, if: 'quest:4.12', do: [{ toast: 'Лестницу перекрывают монстры: сначала расчистите этаж. Зеленая стрелка ведет к ближайшему.' }] });
+    towerSteps.push({
+      id: 'f' + i,
+      text: 'Подняться с ' + i + ' этажа на ' + (i + 1) + ': монстров очень много, они мешают, но лестница всегда открыта',
+      done: 'near:tower.down' + (i + 1),
+      marker: markerTo(i, {}),
+      hint: 'Лестница вверх у восточной стены на севере, рядом светится зеленая стрелка; лестница вниз в другой части этажа с оранжевой стрелкой. Монстров можно не добивать: идите к лестнице',
+    });
+    towerInteractions.push({ on: 'spot:stairs' + i, if: 'quest:4.12', do: [{ teleport: 'tower.down' + (i + 1) }, { heal: 25 }] }); // выходит у лестницы вниз следующего этажа
   }
+  towerFights['f' + i] = {
+    when: ['quest:4.12', 'step:4.12.go'],
+    foes: towerSpots(i).map(([dx, dz], j) => {
+      const kind = towerKinds[(j + i) % towerKinds.length];
+      return { kind, name: towerFoeNames[kind], at: 'tower.f' + i, dx, dz, aggro: 32 };
+    }),
+    onWin: [{ toast: i + ' этаж зачищен от монстров.' }],
+  };
   // Лестница вниз есть на каждом этаже: на первом — на улицу, на остальных — на этаж ниже, к его лестнице вверх
   towerInteractions.push({ on: 'spot:down' + i, if: 'quest:4.12', do: [{ teleport: i === 1 ? 'tower.door' : 'tower.up' + (i - 1) }] });
-});
+}
 towerSteps.push(
   {
     id: 'remote',
     text: 'Найти на девятом этаже пульт вертолетика: десятый этаж заперт изнутри',
     done: 'has:rc_remote',
-    marker: { main: 'tower.door', tower8: 'tower.up8', tower9: 'tower.f9' },
+    marker: { main: 'tower.door', tower1: 'tower.up1', tower2: 'tower.up2', tower3: 'tower.up3', tower4: 'tower.up4', tower5: 'tower.up5', tower6: 'tower.up6', tower7: 'tower.up7', tower8: 'tower.up8', tower9: 'tower.f9' },
     hint: 'На девятом этаже ящик с запчастями от моделей, дверь выше заперта',
   },
   {
@@ -89,8 +88,8 @@ towerSteps.push(
 );
 towerInteractions.push(
   { on: 'spot:locked', if: 'quest:4.12', do: [{ toast: 'Дверь на десятый этаж заперта изнутри: кодовый замок, а кода нет. Значит, надо добираться по-другому.' }] },
-  { on: 'spot:remote', if: ['quest:4.12', 'fight:4.12.f9', '!has:rc_remote'], do: [{ dialog: '4.12.remote' }] },
-  { on: 'spot:tower_exit', if: ['quest:4.12', 'fight:4.12.f9'], do: [{ teleport: 'tower.pad' }] },
+  { on: 'spot:remote', if: ['quest:4.12', 'step:4.12.f8', '!has:rc_remote'], do: [{ dialog: '4.12.remote' }] },
+  { on: 'spot:tower_exit', if: ['quest:4.12', 'step:4.12.f8'], do: [{ teleport: 'tower.pad' }] },
   {
     on: 'spot:helipad',
     if: ['quest:4.12', 'has:rc_remote', '!step:4.12.fly'],
