@@ -73,7 +73,7 @@ function questTravelToLocation(loc, payload) {
   }
   const data = payload.load || captureGame();
   try {
-    sessionStorage.setItem('game.transit', JSON.stringify({ ...payload, loc, load: !!payload.load, data, hero: { ...heroStats } }));
+    sessionStorage.setItem('game.transit', JSON.stringify({ ...payload, loc, load: !!payload.load, data, hero: { ...heroStats }, held: heroWeapon.id || null }));
   } catch (e) {
     questTraveling = false;
     showToast('Не удалось перейти в другую локацию: хранилище браузера недоступно');

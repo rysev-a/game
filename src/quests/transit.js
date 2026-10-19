@@ -36,6 +36,8 @@ function questTransitArrive() {
   if (typeof renderEquipHud === 'function') renderEquipHud();
   if (t.load) return; // загрузка слота: положение героя берется из слота
   if (t.to) questTeleportLocal(t.to, t.opts || {});
+  // Оружие, которое было в руках (режим боя), остается в руках и на новом этаже или в новой локации
+  if (t.held && typeof drawWeapon === 'function' && !drivingCar) drawWeapon(t.held);
   if (t.extra && t.extra.practice) questPracticeArrive(t.extra.practice);
   if (t.extra && t.extra.restore) questPracticeRestore(t.extra.restore);
 }
