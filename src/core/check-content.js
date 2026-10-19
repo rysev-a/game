@@ -89,6 +89,8 @@
           }
         } else if (key === 'practice' && (!registry.places[arg.at] || !(arg.cars || []).length)) {
           bad(where, 'practice: нужны at (место) и cars');
+        } else if (key === 'attempt' && (!registry.places[arg.at] || !(arg.cars || []).length)) {
+          bad(where, 'attempt: нужны at (место) и cars');
         } else if (key === 'rewind' && !stepRefOk(arg)) {
           bad(where, 'rewind: нет шага «' + arg + '»');
         } else if (key === 'heli') {

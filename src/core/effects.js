@@ -29,6 +29,7 @@
 //                                                     текст разговора остается в истории звонков телефона (состояние calls)
 //   { kill: true }                                    героя убили: затемнение, он выбирается из машины и приходит в себя
 //   { practice: { at, cars } }                        тренировка: выбрать машину и оказаться на месте at; { practiceEnd: true } — браслетом назад
+//   { attempt: { at, cars, heading } }                новая попытка гонки: выбрать машину и стартовать на ней с места at (машина смотрит в heading)
 //   { rewind: '4.12.f1' }                             вернуть квест к шагу (шаги, таймеры, бои и головоломки квеста — заново)
 //   { heli: { from, goal, goalY, goalR, onGoal } }    управлять радиоуправляемым вертолетом (src/quests/heli.js)
 //   { emit: 'name' } { emit: { name, ...данные } }    событие
@@ -129,6 +130,7 @@
     kill: (arg, g) => g.host.killHero && g.host.killHero(),
     practice: (arg, g) => g.host.startPractice && g.host.startPractice(arg),
     practiceEnd: (arg, g) => g.host.endPractice && g.host.endPractice(),
+    attempt: (arg, g) => g.host.startAttempt && g.host.startAttempt(arg),
     heli: (arg, g) => g.host.startHeli && g.host.startHeli(arg),
     heal: (arg, g) => g.host.heal && g.host.heal(arg),
     emit: (arg, g) => (typeof arg === 'string' ? g.emit(arg, {}) : g.emit(arg.name, arg)),

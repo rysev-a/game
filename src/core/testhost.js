@@ -46,6 +46,7 @@
     h.killHero = () => (h.killed = (h.killed || 0) + 1);
     h.startPractice = (opts) => (h.practice = opts);
     h.endPractice = () => (h.practice = null);
+    h.startAttempt = (opts) => (h.attempt = opts);
     h.heal = (n) => (h.healed = (h.healed || 0) + n);
     h.openPuzzle = (session) => h.dialogs.push(session);
     h.openShop = (session) => (h.shops = (h.shops || []).concat(session)); // окно магазина в тесте не рисуется

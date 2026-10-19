@@ -44,17 +44,29 @@ defineQuest({
       hint: 'Трек южнее трассы, западнее лаборатории. На улице ужасный ливень: без прибора погоды (квест 3.06) гонку не начать. Как успеть: откройте телефон (J), вкладка заданий, кнопка «Переждать до утра» перенесет время на 08:00, после этого доедьте до трека (засчитается любое время с 08:00 до 12:00); потренироваться вечером можно там же',
     },
     {
+      id: 'line',
+      text: 'Разогнаться и пересечь линию старта: время пойдет с нее',
+      done: 'count:cp>=2',
+      marker: '@checkpoint', // сначала разгон за линией, потом сама линия
+      beacon: 'checkpoint',
+      hint: 'Гонка идет на запад: сначала заезжайте на разгон восточнее арки, затем разворачивайтесь и мчите через линию старта. Секундомер включится в тот миг, когда вы ее пересечете',
+    },
+    {
       id: 'race',
       text: 'Проехать круг по «колбаскам» за 115 секунд и пройти все контрольные точки по порядку',
-      done: 'count:cp>=9',
+      done: 'count:cp>=11',
       marker: '@checkpoint', // метка и зеленая линия идут от одних ворот к следующим, а над ними мигает флаг в клетку
       beacon: 'checkpoint',
       hint: 'Четыре змейки одна под другой: едете по ним зигзагом, дальше замыкающая дуга и финиш на старте. Восемь контрольных ворот по порядку. Занос поворачивает быстрее, но не теряйте скорость',
       timer: {
         limit: '115m',
         warn: { '70%': [{ toast: 'Время утекает. Держите скорость!' }] },
-        onExpire: [{ toast: 'Не уложились. Рустам машет флажком: назад на старт, еще попытка.' }, { set: { cp: 0 } }, { teleport: { to: 'track.start', car: true } }],
-        repeat: true,
+        onExpire: [
+          { toast: 'Не уложились. Рустам машет флажком: еще попытка, можно взять другую машину.' },
+          { set: { cp: 0 } },
+          { rewind: '3.05.line' },
+          { attempt: { at: 'track.pre', cars: ['own', 'gt', 'race', 'rally', 'muscle', 'drift', 'proto', 'kart', 'hyper', 'bugatti'], heading: Math.PI / 2 } },
+        ],
       },
     },
     {
@@ -85,7 +97,7 @@ defineQuest({
           { toast: 'Внедорожники догнали вас. Темнота... Вы снова на старте трека.' },
           { kill: true },
           { rewind: '3.05.chase' },
-          { teleport: { to: 'track.start', car: true } },
+          { teleport: { to: 'track.pre', car: true, heading: Math.PI / 2 } },
         ],
         repeat: true,
       },
@@ -107,7 +119,7 @@ defineQuest({
 
   checkpoints: {
     counter: 'cp',
-    order: ['track.cp1', 'track.cp2', 'track.cp3', 'track.cp4', 'track.cp5', 'track.cp6', 'track.cp7', 'track.cp8', 'track.start'],
+    order: ['track.pre', 'track.start', 'track.cp1', 'track.cp2', 'track.cp3', 'track.cp4', 'track.cp5', 'track.cp6', 'track.cp7', 'track.cp8', 'track.start'], // разгон и линия старта, ворота, финиш
     when: ['step:3.05.morning', '!step:3.05.race'],
     driving: true,
     r: 16,

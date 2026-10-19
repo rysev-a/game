@@ -44,6 +44,7 @@
 
   let practice = null; // { saved, spawned }
   let chooser = null; // { opts }
+  let attemptCar = null; // машина, на которой идет повторная попытка гонки (не своя): прошлая убирается, когда выбирают новую
 
   const carInfo = (id) => {
     if (id === 'own') {
@@ -63,6 +64,11 @@
   function openChooser(opts) {
     if (practice || chooser || dialogueOpen) return;
     chooser = { opts };
+    // Повторная попытка гонки (не тренировка): свои заголовок и подсказка
+    pick.querySelector('h2').textContent = opts.attempt ? 'Еще одна попытка' : 'Тренировка на треке';
+    pick.querySelector('.sub').textContent = opts.attempt
+      ? 'Время вышло. Выберите машину: вы стартуете на ней с разгона перед линией, и круг по «колбаскам» пойдет с самого начала.'
+      : 'Выберите машину. Браслет вернет вас назад, как будто вечера не было.';
     listEl.replaceChildren();
     for (const id of opts.cars) {
       const info = carInfo(id);
@@ -85,6 +91,7 @@
   // на другую страницу: «как все было» едет вместе с героем (extra.practice) и вернется браслетом (extra.restore)
   function begin(opts, id) {
     closeChooser();
+    if (opts.attempt) return attemptHere(opts, id);
     const place = Core.registry.places[opts.at];
     const own = garage.car;
     const saved = {
@@ -133,6 +140,46 @@
     enterCar(car);
     g.run({ flag: 'practicing' });
     hud.style.display = 'block';
+  }
+
+  // Повторная попытка гонки: герой уже на треке. Выбранная машина встает на место at (смотрит в heading), герой садится за руль; прошлая машина
+  // попытки уходит. Своя машина просто переносится на место. Время и браслет не трогаем
+  function attemptHere(opts, id) {
+    const place = Core.registry.places[opts.at];
+    const own = garage.car;
+    const heading = opts.heading === undefined ? Math.PI / 2 : opts.heading;
+    if (attemptCar) {
+      if (drivingCar === attemptCar) drivingCar = null;
+      cityGroup.remove(attemptCar.mesh);
+      const i = cars.indexOf(attemptCar);
+      if (i >= 0) cars.splice(i, 1);
+      attemptCar = null;
+    }
+    let car = own;
+    if (id === 'own') {
+      if (drivingCar && drivingCar !== own) releaseCar();
+      own.x = place.x;
+      own.z = place.z;
+      own.heading = heading;
+    } else {
+      // чуть дальше по дороге, если место занято (своя машина могла остаться у старта)
+      for (const dx of [0, 9, -9, 18]) {
+        car = addVehicle(id, place.x + dx, place.z, heading, { fuel: 1, open: true });
+        if (car) break;
+      }
+      if (!car) {
+        showToast('У линии нет места для этой машины: выберите другую', 3000);
+        return openChooser(opts);
+      }
+      attemptCar = car;
+      if (drivingCar && drivingCar !== own) releaseCar();
+      drivingCar = null;
+    }
+    car.speed = 0;
+    car.slip = 0;
+    car.fuel = Math.max(car.fuel, 0.8);
+    questFade();
+    enterCar(car);
   }
 
   // Браслет: все возвращается как было. Если тренировка в другой локации, чем началась, — сначала переход назад
@@ -191,6 +238,7 @@
   );
 
   questHost.startPractice = openChooser;
+  questHost.startAttempt = (opts) => openChooser({ ...opts, attempt: true });
   questHost.endPractice = end;
   // Страница трека приняла героя (src/quests/transit.js): тренировка начинается; основной мир принял героя обратно: все как было
   window.questPracticeArrive = ({ saved, carId, at }) => startHere(at, carId, saved);
