@@ -1216,6 +1216,19 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyR') nextWeapon();
   if (e.code === 'KeyK' && heroWeapon.id && !WEAPONS[heroWeapon.id].charge && !WEAPONS[heroWeapon.id].spinUp) fireWeapon(null);
 });
+// Cmd + Enter (Ctrl + Enter на Windows и Linux) в бою: переключает вид от первого лица и обратно (флаг «Вид от первого лица в бою»)
+window.addEventListener(
+  'keydown',
+  (e) => {
+    if (e.code !== 'Enter' || !(e.metaKey || e.ctrlKey) || e.repeat || settingsOpen || dialogueOpen || typeof setSetting !== 'function') return;
+    if (typeof mainMenuOpen !== 'undefined' && mainMenuOpen) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    setSetting('firstPerson', !settings.firstPerson);
+    showToast(settings.firstPerson ? 'Вид от первого лица (Cmd + Enter — вернуть обычный)' : 'Обычный вид (Cmd + Enter — от первого лица)', 1600);
+  },
+  true,
+);
 // ЛКМ по сцене с оружием в руках — огонь. Клик по подсвеченной вещи берет вещь (src/engine/input.js), не стреляет
 renderer.domElement.addEventListener('mousedown', (e) => {
   if (e.button !== 0 || !heroWeapon.id || hoveredPickable) return;
