@@ -38,7 +38,7 @@ defineScenario('2.13', {
     { interact: 'spot:stall_parts' },
     { interact: 'spot:stall_wood', expect: ['step:2.13.shop', 'count:money>=0', 'count:money<100'] },
     { interact: 'spot:stall_wood' }, // все куплено: подсказка продавца, деньги целы
-    { talk: 'mihalych', pick: [0, 0], see: 'раздувай горн', expect: ['step:2.13.bring', '!has:sg_pipe', '!has:bp_shotgun'] },
+    { talk: 'mihalych', pick: [0, 0], see: 'держи подачу', expect: ['step:2.13.bring', '!has:sg_pipe', '!has:bp_shotgun'] },
     { interact: 'spot:forge' },
     { puzzle: '2.13.shotgun', picks: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5], expect: ['has:shotgun', 'step:2.13.shotgun'] },
     { interact: 'spot:forge' },

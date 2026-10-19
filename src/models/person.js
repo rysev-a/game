@@ -946,10 +946,10 @@ const PERSON_PRESETS = {
     shirtColor: 0x9cbcd8, pantsColor: 0x34384a, belt: 0x2a2a2a, hairColor: 0x2a2a30, beard: true,
     beardColor: 0x5a4a40, holding: 'phone', watch: true, buttons: true, pockets: true, skinColor: 0xd9a27a,
   },
-  // 10. Михалыч, кузнец: лысина, усы, кожаный фартук, перчатки, рабочие ботинки
+  // 10. Михалыч, слесарь: лысина, усы, синий рабочий фартук, защитные очки на лбу, перчатки, рабочие ботинки
   mihalych: {
-    hair: 'bald', hairColor: 0xb8b8b4, mustache: true, shirtColor: 0x34363c, apron: 0x8a5a36,
-    gloves: 0x9a7a52, pantsColor: 0x30323a, shoeColor: 0x5a4636, skinColor: 0xd9a27a,
+    hair: 'bald', hairColor: 0xb8b8b4, mustache: true, goggles: true, shirtColor: 0x34363c, apron: 0x2f4a6b,
+    gloves: 0x8a8e94, pantsColor: 0x30323a, shoeColor: 0x5a4636, skinColor: 0xd9a27a,
   },
   // 11. Рустам, автомеханик: майка, оранжевые рабочие штаны, борода
   rustam: {

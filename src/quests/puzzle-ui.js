@@ -112,7 +112,7 @@
       say('Сбились с ритма. Начинайте сначала.', 'bad');
     } else if (result === 'solved') {
       renderRhythm();
-      say('Ровно! Горн раскалился.', 'good');
+      say('Ровно! Резец идет чисто.', 'good');
       setTimeout(close, 900);
       return;
     } else {

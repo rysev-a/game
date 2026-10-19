@@ -57,7 +57,7 @@
       box.position.set(px, py, pz);
       group.add(box);
       // fade: true — как стены зданий: становится полупрозрачным, когда заслоняет героя от камеры (src/engine/fade.js)
-      if (sp.fade && h > 1) {
+      if (sp.fade && (h > 1 || py > 3)) { // и высокая плоская крыша тоже становится прозрачной, когда закрывает героя
         const mats = [box.material, ...box.children.map((c) => c.material)];
         for (const m of mats) m.transparent = true;
         fades.push({ mesh: box, mats, half: [w / 2, h / 2, d / 2], fade: 1 });

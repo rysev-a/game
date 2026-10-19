@@ -264,6 +264,23 @@ function syncHomePickups() {
   }
 }
 
+// Кровать на втором этаже: E — лечь спать до утра (до 7:00), как в гамаке в домике на дереве (sleepUntilMorning, src/content/buildings/treehouse.js)
+const homeBedSpot = { x: 5.0, z: -2.0 };
+addInteractable({
+  priority: 2,
+  doorName: 'Кровать',
+  near: () => {
+    const ci = currentInterior();
+    return !!ci && ci.def === homeInterior && ci.floor === 1 && Math.hypot(playerWorldX - homeBedSpot.x, playerWorldZ - homeFloorZ[1] - homeBedSpot.z) < 2.6;
+  },
+  clickPoint: () => {
+    const ci = currentInterior();
+    return ci && ci.def === homeInterior && ci.floor === 1 ? { x: 6.6, z: homeFloorZ[1] - 3.6, y: 0.6, r: 2.6 } : null;
+  },
+  prompt: () => 'E — лечь спать до утра',
+  act: () => sleepUntilMorning(),
+});
+
 // Покачивание вещей
 function updateHome() {
   const t = performance.now() / 1000;

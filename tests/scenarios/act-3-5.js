@@ -12,7 +12,7 @@ defineScenario('2.11', {
 });
 
 defineScenario('3.04', {
-  title: 'Корпус для браслета проходится: голубятня, три ночи, горн, эликсир',
+  title: 'Корпус для браслета проходится: голубятня, три ночи, станок, эликсир',
   done: ['1.03'],
   steps: [
     { do: [{ start: '3.04' }] },
@@ -22,7 +22,7 @@ defineScenario('3.04', {
     { interact: 'spot:server' },
     { interact: 'spot:server', expect: ['count:nights>=3', 'step:3.04.calc'] },
     { wait: '0', expect: '!step:3.04.bring' },
-    { talk: 'mihalych', pick: [0, 0], see: 'раздувай горн', expect: ['step:3.04.bring', '!has:bp_bracelet'] },
+    { talk: 'mihalych', pick: [0, 0], see: 'держи подачу', expect: ['step:3.04.bring', '!has:bp_bracelet'] },
     { interact: 'spot:forge' },
     { puzzle: '3.04.bellows', picks: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5], expect: ['puzzle:3.04.bellows', 'step:3.04.forge'] },
     { interact: 'station:workbench', expectNot: 'flag:braceletCased' }, // эликсира нет: квест лишь подсказывает
