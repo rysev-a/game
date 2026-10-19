@@ -13,7 +13,7 @@
 // ключи лежат в нижней ячейке, телефон — значок рядом с местом инвентаря.
 //
 // Сохранения (лежат в src/player/saves.js):
-//   значок «дискета»  — слоты начинают пульсировать; клик по любому записывает в него игру
+//   значок «браслет»  — клетки начинают пульсировать; клик по любой запоминает в ней мгновение (в клетке вспыхивает знак)
 //   значок «корзина» — слоты пульсируют; каждый клик по заполненному слоту очищает его
 //   клик по заполненному слоту (без режимов) — загрузить игру
 //
@@ -178,8 +178,8 @@ function renderInventory() {
     for (let i = 0; i < inventory.quickSlots; i++) {
       const filled = !!getSave(i);
       const c = cell('slot quick' + (filled ? ' filled' : ' empty'));
-      c.appendChild(pixelIcon(filled ? 'slot' : 'save')); // пустой — бледная дискета: «сохранить сюда»
-      c.title = filled ? saveTitle(i) + ' — клик загружает' : 'Пустой слот ' + (i + 1) + ' — клик сохраняет игру';
+      if (filled) c.appendChild(pixelIcon(glyphIconId(i))); // знак: браслет запомнил этот миг; пустая клетка темна
+      c.title = filled ? saveTitle(i) + ' — нажмите, чтобы вернуться в этот миг' : 'Пустая клетка ' + (i + 1) + ' — нажмите, и браслет запомнит этот миг';
       c.addEventListener('click', (e) => {
         e.stopPropagation(); // клик по слоту не раскрывает панель
         onQuickSlotClick(i);
@@ -203,12 +203,12 @@ function renderInventory() {
   if (!savesOn) return;
   if (!savesStrip) inventoryEl.appendChild(savesBox);
 
-  // Сохранения: значки «сохранить» и «очистить», под ними 2 строки по 8 слотов
+  // Дисплей браслета: значки «запомнить» и «стереть», под ними 2 строки по 8 клеток
   const tools = document.createElement('div');
   tools.className = 'invTools';
   for (const [mode, icon, title] of [
-    ['save', 'save', 'Сохранить: выберите слот'],
-    ['clear', 'trash', 'Очистить: нажимайте на слоты'],
+    ['save', 'bracelet', 'Запомнить миг: выберите клетку'],
+    ['clear', 'trash', 'Стереть знак: нажимайте на знаки'],
   ]) {
     const btn = cell('tool' + (savesMode === mode ? ' active' : ''));
     btn.appendChild(pixelIcon(icon));
@@ -228,9 +228,8 @@ function renderInventory() {
     const filled = !!getSave(i);
     // Пульсируют все слоты, пока ждем выбора
     const c = cell('slot' + (filled ? ' filled' : '') + (savesMode ? ' pulse' : ''));
-    if (filled) c.appendChild(pixelIcon('slot'));
-    else if (touchUI) c.appendChild(pixelIcon('save')).classList.add('dim'); // на телефоне: «сохранить сюда»
-    c.title = filled ? saveTitle(i) : 'Пустой слот ' + (i + 1);
+    if (filled) c.appendChild(pixelIcon(glyphIconId(i)));
+    c.title = filled ? saveTitle(i) : 'Пустая клетка ' + (i + 1);
     c.addEventListener('click', (e) => {
       e.stopPropagation();
       onSlotClick(i);

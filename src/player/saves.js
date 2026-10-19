@@ -32,7 +32,7 @@ function persistSaves() {
   try {
     localStorage.setItem(SAVES_KEY, JSON.stringify(saves));
   } catch (e) {
-    showToast('Не удалось записать сохранение (хранилище недоступно)');
+    showToast('Браслет не смог запомнить этот миг (память недоступна)');
   }
 }
 
@@ -41,12 +41,12 @@ const getSave = (i) => saves[i] || null;
 // Подсказка к слоту: номер, место, дата
 function saveTitle(i) {
   const s = getSave(i);
-  if (!s) return 'Пустой слот ' + (i + 1);
+  if (!s) return 'Пустая клетка ' + (i + 1);
   const d = new Date(s.savedAt);
   const when = d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
   // Время в игре: «18 сентября 2043, 09:41» (в старых сохранениях его нет)
   const story = s.time ? ' · в игре ' + s.time.label : '';
-  return 'Слот ' + (i + 1) + ' · ' + s.place + story + ' · сохранено ' + when;
+  return 'Знак ' + (i + 1) + ' · ' + s.place + story + ' · запомнено ' + when;
 }
 
 // Снимок игры
@@ -132,7 +132,7 @@ function saveToSlot(i) {
   if (!hasDeviceTag('saves')) return;
   saves[i] = captureGame();
   persistSaves();
-  showToast('Сохранено: слот ' + (i + 1));
+  showToast('Знак вспыхнул: браслет запомнил этот миг');
 }
 
 function clearSave(i) {
@@ -144,10 +144,10 @@ function loadFromSlot(i) {
   const data = getSave(i);
   if (!hasDeviceTag('saves')) return false;
   if (!data || data.version !== SAVE_VERSION) {
-    showToast('Это сохранение не подходит к текущей версии игры');
+    showToast('Знак выцвел: он остался от другого мира (другая версия игры)');
     return false;
   }
   applyGame(data);
-  showToast('Загружено: слот ' + (i + 1));
+  showToast('Время пошло назад. Мир забыл, что было потом, а вы нет.');
   return true;
 }

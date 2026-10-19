@@ -584,7 +584,7 @@ window.addEventListener('keydown', (e) => {
 
 // ---------- Версия и история версий ----------
 // В меню — только текущая версия; нажали на нее — окно со всеми версиями: что в каждой добавлено, по-русски
-// (changelog.json по номеру PR; если строки нет — английский заголовок PR)
+// (changelog.json по номеру PR или по версии; если строки нет — английский заголовок коммита). Локально version.json пишет `node tools/version.js`
 const versionURL = new URL('../../version.json', document.currentScript.src); // у ДЕМО те же файлы
 const changelogURL = new URL('../../changelog.json', document.currentScript.src);
 const versionEl = document.createElement('button');
@@ -636,7 +636,7 @@ versionEl.addEventListener('click', () => {
     d.textContent = c.date;
     const t = document.createElement('span');
     t.className = 't';
-    t.textContent = (c.pr && changelogRu[c.pr]) || (c.pr ? c.title : 'Начало проекта.');
+    t.textContent = (c.pr && changelogRu[c.pr]) || changelogRu[c.version] || c.title; // по номеру PR, иначе по версии (коммит прямо в main), иначе заголовок
     li.append(v, d, t);
     list.appendChild(li);
   }
@@ -659,5 +659,5 @@ getJSON(versionURL)
     versionEl.textContent = 'Версия ' + v.version + ' от ' + v.date;
   })
   .catch(() => {
-    versionEl.textContent = 'Версия: локальная (не с GitHub Pages)';
+    versionEl.textContent = 'Версия: локальная (запустите node tools/version.js)';
   });
