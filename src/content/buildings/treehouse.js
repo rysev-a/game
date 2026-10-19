@@ -173,55 +173,83 @@ defineBuilding('treehouse', {
 });
 
 // ---------- Дом Анны Петровны ----------
-const grandmaW = 11;
-const grandmaD = 8;
+// Двухэтажный дом больше дома Максима (18 × 12): внизу гостиная с печью и кухня, наверху комната Веры (кровать, стол, шкаф, пианино)
+// и спальня бабушки. Справа к дому пристроен гараж с въездом (парковка у дома, как в американских фильмах): перед ним — подъездная дорожка
+const grandmaW = 24;
+const grandmaD = 15;
+const grandmaGarageW = 7.4; // гараж пристроен справа (в +X модели), фасадом вровень с домом
 
 defineBuilding('grandma_house', {
   name: 'Дом Анны Петровны',
-  desc: 'Дом бабушки Веры. Здесь всегда пахнет пирогами.',
-  size: { w: grandmaW + 2, d: grandmaD + 4 },
+  desc: 'Двухэтажный дом бабушки Веры с гаражом и подъездной дорожкой. Здесь всегда пахнет пирогами.',
+  size: { w: grandmaW + grandmaGarageW + 2, d: grandmaD + 4 },
   enterLabel: 'E — войти в дом Анны Петровны',
   exitLabel: 'E — выйти во двор',
 
   exterior({ full }) {
     const group = createHouse({
-      width: grandmaW, depth: grandmaD, wallHeight: 3.4, roofRise: 2.6, floors: 1,
-      roof: 'gable', ridgeAlongX: true, wallColor: 0xa8814f, roofColor: 0x5a6a4a, doorColor: 0x3a2a1a,
+      width: grandmaW, depth: grandmaD, wallHeight: 7.4, roofRise: 4.2, floors: 2, windows: 5,
+      roof: 'gable', ridgeAlongX: true, wallColor: 0xc9a46c, roofColor: 0x5a6a4a, doorColor: 0x3a2a1a,
     });
-    // Крыльцо с навесом
-    const porch = boxWithEdges(4, 0.4, 2.2, 0x8a6a3c);
-    porch.position.set(0, 0.2, grandmaD / 2 + 1.1);
+    const front = grandmaD / 2;
+    // Крыльцо с навесом и балкон над ним
+    const porch = boxWithEdges(5, 0.4, 2.6, 0x8a6a3c);
+    porch.position.set(0, 0.2, front + 1.3);
     group.add(porch);
-    for (const x of [-1.8, 1.8]) {
-      const post = boxWithEdges(0.2, 2.6, 0.2, 0x6b4a2e);
-      post.position.set(x, 1.5, grandmaD / 2 + 2.0);
+    for (const x of [-2.2, 2.2]) {
+      const post = boxWithEdges(0.2, 2.8, 0.2, 0x6b4a2e);
+      post.position.set(x, 1.6, front + 2.4);
       group.add(post);
     }
-    const awning = boxWithEdges(4.4, 0.15, 2.6, 0x5a6a4a);
-    awning.position.set(0, 2.85, grandmaD / 2 + 1.2);
+    const awning = boxWithEdges(5.4, 0.15, 3.0, 0x5a6a4a);
+    awning.position.set(0, 3.1, front + 1.5);
     group.add(awning);
-    // Колодец и поленница во дворе
+    // Кирпичная труба над печью
+    const chimney = boxWithEdges(1.1, 5, 1.1, 0x9a5a48);
+    chimney.position.set(-7, 9, -2.4);
+    group.add(chimney);
+    // Гараж справа: низкий объем с двускатной крышей, широкая подъемная дверь в полосах
+    const gx0 = grandmaW / 2 + grandmaGarageW / 2;
+    const garage = createHouse({
+      width: grandmaGarageW, depth: 10, wallHeight: 3.4, roofRise: 1.8, floors: 1, roof: 'gable', ridgeAlongX: false,
+      wallColor: 0xb89860, roofColor: 0x4a4a52,
+    });
+    garage.position.set(gx0, 0, front - 5);
+    group.add(garage);
+    const garageDoor = boxWithEdges(grandmaGarageW - 1.4, 2.8, 0.14, 0xe8e6de);
+    garageDoor.position.set(gx0, 1.4, front + 0.08);
+    group.add(garageDoor);
+    for (const y of [0.7, 1.4, 2.1]) {
+      const seam = boxWithEdges(grandmaGarageW - 1.4, 0.07, 0.16, 0x9a9a94);
+      seam.position.set(gx0, y, front + 0.1);
+      group.add(seam);
+    }
+    // Колодец и поленница
     const well = boxWithEdges(1.6, 0.9, 1.6, 0x8a8a88);
-    well.position.set(-grandmaW / 2 - 2.5, 0.45, grandmaD / 2 + 3);
+    well.position.set(-grandmaW / 2 - 3, 0.45, front + 3);
     group.add(well);
     const wellRoof = boxWithEdges(2, 0.12, 1.4, 0x6b4a2e);
-    wellRoof.position.set(-grandmaW / 2 - 2.5, 2.1, grandmaD / 2 + 3);
+    wellRoof.position.set(-grandmaW / 2 - 3, 2.1, front + 3);
     group.add(wellRoof);
     const logs = boxWithEdges(3.4, 1.2, 0.9, 0x9a6a3a); // поленница у задней стены
-    logs.position.set(2.5, 0.6, -grandmaD / 2 - 0.9);
+    logs.position.set(-4, 0.6, -front - 0.9);
     group.add(logs);
     return {
       group,
       obstacles: [
         { x: 0, z: 0, hx: grandmaW / 2, hz: grandmaD / 2 },
-        { x: -grandmaW / 2 - 2.5, z: grandmaD / 2 + 3, hx: 0.8, hz: 0.8 },
-        { x: 2.5, z: -grandmaD / 2 - 0.9, hx: 1.7, hz: 0.45 },
+        { x: gx0, z: front - 5, hx: grandmaGarageW / 2, hz: 5 },
+        { x: -grandmaW / 2 - 3, z: front + 3, hx: 0.8, hz: 0.8 },
+        { x: -4, z: -front - 0.9, hx: 1.7, hz: 0.45 },
       ],
-      mapShapes: [{ x: 0, z: 0, hx: grandmaW / 2, hz: grandmaD / 2, color: '#a8814f' }],
-      door: { x: 0, z: grandmaD / 2 + 2.8 },
+      mapShapes: [
+        { x: 0, z: 0, hx: grandmaW / 2, hz: grandmaD / 2, color: '#c9a46c' },
+        { x: gx0, z: front - 5, hx: grandmaGarageW / 2, hz: 5, color: '#b89860' },
+      ],
+      door: { x: 0, z: front + 2.8 },
       people: full
         ? [{
-            x: 3.2, z: grandmaD / 2 + 3.2, yaw: Math.PI, type: 'anna', gender: 'female',
+            x: 3.4, z: front + 3.2, yaw: Math.PI, type: 'anna', gender: 'female',
             name: 'Анна Петровна', title: 'бабушка Веры', charId: 'anna', // разговор из данных: src/content/characters/anna.js
             talk: simpleTalk('Анна Петровна — бабушка Веры', {
               hello: 'Максимушка... Ты же совсем не изменился. Только похудел.',
@@ -234,35 +262,114 @@ defineBuilding('grandma_house', {
   },
 
   interior({ full }) {
-    const room = createRoomFloor({ w: grandmaW, d: grandmaD, wallH: 3, floorColor: 0x8a6a48, plank: true, wallColor: 0xd8c9a8, doorGap: 2.4 });
+    const W = grandmaW;
+    const D = grandmaD;
+    const ground = createRoomFloor({ w: W, d: D, wallH: 3.3, floorColor: 0x8a6a48, plank: true, wallColor: 0xd8c9a8, doorGap: 2.6 });
+    const upper = createRoomFloor({ w: W, d: D, wallH: 3.1, floorColor: 0x9a7a54, plank: true, wallColor: 0xe0d3b2, doorGap: 0 });
     const stations = [];
-    room.wall(0.2, 4, 1.2, -2, 0xc9b898); // перегородка: кухня (восток) и комната Веры (запад)
+    // Перегородка между гостиной (запад) и кухней (восток): проход посередине
+    ground.wall(0.2, 5, 2, -5, 0xc9b898);
+    ground.wall(0.2, 3, 2, 6, 0xc9b898);
+    // Наверху: слева комната Веры, справа спальня бабушки, посередине коридор с лестницей
+    for (const x of [-3, 1.5]) {
+      upper.wall(0.2, 8.3, x, -3.35, 0xc9b898);
+      upper.wall(0.2, 4.3, x, 5.35, 0xc9b898);
+    }
+    // Лестница вдоль северной стены: ступени поднимаются к востоку (на втором этаже выход к коридору)
+    for (let i = 0; i < 6; i++) ground.part(0.62, 0.45 * (i + 1), 1.5, 0xa07850, -4.2 + i * 0.62, 0.225 * (i + 1), -6.7);
+    ground.addSolid(-2.55, -6.7, 1.75, 0.75, '#a07850');
+
     if (full) {
-      // Кухня: печь, стол
-      room.furniture(1.8, 1.6, 1.6, 0xe8e2d0, 4.2, -2.6);
-      room.furniture(1.6, 0.8, 1.0, 0xa07850, 3.4, 1.2);
-      // Комната Веры: фортепиано, кровать, ролики и лыжи у стены
-      room.furniture(1.8, 1.3, 0.7, 0x2a1a10, -2.2, -3.5);
-      room.part(1.7, 0.1, 0.3, 0xf1ede2, -2.2, 1.0, -3.1);
-      room.furniture(1.2, 0.5, 2.2, 0x8a3b6a, -4.6, -2.6);
-      room.part(0.1, 1.8, 0.3, 0x3a7bd5, -5.3, 0.9, 0.2);
-      room.part(0.1, 1.8, 0.3, 0xc43a3a, -5.3, 0.9, 0.6);
-      room.part(0.4, 0.3, 0.6, 0xe0c341, -4.8, 0.15, 1.6); // ролики
+      // Гостиная: диван, кресло, журнальный столик, ковер, книжный шкаф и изразцовая печь
+      ground.part(4.4, 0.03, 3.2, 0xb05a4a, -7.6, 0.03, -2.4);
+      ground.furniture(3.0, 0.9, 1.1, 0x6b7a8a, -8.2, -6.4);
+      ground.part(3.0, 0.5, 0.2, 0x5a6a7a, -8.2, 1.15, -6.9);
+      ground.furniture(1.1, 0.9, 1.1, 0x8a5a3a, -11.0, -2.6);
+      ground.furniture(1.6, 0.45, 1.0, 0xa07850, -7.4, -2.6);
+      ground.furniture(0.5, 2.4, 3.4, 0x6b5a48, -11.5, 1.8);
+      for (let i = 0; i < 4; i++) ground.part(0.55, 0.12, 0.8, [0xc43a3a, 0x3a7bd5, 0xe0c341, 0x3fa35b][i], -11.4, 0.5 + i * 0.55, 0.6 + (i % 2) * 1.6);
+      ground.furniture(1.3, 2.4, 1.5, 0xe8e2d0, -11.0, 5.4);
+      ground.part(0.5, 0.6, 0.06, 0x2a2a2e, -10.4, 0.9, 4.65); // дверца печи
       stations.push({
-        floor: 0, x: -2.2, z: -2.2, label: 'E — фортепиано Веры',
-        act: () => showToast('Фортепиано Веры. На крышке фотография: вы с Верой у большого дерева за оврагом.', 4500),
+        floor: 0, x: -10.1, z: 5.4, label: 'E — печка',
+        act: () => showToast('Изразцовая печь. Теплая, хоть сейчас лезь на лежанку: в детстве вы с Верой так и делали.', 4500),
+      });
+      // Кухня: гарнитур вдоль северной стены, плита, холодильник, обеденный стол с табуретками, шкаф с посудой
+      ground.furniture(5.6, 0.9, 0.8, 0xdad6c8, 6.2, -7.0);
+      ground.part(0.9, 0.04, 0.6, 0x2a2a2e, 4.6, 0.92, -7.0); // плита: две конфорки
+      ground.part(0.9, 0.04, 0.6, 0x9aa4ad, 7.8, 0.92, -7.0); // мойка
+      ground.furniture(1.0, 2.0, 0.9, 0xe8e8ec, 10.9, -6.9);
+      ground.furniture(2.8, 0.8, 1.6, 0xa07850, 7.0, 0.6);
+      for (const [x, z] of [[5.8, -0.9], [8.2, -0.9], [5.8, 2.1], [8.2, 2.1]]) ground.furniture(0.5, 0.5, 0.5, 0x8a6a3c, x, z);
+      ground.part(0.8, 0.12, 0.5, 0xe8c070, 7.0, 0.86, 0.6); // пирог на столе
+      ground.furniture(0.6, 2.0, 2.8, 0xb08a5a, 11.5, 2.4);
+      stations.push({
+        floor: 0, x: 7.0, z: 0.6, label: 'E — кухонный стол',
+        act: () => showToast('На столе пирог под полотенцем. Анна Петровна печет, пока ждет гостей: в этом доме всегда пахнет пирогами.', 4500),
+      });
+      stations.push({
+        floor: 0, x: 5.8, z: -5.8, label: 'E — плита',
+        act: () => showToast('На плите чайник. Бабушка Веры не выключает его весь день: вдруг кто зайдет.', 4000),
+      });
+
+      // Комната Веры (запад, второй этаж): кровать, стол, шкаф, книжная полка, пианино, ролики и лыжи
+      upper.part(4.2, 0.03, 3.4, 0x6a8ab0, -7.4, 0.03, 0.4); // ковер
+      upper.furniture(1.5, 0.55, 2.4, 0x8a3b6a, -10.7, -6.0);
+      upper.part(1.2, 0.12, 0.5, 0xf1ede2, -10.7, 0.61, -6.9); // подушка
+      upper.furniture(0.5, 0.5, 0.5, 0x8a6a3c, -9.2, -6.9); // тумбочка
+      upper.furniture(2.0, 0.8, 0.9, 0xa07850, -6.2, -6.8);
+      upper.part(0.7, 0.04, 0.5, 0x3a3e44, -6.2, 0.82, -6.8); // ноутбук Веры
+      upper.part(0.7, 0.45, 0.04, 0x15151a, -6.2, 1.05, -7.1);
+      upper.furniture(0.5, 0.5, 0.5, 0x6b4a2e, -6.2, -5.5); // стул
+      upper.furniture(1.0, 2.4, 2.8, 0x8a6a48, -11.4, -1.2);
+      upper.furniture(0.5, 2.0, 3.2, 0x6b5a48, -11.7, 2.9);
+      for (let i = 0; i < 3; i++) upper.part(0.4, 0.14, 2.8, [0x3a7bd5, 0xc43a3a, 0xe0c341][i], -11.65, 0.5 + i * 0.6, 2.9);
+      upper.furniture(1.8, 1.3, 0.7, 0x2a1a10, -8.0, 6.7); // пианино
+      upper.part(1.7, 0.1, 0.3, 0xf1ede2, -8.0, 1.0, 6.3);
+      upper.part(0.05, 1.0, 0.7, 0x7fb0c8, -11.93, 1.8, -3.6); // постер над столом
+      upper.part(0.1, 1.8, 0.3, 0x3a7bd5, -3.3, 0.9, 6.0); // лыжи у перегородки
+      upper.part(0.1, 1.8, 0.3, 0xc43a3a, -3.3, 0.9, 6.5);
+      upper.part(0.4, 0.3, 0.6, 0xe0c341, -4.6, 0.15, 5.0); // ролики
+      stations.push({
+        floor: 1, x: -10.7, z: -4.2, label: 'E — кровать Веры',
+        act: () => showToast('Покрывало разглажено, как будто Вера только что вышла. На подушке плюшевый заяц с оторванным ухом.', 5000),
+      });
+      stations.push({
+        floor: 1, x: -6.2, z: -5.3, label: 'E — стол Веры',
+        act: () => showToast('Стол Веры: тетради, схемы и карандашные наброски огромного дерева. Одна страница вырвана.', 5000),
+      });
+      stations.push({
+        floor: 1, x: -8.0, z: 5.3, label: 'E — пианино Веры',
+        act: () => showToast('Пианино Веры. На крышке фотография: вы с Верой у большого дерева за оврагом.', 4500),
+      });
+      // Спальня Анны Петровны (восток, второй этаж)
+      upper.part(4.0, 0.03, 3.0, 0x9a5a4a, 7.4, 0.03, 0.8);
+      upper.furniture(1.8, 0.6, 2.4, 0x7a3b3b, 9.6, -6.0);
+      upper.part(1.4, 0.12, 0.5, 0xf1ede2, 9.6, 0.66, -6.9);
+      upper.furniture(0.6, 0.6, 0.6, 0x8a6a3c, 7.9, -6.9);
+      upper.furniture(1.0, 2.4, 3.0, 0x8a6a48, 11.4, 0.6);
+      upper.furniture(2.0, 0.9, 0.7, 0xa07850, 7.4, 6.8);
+      upper.furniture(1.1, 0.9, 1.1, 0x8a5a3a, 4.2, 5.4); // кресло с вязанием
+      upper.part(0.5, 0.3, 0.5, 0xc43a3a, 4.2, 1.0, 5.4);
+      stations.push({
+        floor: 1, x: 7.4, z: 5.2, label: 'E — комод Анны Петровны',
+        act: () => showToast('На комоде рамки с фотографиями: Вера маленькая, Вера с косичками, Вера у дерева. Новых нет.', 5000),
       });
     }
     return {
-      name: () => 'Дом Анны Петровны',
-      floors: [room],
-      bounds: roomBounds(grandmaW, grandmaD),
+      name: (floor) => (floor === 0 ? 'Дом Анны Петровны' : 'Дом Анны Петровны, второй этаж'),
+      floors: [ground, upper],
+      bounds: roomBounds(W, D),
       playerRadius: 0.45,
-      door: { x: 0, z: grandmaD / 2 - 0.45 },
+      door: { x: 0, z: D / 2 - 0.45 },
+      stairs: [
+        { floor: 0, to: 1, x: -2.6, z: -4.6, label: 'E — подняться наверх', arrive: { x: 0.3, z: -4.4 } },
+        { floor: 1, to: 0, x: 0.2, z: -5.8, label: 'E — спуститься вниз', arrive: { x: -2.6, z: -3.4 } },
+      ],
       stations,
       sounds: {},
       footsteps: true,
-      minimapRange: 22,
+      minimapRange: 28,
     };
   },
 });

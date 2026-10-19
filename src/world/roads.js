@@ -36,10 +36,10 @@ function roadH(x1, x2, z, kind, crossXs = [], width = roadWidth) {
 }
 
 // Дорога вдоль Z: от z1 до z2 на координате x
-function roadV(z1, z2, x, kind, crossZs = []) {
+function roadV(z1, z2, x, kind, crossZs = [], width = roadWidth) {
   const batch = roadBatches[kind];
-  pushQuad(batch.verts, x, (z1 + z2) / 2, roadWidth / 2, (z2 - z1) / 2, 0.02);
-  mapRoads.push({ x1: x, z1, x2: x, z2, color: batch.mapColor });
+  pushQuad(batch.verts, x, (z1 + z2) / 2, width / 2, (z2 - z1) / 2, 0.02);
+  mapRoads.push({ x1: x, z1, x2: x, z2, color: batch.mapColor, ...(width !== roadWidth ? { width } : {}) });
   if (kind !== 'asphalt') return;
   for (let t = z1 + 3; t <= z2 - 3; t += 6) {
     if (crossZs.some((c) => Math.abs(t - c) < roadWidth / 2 + 2)) continue;

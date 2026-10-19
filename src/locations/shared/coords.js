@@ -27,7 +27,7 @@ const towerFloorX = (i) => -130 + (i - 1) * 38;
 
 // Овраг с ручьем за домом бабушки в Заречье (src/locations/zarechye/grandma.js): тянется с востока от реки до забора мира. Он вырыт в земле, поэтому
 // в земле (src/world/ground.js, src/world/world.js) для него оставлен прогал; ось овраги ravineZ и полуширина ravineHalf — общие числа
-const ravineZ = 150;
+const ravineZ = 304; // южнее поселка Заречье: участок бабушки кончается за 8 юнитов до оврага (grandma.js проверяет это числом)
 const ravineHalf = 4;
 const ravineGap = { z1: ravineZ - ravineHalf - 1, z2: ravineZ + ravineHalf + 1, x1: riverX + riverHalf }; // восточнее реки земля не покрывает полосу оврага
 

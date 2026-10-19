@@ -100,7 +100,7 @@ const demoScene = ['grandma_house', 'treehouse']; // эти заготовки �
 if (inCharacters) {
   const gx = 10;
   const gz = -24;
-  flatRect(26, 22, 0x3a6b3d, 0.008, gx, gz - 1);
+  flatRect(52, 36, 0x3a6b3d, 0.008, gx + 8, gz - 1); // дом 24 × 15 с гаражом справа
   placeBuilding('grandma_house', { x: gx, z: gz, heading: 0, full: true });
 
   // Тропинка: от задней стены дома на север, петляя, к дереву

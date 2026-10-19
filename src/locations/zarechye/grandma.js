@@ -1,71 +1,37 @@
 // src/locations/zarechye/grandma.js
-// ЗАРЕЧЬЕ: дом Анны Петровны, двор, участок, овраг и домик на дереве (docs/story/locations/grandma-house.md).
-// Крайний дом за кирпичным городом за рекой (город 2): от восточной улицы города к дому идет грунтовка.
+// ЗАРЕЧЬЕ: отдельный поселок за кирпичным городом (город 2), в нем дом Анны Петровны, овраг и домик на дереве (docs/story/locations/grandma-house.md).
+// От южной окраины города к поселку идет сельская дорога (грунт, уже и тише трассы, но все равно широкая), поселок вытянулся вдоль своей улицы.
+// Дом бабушки стоит в глубине участка: перед ним лужайка, справа от лужайки подъездная дорожка к гаражу — парковка у дома, как в американских фильмах.
 //
-//        город 2 (кольцевая дорога)
-//              ║ грунтовка
-//   ┌──── двор ╨ калитка ────┐   машина дальше двора не проедет: между домом и забором — узкие проходы
-//   │       [ дом ]          │
-//   │  огород, яблони, сарай │   участок
-//   └──────── тропинка ──────┘
-//   ≈≈≈≈≈≈≈≈≈ овраг ═ бревно ═ ≈≈≈≈≈≈≈≈≈   перейти можно только по бревну
-//          ( извилистая тропинка )        за оврагом тропинка петляет по лесу, ~150 юнитов
-//                 ( огромное дерево )     далеко в чаще, домик Веры спрятан в листве: издали его не видно
+//        город 2 (кирпичный)
+//              ║ сельская дорога (x = roadX)
+//   дом ─ дом  ╨  дом ─ дом          улица поселка (ось X), дома на севере смотрят на юг, на юге — на север
+//   ═══════════════════════════
+//   сосед │ [дорожка][дом Анны] │ сосед        участок бабушки: лужайка, въезд, крыльцо
+//         │ огород, яблони, сарай│
+//   ≈≈≈≈≈≈≈≈≈ овраг ═ бревно ═ ≈≈≈≈≈≈≈≈≈     перейти можно только по бревну
+//          ( извилистая тропинка )          за оврагом тропинка петляет по лесу, ~150 юнитов
+//                 ( огромное дерево )       далеко в чаще, домик Веры спрятан в листве: издали его не видно
 //
 // Подключается после src/locations/city/city.js, до src/world/world.js.
 {
   const city = cities[1];
-  const gx = city.x + cityStep * 2.5; // восточная поперечная улица города
-  const yardZ1 = city.z + cityHalfZ + 20; // северный край двора (калитка)
-  const houseZ = yardZ1 + 14; // центр дома, фасад на север (к дороге)
-  const plotZ2 = houseZ + 32; // южный край участка
+  const roadX = city.x + cityStep * 1.5; // сельская дорога продолжает северо-южную улицу города (x = 574)
+  const roadW = 9; // уже городской трассы, но по-деревенски широкая
+  const streetZ = city.z + cityHalfZ + 154; // улица поселка
+  const streetW = 10;
+  const gx = roadX + 32; // центр дома Анны Петровны
+  const yardZ1 = streetZ + streetW / 2; // передний край участка (забор вдоль улицы)
+  const houseZ = yardZ1 + 26; // центр дома: фасад на север, к улице, перед ним лужайка и крыльцо
+  const plotZ2 = houseZ + 35; // южный край участка
   if (plotZ2 + 8 !== ravineZ) console.warn('Заречье: ось оврага не совпала с ravineZ в src/locations/shared/coords.js (' + (plotZ2 + 8) + ' и ' + ravineZ + ')');
   const treeX = gx - 70; // домик Веры далеко за оврагом, в стороне от дома: так просто не увидишь
   const treeZ = ravineZ + 150;
-  const fx1 = gx - 22;
-  const fx2 = gx + 22;
-
-  // Земля: двор и участок, грунтовка от города до калитки
-  flatRect(fx2 - fx1, plotZ2 - yardZ1, 0x3a6b3d, 0.008, gx, (yardZ1 + plotZ2) / 2);
-  mapObjects.push({ x: gx, z: (yardZ1 + plotZ2) / 2, hx: (fx2 - fx1) / 2, hz: (plotZ2 - yardZ1) / 2, color: '#3a6b3d', ground: true });
-  roadV(city.z + cityHalfZ, yardZ1 + 6, gx, 'dirt');
-  clearZones.push({ x1: gx - 6, x2: gx + 6, z1: city.z + cityHalfZ, z2: yardZ1 });
-
-  // Парковка у дома: грунтово-щебеночная площадка справа от подъезда к калитке (с востока от грунтовки), три места с белой разметкой и упорами для колес,
-  // знак «P» у въезда. Машину можно оставить здесь, пока герой идет к бабушке и в лес (место zarechye.parking, src/quests/places.js)
-  {
-    const px = gx + 17;
-    const pz = 87;
-    flatRect(20, 14, 0x5c5c5f, 0.014, px, pz);
-    mapObjects.push({ x: px, z: pz, hx: 10, hz: 7, color: '#5c5c5f', ground: true });
-    clearZones.push({ x1: px - 12, x2: px + 12, z1: pz - 9, z2: pz + 9 });
-    for (let i = 0; i < 4; i++) flatRect(0.16, 8.5, 0xe8e8e8, 0.017, px - 8 + i * 5.33, pz - 1); // линии между местами
-    flatRect(16, 0.16, 0xe8e8e8, 0.017, px, pz - 5.2); // передняя линия
-    for (let i = 0; i < 3; i++) {
-      const stop = boxWithEdges(2.6, 0.22, 0.4, 0xd8c030); // упор для колес у забора (юг)
-      stop.position.set(px - 5.33 + i * 5.33, 0.11, pz + 3.2);
-      cityGroup.add(stop);
-    }
-    // Знак: столб и синяя табличка с белой «P»
-    const post = boxWithEdges(0.2, 2.6, 0.2, 0x3a3e44);
-    post.position.set(gx + 7.2, 1.3, pz - 6);
-    cityGroup.add(post);
-    const sign = new THREE.Group();
-    sign.add(boxWithEdges(1.5, 1.5, 0.1, 0x2f6fb0));
-    for (const [w, h, x, y] of [[0.25, 1.0, -0.3, 0], [0.7, 0.24, 0.0, 0.38], [0.7, 0.24, 0.0, 0.02], [0.24, 0.5, 0.3, 0.2]]) {
-      const part = boxWithEdges(w, h, 0.06, 0xf4f4f4);
-      part.position.set(x, y, 0.06);
-      sign.add(part);
-    }
-    sign.position.set(gx + 7.2, 2.9, pz - 6);
-    sign.rotation.y = -Math.PI / 2; // табличка смотрит на подъезжающих по грунтовке
-    cityGroup.add(sign);
-    addHoverInfo(sign, { kind: 'Знак', name: 'Парковка', desc: 'Площадка у дома Анны Петровны: три места. Здесь можно оставить машину.' });
-    addObstacle({ x: gx + 7.2, z: pz - 6, hx: 0.2, hz: 0.2 });
-  }
-
-  // Дом Анны Петровны
-  placeBuilding('grandma_house', { x: gx, z: houseZ, heading: Math.PI });
+  const fx1 = gx - 24;
+  const fx2 = gx + 18;
+  const driveX = gx - (grandmaW / 2 + grandmaGarageW / 2); // ось подъездной дорожки: перед гаражом
+  const driveW = grandmaGarageW + 0.8;
+  const houseFront = houseZ - grandmaD / 2; // фасад дома (север)
 
   // Длинное препятствие режем на куски: машины проверяют только препятствия с центром ближе 25 (collisions.js)
   const longObstacle = (x1, z1, x2, z2) => {
@@ -80,63 +46,191 @@
     }
   };
 
-  // Деревянный забор: вокруг двора и участка, калитка на севере, проход к оврагу на юге
-  const fenceColor = 0x8a6a3c;
-  const fence = (x1, z1, x2, z2) => {
+  // Деревянный забор (цвет жердей и столбов задается): сплошной для игрока и машин
+  const fence = (x1, z1, x2, z2, rails = 0x8a6a3c, posts = 0x6b4a2e) => {
     const alongX = Math.abs(z2 - z1) < 1e-6;
     const len = alongX ? Math.abs(x2 - x1) : Math.abs(z2 - z1);
     if (len < 0.3) return;
     const cx = (x1 + x2) / 2;
     const cz = (z1 + z2) / 2;
     for (const y of [0.45, 0.95]) {
-      const rail = boxWithEdges(alongX ? len : 0.12, 0.14, alongX ? 0.12 : len, fenceColor);
+      const rail = boxWithEdges(alongX ? len : 0.12, 0.14, alongX ? 0.12 : len, rails);
       rail.position.set(cx, y, cz);
       cityGroup.add(rail);
     }
     const n = Math.max(1, Math.round(len / 2.5));
     for (let i = 0; i <= n; i++) {
       const t = i / n;
-      const post = boxWithEdges(0.2, 1.3, 0.2, 0x6b4a2e);
+      const post = boxWithEdges(0.2, 1.3, 0.2, posts);
       post.position.set(alongX ? x1 + (x2 - x1) * t : x1, 0.65, alongX ? z1 : z1 + (z2 - z1) * t);
       cityGroup.add(post);
     }
     longObstacle(Math.min(x1, x2) - (alongX ? 0 : 0.15), Math.min(z1, z2) - (alongX ? 0.15 : 0), Math.max(x1, x2) + (alongX ? 0 : 0.15), Math.max(z1, z2) + (alongX ? 0.15 : 0));
     mapObjects.push({ x: cx, z: cz, hx: alongX ? len / 2 : 0.2, hz: alongX ? 0.2 : len / 2, color: '#8a6a3c' });
   };
-  const gate = 4; // половина ширины калитки (проедет машина)
-  fence(fx1, yardZ1, gx - gate, yardZ1);
-  fence(gx + gate, yardZ1, fx2, yardZ1);
+  // Забор вдоль X с проемами [{ x, w }] (въезд, калитка)
+  const fenceX = (x1, x2, z, gaps, rails, posts) => {
+    let cursor = x1;
+    for (const g of [...gaps].sort((a, b) => a.x - b.x)) {
+      fence(cursor, z, g.x - g.w / 2, z, rails, posts);
+      cursor = g.x + g.w / 2;
+    }
+    fence(cursor, z, x2, z, rails, posts);
+  };
+
+  // ---------- Сельская дорога от города и улица поселка ----------
+  roadV(city.z + cityHalfZ, streetZ - streetW / 2, roadX, 'dirt', [], roadW);
+  clearZones.push({ x1: roadX - 9, x2: roadX + 9, z1: city.z + cityHalfZ, z2: streetZ });
+  const streetX1 = roadX - 96;
+  const streetX2 = roadX + 94;
+  roadH(streetX1, streetX2, streetZ, 'dirt', [], streetW);
+  // Земля поселка: газоны вдоль улицы и участок бабушки
+  const groundZ1 = streetZ - streetW / 2 - 40;
+  flatRect(streetX2 - streetX1, plotZ2 - groundZ1, 0x3a6b3d, 0.008, (streetX1 + streetX2) / 2, (groundZ1 + plotZ2) / 2);
+  mapObjects.push({ x: (streetX1 + streetX2) / 2, z: (groundZ1 + plotZ2) / 2, hx: (streetX2 - streetX1) / 2, hz: (plotZ2 - groundZ1) / 2, color: '#3a6b3d', ground: true });
+
+  // ---------- Соседи: четыре дома по обе стороны улицы, у каждого участок, забор, дорожка, машина и жильцы ----------
+  const neighbourWalls = [0xd9c9a8, 0xb7cfe0, 0xe0b0a0, 0xc4d9b0];
+  const neighbourRoofs = [0x8a3b2e, 0x4a4a52, 0x3f5a6b, 0x6b3a3a];
+  const neighbourFences = [[0xf2f1ea, 0xf2f1ea], [0x8a6a3c, 0x6b4a2e], [0x25252b, 0x25252b], [0xf2f1ea, 0xf2f1ea]];
+  const seatedAt = (cx, cz, yaw, gender) => {
+    const chair = createChair(); // стул и столик из src/locations/village/village.js
+    chair.position.set(cx, 0, cz);
+    chair.rotation.y = yaw;
+    cityGroup.add(chair);
+    const table = createTable();
+    table.position.set(cx + 1.2, 0, cz);
+    cityGroup.add(table);
+    addObstacle({ x: cx + 1.2, z: cz, hx: 0.4, hz: 0.4 });
+    const mesh = makePerson(gender);
+    mesh.position.set(cx, 0, cz);
+    mesh.rotation.y = yaw;
+    mesh.setSit(true);
+    cityGroup.add(mesh);
+    npcs.push({ mesh, gender, kind: 'resident', seated: true, hold: true, x: cx, z: cz });
+  };
+  [
+    { x: roadX - 40, side: -1, w: 15, d: 10, scenario: 'sit' }, // северная сторона: фасад на юг, к улице
+    { x: roadX + 40, side: -1, w: 17, d: 11, scenario: 'walk' },
+    { x: roadX - 34, side: 1, w: 14, d: 10, scenario: 'walk' }, // южная сторона: фасад на север
+    { x: roadX + 84, side: 1, w: 16, d: 10, scenario: 'sit' },
+  ].forEach((p, i) => {
+    const front = streetZ + p.side * (streetW / 2 + 12); // фасад дома
+    const houseCz = front + p.side * (p.d / 2);
+    const edge = streetZ + p.side * (streetW / 2 + 0.4); // забор со стороны улицы
+    const back = streetZ + p.side * (streetW / 2 + 34);
+    const [rails, posts] = neighbourFences[i];
+    flatRect(36, 33, 0x3f7040, 0.012, p.x, (edge + back) / 2);
+    const house = createHouse({
+      width: p.w, depth: p.d, wallHeight: 7.2, roofRise: 3.2, floors: 2, windows: Math.max(2, Math.round(p.w / 4.3)),
+      roof: i % 2 ? 'hip' : 'gable', ridgeAlongX: true, wallColor: neighbourWalls[i], roofColor: neighbourRoofs[i],
+    });
+    house.position.set(p.x, 0, houseCz);
+    if (p.side > 0) house.rotation.y = Math.PI;
+    cityGroup.add(house);
+    addHoverInfo(house, { kind: 'Здание', name: 'Дом в Заречье', desc: 'Двухэтажный дом соседей. Здесь все знают друг друга и Анну Петровну.' });
+    addObstacle({ x: p.x, z: houseCz, hx: p.w / 2, hz: p.d / 2 });
+    mapObjects.push({ x: p.x, z: houseCz, hx: p.w / 2, hz: p.d / 2, color: '#8a8a8a' });
+    flatRect(1.8, Math.abs(front - edge), 0x9a7a52, 0.014, p.x, (front + edge) / 2); // дорожка от калитки к двери
+    fenceX(p.x - 18, p.x + 18, edge, [{ x: p.x, w: 3 }], rails, posts);
+    fenceX(p.x - 18, p.x + 18, back, [], rails, posts);
+    fence(p.x - 18, edge, p.x - 18, back, rails, posts);
+    fence(p.x + 18, edge, p.x + 18, back, rails, posts);
+    for (const [dx, dz] of [[-14, 8], [14, 10], [-13, 25], [13, 27]]) {
+      const tx = p.x + dx;
+      const tz = streetZ + p.side * (streetW / 2 + dz);
+      const tree = createLeafyTree(pick(leafyGreens));
+      tree.position.set(tx, 0, tz);
+      tree.scale.setScalar(rand(0.9, 1.2));
+      cityGroup.add(tree);
+      addTreeCollider(tx, tz, 1);
+    }
+    addCar(p.x + 6, streetZ + p.side * 3.2, p.side < 0 ? Math.PI / 2 : -Math.PI / 2, { locked: true, lockedMsg: 'Эта машина закрыта' }); // у обочины
+    const gender = i % 2 ? 'male' : 'female';
+    if (p.scenario === 'sit') seatedAt(p.x - p.w / 2 + 2.8, front - p.side * 4.6, p.side < 0 ? 0 : Math.PI, gender);
+    else addNpc({ x1: p.x - 12, z1: front - p.side * 5, x2: p.x + 12, z2: front - p.side * 5 }, gender, 'resident');
+  });
+  // Въезд в поселок: столб с табличкой «Заречье» у перекрестка
+  {
+    const post = boxWithEdges(0.2, 2.4, 0.2, 0x5a3d26);
+    post.position.set(roadX + 7, 1.2, streetZ - streetW / 2 - 6);
+    cityGroup.add(post);
+    const board = boxWithEdges(2.6, 0.8, 0.12, 0x2f6fb0);
+    board.position.set(roadX + 7, 2.4, streetZ - streetW / 2 - 6);
+    cityGroup.add(board);
+    addHoverInfo(board, { kind: 'Знак', name: 'Заречье', desc: 'Поселок за городом. Сельская дорога идет от города, а за домами — овраг и лес.' });
+    addObstacle({ x: roadX + 7, z: streetZ - streetW / 2 - 6, hx: 0.2, hz: 0.2 });
+  }
+
+  // ---------- Участок Анны Петровны ----------
+  flatRect(fx2 - fx1, plotZ2 - yardZ1, 0x3a6b3d, 0.01, gx - 3, (yardZ1 + plotZ2) / 2);
+  mapObjects.push({ x: gx - 3, z: (yardZ1 + plotZ2) / 2, hx: (fx2 - fx1) / 2, hz: (plotZ2 - yardZ1) / 2, color: '#3a6b3d', ground: true });
+  clearZones.push({ x1: streetX1 - 6, x2: streetX2 + 6, z1: groundZ1 - 6, z2: plotZ2 + 6 });
+
+  // Подъездная дорожка к гаражу: бетон от улицы до дверей гаража, на ней две машины
+  flatRect(driveW, houseFront - yardZ1 + 0.4, 0x8d8d90, 0.016, driveX, (yardZ1 + houseFront) / 2);
+  flatRect(driveW + 4, 2.4, 0x8d8d90, 0.016, driveX, yardZ1 - 0.6); // расширение у улицы (бордюр опущен)
+  mapObjects.push({ x: driveX, z: (yardZ1 + houseFront) / 2, hx: driveW / 2, hz: (houseFront - yardZ1) / 2, color: '#8d8d90', ground: true });
+  // Дорожка к крыльцу от калитки
+  flatRect(1.8, houseFront - 2.6 - yardZ1, 0x9a7a52, 0.015, gx, (yardZ1 + houseFront - 2.6) / 2);
+  // Старая машина бабушки у гаража, рядом свободное место для машины героя
+  addCar(driveX + 2.0, houseFront - 5.2, Math.PI, { locked: true, lockedMsg: 'Это машина Анны Петровны', color: 0x9aa0a8 });
+  // Почтовый ящик у обочины
+  {
+    const post = boxWithEdges(0.12, 1.1, 0.12, 0x5a3d26);
+    post.position.set(driveX + driveW / 2 + 2.4, 0.55, yardZ1 - 1.2);
+    cityGroup.add(post);
+    const box = boxWithEdges(0.5, 0.4, 0.8, 0x2f6fb0);
+    box.position.set(driveX + driveW / 2 + 2.4, 1.25, yardZ1 - 1.2);
+    cityGroup.add(box);
+    addHoverInfo(box, { kind: 'Почтовый ящик', name: 'Почтовый ящик', desc: 'Синий ящик у обочины: «А. П. Соколова».' });
+    addObstacle({ x: driveX + driveW / 2 + 2.4, z: yardZ1 - 1.2, hx: 0.3, hz: 0.3 });
+  }
+
+  // Дом Анны Петровны: фасад на север, к улице
+  placeBuilding('grandma_house', { x: gx, z: houseZ, heading: Math.PI });
+
+  // Забор участка: вдоль улицы с въездом и калиткой к крыльцу, по бокам и сзади; сзади — проход к оврагу
+  fenceX(fx1, fx2, yardZ1, [{ x: driveX, w: driveW }, { x: gx, w: 2 }]);
   fence(fx1, yardZ1, fx1, plotZ2);
   fence(fx2, yardZ1, fx2, plotZ2);
   fence(fx1, plotZ2, gx - 1.2, plotZ2);
   fence(gx + 1.2, plotZ2, fx2, plotZ2);
-  // Между двором и участком: забор от углов дома, по бокам узкие проходы (машина не пролезет)
-  const hw = grandmaW / 2 + 1.6;
-  fence(fx1, houseZ, gx - hw, houseZ);
-  fence(gx + hw, houseZ, fx2, houseZ);
+  // Между лужайкой и огородом: забор от гаража и от правого угла дома, узкие проходы (машина не пролезет)
+  fence(fx1 + 1.6, houseZ + grandmaD / 2 + 1, gx - grandmaW / 2 - 0.2, houseZ + grandmaD / 2 + 1);
+  fence(gx + grandmaW / 2 + 1.6, houseZ + grandmaD / 2 + 1, fx2, houseZ + grandmaD / 2 + 1);
+  const gardenZ = houseZ + grandmaD / 2 + 2; // огород и сад — сзади дома
 
   // Участок: грядки, яблони, сарай, тропинка к оврагу
-  for (let i = 0; i < 4; i++) flatRect(2.2, 9, 0x6b4a2e, 0.012, gx - 15 + i * 3.4, houseZ + 15);
-  flatRect(1.6, plotZ2 - houseZ - 5, 0x9a7a52, 0.011, gx, (houseZ + 5 + plotZ2) / 2);
-  for (const [dx, dz] of [[9, 9], [15, 12], [10, 20], [16, 24], [-19, 18]]) {
+  for (let i = 0; i < 4; i++) flatRect(2.2, 7, 0x6b4a2e, 0.012, gx - 12 + i * 3.4, gardenZ + 8);
+  flatRect(1.6, plotZ2 - gardenZ, 0x9a7a52, 0.011, gx, (gardenZ + plotZ2) / 2);
+  for (const [dx, dz] of [[10, 6], [15, 12], [-16, 12], [10, 18], [-14, 20]]) {
     const tree = createLeafyTree(pick(leafyGreens));
-    tree.position.set(gx + dx, 0, houseZ + dz);
+    tree.position.set(gx + dx, 0, gardenZ + dz);
     tree.scale.setScalar(1.3);
     cityGroup.add(tree);
-    addTreeCollider(gx + dx, houseZ + dz, 1.3);
+    addTreeCollider(gx + dx, gardenZ + dz, 1.3);
     for (let k = 0; k < 4; k++) {
       const apple = boxWithEdges(0.3, 0.3, 0.3, 0xc43a3a);
-      apple.position.set(gx + dx + rand(-1.4, 1.4), rand(3.4, 5), houseZ + dz + rand(-1.4, 1.4));
+      apple.position.set(gx + dx + rand(-1.4, 1.4), rand(3.4, 5), gardenZ + dz + rand(-1.4, 1.4));
       cityGroup.add(apple);
     }
   }
+  // Лужайка перед домом: пара берез у забора
+  for (const [dx, dz] of [[-21, 6], [14, 8]]) {
+    const tree = createLeafyTree(pick(leafyGreens));
+    tree.position.set(gx + dx, 0, yardZ1 + dz);
+    tree.scale.setScalar(1.2);
+    cityGroup.add(tree);
+    addTreeCollider(gx + dx, yardZ1 + dz, 1.2);
+  }
   {
     const shed = createHouse({ width: 5, depth: 4, wallHeight: 2.6, roofRise: 1.2, wallColor: 0x7a6a58, roofColor: 0x4a4a52 });
-    shed.position.set(gx - 15, 0, houseZ + 26);
+    shed.position.set(gx - 15, 0, gardenZ + 16);
     cityGroup.add(shed);
     addHoverInfo(shed, { kind: 'Здание', name: 'Сарай', desc: 'Старый сарай Анны Петровны: инструменты, банки и дрова.' });
-    addObstacle({ x: gx - 15, z: houseZ + 26, hx: 2.5, hz: 2 });
-    mapObjects.push({ x: gx - 15, z: houseZ + 26, hx: 2.5, hz: 2, color: '#7a6a58' });
+    addObstacle({ x: gx - 15, z: gardenZ + 16, hx: 2.5, hz: 2 });
+    mapObjects.push({ x: gx - 15, z: gardenZ + 16, hx: 2.5, hz: 2, color: '#7a6a58' });
   }
 
   // Овраг с ручьем: длинный, вырыт ниже земли (в земле для него прогал, src/world/ground.js), перейти можно только по бревну у тропинки
@@ -274,8 +368,8 @@
     addTreeCollider(tx, tz, 2.2);
   }
 
-  const rect = { x1: fx1 - 6, x2: fx2 + 6, z1: yardZ1 - 6, z2: ravineZ + 10 };
-  registerZone('zarechye', 'Заречье: дом Анны Петровны', rect, { birds: 0.6, birds_2: 0.35 });
+  const rect = { x1: streetX1 - 6, x2: streetX2 + 6, z1: groundZ1 - 6, z2: ravineZ + 10 };
+  registerZone('zarechye', 'Заречье', rect, { birds: 0.6, birds_2: 0.35 });
   clearZones.push(rect);
   // Лес за оврагом с тропинкой и поляной: свой звук леса
   registerZone('zarechye_woods', 'Лес за Заречьем', { x1: treeX - 40, x2: gx + 8, z1: ravineZ + 10, z2: treeZ + 24 }, { forest_birds: 0.6, birds: 0.25 });
