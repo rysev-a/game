@@ -250,6 +250,8 @@ function createScooter(options = {}) {
     rider.scale.setScalar(0.9); // мотороллер небольшой, водитель чуть меньше обычного роста
     rider.position.set(0, 0.32, 0.4);
     rider.updateWalk(0, 0);
+    rider.visible = false; // пока на мотороллер никто не сел, водителя на нем нет: фигура появляется, когда за руль садится герой (updateVehicle, src/world/vehicles.js)
+    k.root.userData.rider = rider;
     k.body.add(rider);
   } else {
     k.part(0.4, 0.5, 0.26, 0x2f6fb0).position.set(0, 1.12, 0.35);

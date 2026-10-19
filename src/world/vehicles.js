@@ -197,6 +197,8 @@ const vehicleSmokePos = new THREE.Vector3();
 const vehicleHitColor = new THREE.Color(0xff5a3a);
 
 function updateVehicle(car) {
+  const rider = car.mesh.userData.rider; // водитель-Максим на мотороллере виден, только когда герой за рулем
+  if (rider) rider.visible = drivingCar === car;
   if (car.smoking && Math.random() < (car.broken ? 0.5 : 0.18)) {
     car.mesh.userData.exhaust.getWorldPosition(vehicleSmokePos);
     cityGroup.worldToLocal(vehicleSmokePos);
