@@ -3,8 +3,8 @@
 // (GAME_LOCATION === 'main') и только при настоящем запуске: не при переходе между локациями (sessionStorage 'game.transit') и не с ?nomenu в адресе.
 // Пока меню открыто, игра стоит (gameFrozen в src/quests/supers-ui.js смотрит на mainMenuOpen): телефон не звонит, таймеры и время не идут.
 //
-// Фон: картинка assets/menu/cover.png (16:9, герои справа, слева свободное место под кнопки; описание — docs/art/menu-art-prompt.md).
-// Пока файла нет, рисуется запасная пиксельная сцена: ночной город, Максим, Вера, Штерн и киборг.
+// Фон: пиксельная сцена (ночной город, Максим, Вера, Штерн и киборг) или картинка по COVER_URL (16:9, герои справа, слева место под кнопки;
+// описание — docs/art/menu-art-prompt.md). Комикс из Figma лежит в assets/menu/cover-comic.png: чтобы включить его, впишите путь в COVER_URL.
 //
 // «Новая игра» просто закрывает меню (страница и так начинает историю заново). «Загрузить» показывает знаки браслета (src/player/saves.js):
 // клик по знаку возвращает в то мгновение, как и в игре, только браслет на руке для этого не нужен: он восстановится из сохранения.
@@ -23,7 +23,8 @@ let mainMenuOpen = false;
 
   const GAME_TITLE = 'Дело Веры';
   const GAME_TAGLINE = 'Максим вернулся, чтобы узнать, что случилось на самом деле';
-  const COVER_URL = 'assets/menu/cover.png';
+  // Картинка заставки: null — запасная пиксельная сцена (сейчас включена), 'assets/menu/cover-comic.png' — комикс из Figma (лежит рядом)
+  const COVER_URL = null;
 
   mainMenuOpen = true;
 
@@ -201,7 +202,7 @@ let mainMenuOpen = false;
     art.height = cover.naturalHeight;
     art.getContext('2d').drawImage(cover, 0, 0);
   };
-  cover.src = COVER_URL;
+  if (COVER_URL) cover.src = COVER_URL;
 
   // ---------- Кнопки ----------
   let view = 'main';
