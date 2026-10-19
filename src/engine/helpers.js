@@ -10,6 +10,17 @@ const mapIcons = []; // значки мест на миникарте: { x, z, i
 const clearZones = []; // где лес не растет: { x1, x2, z1, z2 } — модули мира добавляют свои зоны
 
 const cityEdgeMat = new THREE.LineBasicMaterial({ color: 0x111111 });
+// Добавки к высоте земли для героя (бревно через овраг и т. п.): функции (x, z) → высота или null. Трасса учитывает их вместе со своей (src/world/highway.js)
+const groundExtras = [];
+function groundExtraHeight(x, z, base) {
+  let h = base;
+  for (const f of groundExtras) {
+    const v = f(x, z);
+    if (v !== null && v !== undefined && v > h) h = v;
+  }
+  return h;
+}
+
 function boxWithEdges(w, h, d, color) {
   const geo = new THREE.BoxGeometry(w, h, d);
   const mesh = new THREE.Mesh(geo, new LitMaterial({ color }));

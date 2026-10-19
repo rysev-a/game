@@ -51,7 +51,7 @@ defineBuilding('treehouse', {
       room.part(0.3, 0.4, 0.3, 0x3fa35b, -7.1, 1.15, 0.2); // колба
       room.part(0.3, 0.5, 0.3, 0x3fa35b, -6.8, 1.2, 0.6);
       stations.push({
-        floor: 0, x: -5.8, z: -1, id: 'workbench', label: 'E — верстак',
+        floor: 0, x: -5.8, z: -1, id: 'workbench', label: 'E — верстак', at: { x: -7.1, z: -1, y: 1.5 }, // at — сам объект (подсветка и клик, src/quests/guide.js)
         act: () => showToast('Верстак Веры. Позже здесь можно будет синтезировать эликсир и собирать простые вещи.', 4500),
       });
       // Стол с ноутбуком Веры
@@ -59,7 +59,7 @@ defineBuilding('treehouse', {
       room.part(0.9, 0.06, 0.6, 0x2a2a30, -2.5, 0.83, -5.0);
       room.part(0.9, 0.6, 0.06, 0x3a7bd5, -2.5, 1.13, -5.3);
       stations.push({
-        floor: 0, x: -2.5, z: -3.8, id: 'laptop', label: 'E — ноутбук Веры', // id: квест может перехватить E (interactions)
+        floor: 0, x: -2.5, z: -3.8, id: 'laptop', label: 'E — ноутбук Веры', at: { x: -2.5, z: -5.0, y: 1.5 }, // id: квест может перехватить E (interactions)
         act: () => showToast('Ноутбук Веры. Пароля нет, на экране открыта переписка...', 4500),
         use: { floppy: () => showToast('Ноутбук Веры читает дискету: на ней одна папка, и та под паролем.', 4500) },
       });
@@ -67,7 +67,7 @@ defineBuilding('treehouse', {
       room.part(2.4, 1.4, 0.06, 0xd8c9a0, 2.0, 1.8, -treehouseD / 2 + 0.05);
       for (let i = 0; i < 5; i++) room.part(0.45, 0.35, 0.03, [0xf1ede2, 0xe0c341, 0xe58a2f][i % 3], 1.2 + i * 0.4, 1.6 + (i % 2) * 0.4, -treehouseD / 2 + 0.1);
       stations.push({
-        floor: 0, x: 2.0, z: -4.9, id: 'notes', label: 'E — записи Веры',
+        floor: 0, x: 2.0, z: -4.9, id: 'notes', label: 'E — записи Веры', at: { x: 2.0, z: -4.95, y: 2.55 },
         act: () => showToast('Записи и заметки Веры: рецепты, схемы и подсказки к тайникам.', 4500),
       });
       // Полка с приборами Веры и запасом эликсира

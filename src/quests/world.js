@@ -81,6 +81,7 @@
     const reach = sp.r || 3.2;
     const it = sp.noInteract ? null : addInteractable({
       priority: 2,
+      clickPoint: () => (insideBuilding() || drivingCar || dialogueOpen ? null : { x, z, y: 1.2, r: reach + 0.6 }), // клик по объекту — как E (src/player/click-move.js)
       near: () => !insideBuilding() && !drivingCar && !dialogueOpen && Math.hypot(playerWorldX - x, playerWorldZ - z) < reach,
       prompt: () => sp.label || 'E — осмотреть: ' + (sp.name || ''),
       act: () => {

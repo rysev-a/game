@@ -236,7 +236,7 @@ function buildHighway(xStart, xEnd) {
   }
 
   // Земля: по высоте полотна едут машины, ходит игрок (walkOnHills, src/player/player.js)
-  groundHeightAt = highwayGroundHeight;
+  groundHeightAt = (x, z) => groundExtraHeight(x, z, highwayGroundHeight(x, z));
   walkOnHills = true;
 
   plantHighwayBushes(xStart, ruralEnd);

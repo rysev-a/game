@@ -92,6 +92,7 @@ function placeBuilding(id, { x, z, heading = 0, full = true } = {}) {
         priority: 2,
         stationId: st.id, // для подсветки цели квеста (src/quests/guide.js)
         stationPos: () => w,
+        clickPoint: () => (insideBuilding() || drivingCar || dialogueOpen ? null : { x: w.x, z: w.z, y: 1.2, r: (st.radius || 2.6) + 0.6 }), // клик по объекту — как E (src/player/click-move.js)
         near: () =>
           !insideBuilding() && !drivingCar && Math.hypot(playerWorldX - w.x, playerWorldZ - w.z) < (st.radius || 2.6),
         prompt: () => (typeof st.label === 'function' ? st.label() : st.label),
@@ -205,7 +206,12 @@ function placeBuilding(id, { x, z, heading = 0, full = true } = {}) {
         addInteractable({
           priority: 2,
           stationId: st.id,
-          stationPos: () => ({ x: st.x, z: floorZ[st.floor] + st.z }),
+          stationPos: () => ({ x: (st.at || st).x, z: floorZ[st.floor] + (st.at || st).z, top: st.at ? st.at.y : undefined }), // at — сам объект, если он не там, где стоит герой
+          clickPoint: () => {
+            const ci = currentInterior();
+            const o = st.at || st;
+            return ci && ci.def === idef && ci.floor === st.floor && !dialogueOpen ? { x: o.x, z: floorZ[st.floor] + o.z, y: st.at ? st.at.y * 0.7 : 1.2, r: (st.radius || 2.4) + 0.6 } : null;
+          },
           near: () => !dialogueOpen && here(st.floor, st, st.radius || 2.4),
           prompt: () => (typeof st.label === 'function' ? st.label() : st.label),
           act: stationAct(st),

@@ -19,8 +19,7 @@
   const yardZ1 = city.z + cityHalfZ + 20; // северный край двора (калитка)
   const houseZ = yardZ1 + 14; // центр дома, фасад на север (к дороге)
   const plotZ2 = houseZ + 32; // южный край участка
-  const ravineZ = plotZ2 + 8; // ось оврага
-  const ravineHalf = 4;
+  if (plotZ2 + 8 !== ravineZ) console.warn('Заречье: ось оврага не совпала с ravineZ в src/locations/shared/coords.js (' + (plotZ2 + 8) + ' и ' + ravineZ + ')');
   const treeX = gx - 70; // домик Веры далеко за оврагом, в стороне от дома: так просто не увидишь
   const treeZ = ravineZ + 150;
   const fx1 = gx - 22;
@@ -107,25 +106,54 @@
     mapObjects.push({ x: gx - 15, z: houseZ + 26, hx: 2.5, hz: 2, color: '#7a6a58' });
   }
 
-  // Овраг с ручьем: длинный, перейти можно только по старому бревну у тропинки
+  // Овраг с ручьем: длинный, вырыт ниже земли (в земле для него прогал, src/world/ground.js), перейти можно только по бревну у тропинки
   const rx1 = riverX + riverHalf + 1; // от реки
   const rx2 = worldCenter.x + worldRadius + 10; // до самого забора мира
-  flatRect(rx2 - rx1, ravineHalf * 2 + 2, 0x6b5238, 0.009, (rx1 + rx2) / 2, ravineZ); // склоны
-  flatRect(rx2 - rx1, ravineHalf * 2 - 2, 0x3a2a1c, 0.01, (rx1 + rx2) / 2, ravineZ); // дно
-  flatRect(rx2 - rx1, 1.4, 0x3a6a8a, 0.012, (rx1 + rx2) / 2, ravineZ); // ручей
+  {
+    // Поперечный разрез: земля у края (y = 0) → откос → ровное дно (−1,3) со ручьем (воды по пояс −1,15). Полоса вдоль x, склоны и дно — отдельные меши
+    const slopeEdge = ravineHalf + 1;
+    const bedHalf = ravineHalf - 2;
+    const bed = -1.3;
+    const strip = (profile, color) => {
+      const pos = [];
+      const idx = [];
+      profile.forEach(([dz, y], i) => pos.push(rx1, y, ravineZ + dz, rx2, y, ravineZ + dz));
+      for (let i = 0; i < profile.length - 1; i++) {
+        const l = i * 2;
+        idx.push(l, l + 1, l + 2, l + 1, l + 3, l + 2);
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      geo.setIndex(idx);
+      cityGroup.add(new THREE.Mesh(geo, new LitMaterial({ color, side: THREE.DoubleSide })));
+    };
+    strip([[-slopeEdge, 0.003], [-bedHalf, bed]], 0x6b5238); // северный откос
+    strip([[bedHalf, bed], [slopeEdge, 0.003]], 0x6b5238); // южный откос
+    strip([[-bedHalf, bed], [bedHalf, bed]], 0x3a2a1c); // дно
+    strip([[-0.7, bed + 0.15], [0.7, bed + 0.15]], 0x3a6a8a); // ручей: ниже уровня земли
+  }
   mapObjects.push({ x: (rx1 + rx2) / 2, z: ravineZ, hx: (rx2 - rx1) / 2, hz: ravineHalf + 1, color: '#4a3826', ground: true });
   const logHalf = 0.8;
-  longObstacle(rx1, ravineZ - ravineHalf, gx - logHalf, ravineZ + ravineHalf);
-  longObstacle(gx + logHalf, ravineZ - ravineHalf, rx2, ravineZ + ravineHalf);
+  longObstacle(rx1, ravineZ - ravineHalf - 1, gx - logHalf, ravineZ + ravineHalf + 1); // весь вырытый овраг, вместе с откосами
+  longObstacle(gx + logHalf, ravineZ - ravineHalf - 1, rx2, ravineZ + ravineHalf + 1);
+  // Бревно: низкое, лежит концами на берегах, верх чуть выше земли (0,28); герой идет по нему, а не сквозь (groundExtras поднимает землю под ним)
+  const logTop = 0.28;
+  const logRadius = 0.45;
   {
-    const geo = new THREE.CylinderGeometry(0.55, 0.65, ravineHalf * 2 + 4, 7);
+    const geo = new THREE.CylinderGeometry(logRadius, logRadius + 0.05, ravineHalf * 2 + 5, 8);
     geo.rotateX(Math.PI / 2);
     const log = new THREE.Mesh(geo, new LitMaterial({ color: 0x6b4a2e }));
     log.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), cityEdgeMat));
-    log.position.set(gx, 0.35, ravineZ);
+    log.position.set(gx, logTop - logRadius, ravineZ);
     cityGroup.add(log);
     mapObjects.push({ x: gx, z: ravineZ, hx: 0.6, hz: ravineHalf + 2, color: '#8a6a3c' });
   }
+  groundExtras.push((x, z) => {
+    if (Math.abs(x - gx) > 0.75) return null;
+    const over = Math.abs(z - ravineZ) - (ravineHalf + 1); // за краем оврага бревно плавно уходит в землю
+    if (over > 1.8) return null;
+    return logTop * Math.min(1, Math.max(0, 1 - over / 1.8));
+  });
   globalThis.navLinks = globalThis.navLinks || [];
   globalThis.navLinks.push({ a: { x: gx, z: ravineZ - ravineHalf - 1.5 }, b: { x: gx, z: ravineZ + ravineHalf + 1.5 } }); // бревно для поиска пути (src/quests/guide.js)
   // Кусты вдоль оврага

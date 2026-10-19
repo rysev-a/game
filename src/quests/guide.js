@@ -371,8 +371,13 @@
     for (const item of itemIdsOf(step.done)) {
       for (const p of pickables) {
         if (p.id !== item || !p.mesh || !p.mesh.visible || (p.canPick && !p.canPick())) continue;
-        const pos = localOf(p.mesh);
-        if (Math.hypot(pos.x - playerWorldX, pos.z - playerWorldZ) < 40) return { x: pos.x, z: pos.z, y: pos.y + 1.3 };
+        // Ромбик строго над вещью: по центру ее габаритов и чуть выше верхней точки (кольца на земле у вещи нет)
+        const box = new THREE.Box3().setFromObject(p.mesh);
+        const top = box.max.clone();
+        const mid = box.getCenter(new THREE.Vector3());
+        cityGroup.worldToLocal(top);
+        cityGroup.worldToLocal(mid);
+        if (Math.hypot(mid.x - playerWorldX, mid.z - playerWorldZ) < 40) return { x: mid.x, z: mid.z, y: top.y + 0.45, abs: true, noRing: true };
       }
     }
     const marker = g.currentMarker();
@@ -422,7 +427,8 @@
             const d = Math.hypot(p.x - playerWorldX, p.z - playerWorldZ);
             if (d < bestD) {
               bestD = d;
-              pos = { x: p.x, z: p.z, y: 2.3 };
+              // Если известна верхняя точка объекта, ромбик строго над ним и без кольца на земле
+              pos = p.top !== undefined ? { x: p.x, z: p.z, y: p.top + 0.45, abs: true, noRing: true } : { x: p.x, z: p.z, y: 2.3 };
             }
           }
         } else if (it.on.startsWith('spot:')) {
@@ -590,8 +596,12 @@
       m.group.visible = true;
       const gy = insideBuilding() ? 0 : groundHeightAt(o.x, o.z, 9);
       m.group.position.set(o.x, 0, o.z);
-      m.diamond.position.y = (o.y > 2.5 ? gy : 0) + o.y + Math.sin(t * DESIGN.motion.bob) * 0.2;
+      // Ромб поменьше, чем раньше; над вещью он висит прямо над ней и покачивается совсем чуть-чуть
+      const size = o.abs ? 0.5 : 0.65;
+      m.diamond.scale.set(size, size * 1.4, size);
+      m.diamond.position.y = o.abs ? o.y + Math.sin(t * DESIGN.motion.bob) * 0.06 : (o.y > 2.5 ? gy : 0) + o.y + Math.sin(t * DESIGN.motion.bob) * 0.15;
       m.diamond.rotation.y = t * DESIGN.motion.spin;
+      m.ring.visible = !o.noRing;
       m.ring.position.y = gy + 0.15;
       const pulse = 1 + 0.25 * Math.sin(t * DESIGN.motion.bob);
       m.ring.scale.set(pulse, 1, pulse);

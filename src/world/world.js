@@ -17,5 +17,10 @@ buildRoadMeshes();
   const groundX1 = worldBounds.minX - 60;
   const groundX2 = worldBounds.maxX + 60;
   flatRect(riverX - riverHalf - groundX1, forestGroundD, 0x1f3a26, 0.004, (groundX1 + riverX - riverHalf) / 2, 0);
-  flatRect(groundX2 - riverX - riverHalf, forestGroundD, 0x1f3a26, 0.004, (riverX + riverHalf + groundX2) / 2, 0);
+  // Восточнее реки в земле прогал для оврага (ravineGap, src/locations/shared/coords.js)
+  const eastX = riverX + riverHalf;
+  const northD = forestGroundD / 2 + ravineGap.z1;
+  const southD = forestGroundD / 2 - ravineGap.z2;
+  flatRect(groundX2 - eastX, northD, 0x1f3a26, 0.004, (eastX + groundX2) / 2, (ravineGap.z1 - forestGroundD / 2) / 2);
+  flatRect(groundX2 - eastX, southD, 0x1f3a26, 0.004, (eastX + groundX2) / 2, (ravineGap.z2 + forestGroundD / 2) / 2);
 }
