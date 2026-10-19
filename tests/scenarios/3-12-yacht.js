@@ -4,7 +4,7 @@ defineScenario('3.12', {
   title: 'Яхта Барона проходится: следы, вечер, бой с киборгами, серийные номера',
   done: ['1.03'],
   steps: [
-    { do: [{ start: '3.12' }], expect: ['quest:3.12', 'fact:Ф41'] },
+    { do: [{ start: '3.12' }], expect: ['quest:3.12', 'fact:Ф41', 'has:arc_discharger'] },
     { interact: 'spot:inc1', expect: 'count:clues>=1' },
     { interact: 'spot:inc2', expect: ['count:clues>=2', 'step:3.12.clues'] },
     { at: 'river.yacht', expectNot: 'step:3.12.evening' }, // днем у яхты рано
