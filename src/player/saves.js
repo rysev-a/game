@@ -58,7 +58,7 @@ function captureGame() {
     place: currentZone().name,
     player: { x: playerWorldX, z: playerWorldZ, rotation: worldRotation, heading: playerHeading, driving: drivingCar === car },
     car: { x: car.x, z: car.z, heading: car.heading, fuel: car.fuel, trunk: car.trunk ? car.trunk.canisters : 0, garageOpen: garage.open }, // trunk — канистры в багажнике
-    inventory: [...inventory.items],
+    inventory: [...inventory.special, ...inventory.items], // рюкзак и кошелек записаны как вещи, но в сетке их нет
     devices: [...heroDevices.worn],
     equip: captureEquip(), // броня, ботинки, оружие в ячейках (src/player/equipment.js)
     weather: { gameTime, rainOn, snowOn, weather, rainManual, snowManual, rainEndedAt },
@@ -97,7 +97,9 @@ function applyGame(data) {
 
   // Инвентарь и вещи, лежащие в доме (взятые — исчезают, остальные на месте)
   // Удостоверение (badge) из старых сохранений стало пропуском в IT-компанию
-  inventory.items = data.inventory.map((id) => (id === 'badge' ? 'itpass' : id)).filter((id) => ITEMS[id]);
+  const saved = data.inventory.map((id) => (id === 'badge' ? 'itpass' : id)).filter((id) => ITEMS[id]);
+  inventory.special = saved.filter((id) => SPECIAL_ITEMS.includes(id)); // в старых сохранениях они лежали в сетке
+  inventory.items = saved.filter((id) => !SPECIAL_ITEMS.includes(id));
   // Приборы: возврат идет с памятью, поэтому надетое сейчас не снимается, а надетое тогда — надевается
   for (const id of data.devices || []) if (DEVICES[id]) wearDevice(id, true);
   applyEquip(data.equip);

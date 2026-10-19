@@ -7,13 +7,14 @@
 // Зависимость: глобальный THREE (three.js r128+).
 
 function createBraceletModel() {
+  // Аккуратный, как смарт-часы: узкий темный ремешок вокруг запястья и одна голубая полоска на внешней стороне левой руки (−X), больше ничего
   const g = new THREE.Group();
-  const band = new LitMaterial({ color: 0x2a2e38 });
+  const band = new LitMaterial({ color: 0x1b1e24 });
   const glow = new THREE.MeshBasicMaterial({ color: 0x6ff0ff });
-  const edge = new THREE.LineBasicMaterial({ color: 0x111111 });
-  // Рука 0,16 × 0,16: обод — четыре планки вокруг нее
-  const t = 0.035; // толщина обода
-  const o = 0.16 / 2 + t / 2 + 0.005; // расстояние от оси руки до середины планки
+  const edge = new THREE.LineBasicMaterial({ color: 0x0b0c0f });
+  // Рука 0,16 × 0,16: ремешок — четыре тонкие планки вплотную к ней
+  const t = 0.022; // толщина ремешка
+  const o = 0.16 / 2 + t / 2 + 0.004; // расстояние от оси руки до середины планки
   const add = (w, h, d, mat, x, y, z) => {
     const geo = new THREE.BoxGeometry(w, h, d);
     const m = new THREE.Mesh(geo, mat);
@@ -22,22 +23,16 @@ function createBraceletModel() {
     g.add(m);
     return m;
   };
-  const len = 0.16 + t * 2 + 0.01;
-  add(t, 0.09, len, band, -o, 0, 0);
-  add(t, 0.09, len, band, o, 0, 0);
-  add(len, 0.09, t, band, 0, 0, -o);
-  add(len, 0.09, t, band, 0, 0, o);
-  // Светящиеся полоски на всех четырех сторонах: видно с любой стороны камеры
-  for (const [x, z, w, d] of [
-    [-o - t / 2 - 0.004, 0, 0.008, 0.14],
-    [o + t / 2 + 0.004, 0, 0.008, 0.14],
-    [0, -o - t / 2 - 0.004, 0.14, 0.008],
-    [0, o + t / 2 + 0.004, 0.14, 0.008],
-  ]) {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.035, d), glow);
-    m.position.set(x, 0, z);
-    g.add(m);
-  }
+  const len = 0.16 + t * 2 + 0.008;
+  const h = 0.075; // ширина ремешка вдоль руки
+  add(t, h, len, band, -o, 0, 0);
+  add(t, h, len, band, o, 0, 0);
+  add(len, h, t, band, 0, 0, -o);
+  add(len, h, t, band, 0, 0, o);
+  // Одна голубая полоска вдоль руки на внешней стороне
+  const strip = new THREE.Mesh(new THREE.BoxGeometry(0.006, h * 0.72, 0.034), glow);
+  strip.position.set(-o - t / 2 - 0.003, 0, 0);
+  g.add(strip);
   return g;
 }
 

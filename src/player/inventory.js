@@ -63,7 +63,10 @@ for (const id in DEVICES) {
   if (!ITEMS[id]) ITEMS[id] = { name: DEVICES[id].name, icon: id, kind: 'device', desc: DEVICES[id].desc };
 }
 
-const hasBackpack = () => inventory.items.includes('backpack');
+// Рюкзак и кошелек — не вещи в ячейках: рюкзак сам и есть инвентарь, а кошелек и сумма в нем видны слева вверху рядом с телефоном. Они лежат в
+// inventory.special, а для условий квестов и сохранений остаются вещами с теми же id (hasItem, addItem, removeItem их понимают)
+const SPECIAL_ITEMS = ['backpack', 'wallet'];
+const hasBackpack = () => inventory.special.includes('backpack');
 
 // Деньги героя — счетчик money квестовой системы. Кошелек при первом взятии наполняется walletStartMoney: на заправки хватит с большим запасом.
 // Без квестовой системы (ДЕМО) денег нет вовсе и всё бесплатно
@@ -84,6 +87,7 @@ const inventory = {
   columns: 8,
   collapsedCells: 3, // в свернутом виде видны первые три
   quickSlots: 4, // под ними всегда видны четыре слота сохранения (первые четыре из 16)
+  special: [], // вещи без ячейки: 'backpack' (сам инвентарь), 'wallet' (виден отдельно у телефона)
   items: [], // id вещей по порядку ячеек; в начале игры инвентарь пуст
 };
 
@@ -343,10 +347,18 @@ window.addEventListener('keydown', (e) => {
 
 // ---------- Вещи ----------
 
-const hasItem = (id) => inventory.items.includes(id) || (typeof isEquipped === 'function' && isEquipped(id));
+const hasItem = (id) => inventory.special.includes(id) || inventory.items.includes(id) || (typeof isEquipped === 'function' && isEquipped(id));
 
 function addItem(id) {
   if (hasItem(id) || inventory.items.length >= inventory.size) return false;
+  if (SPECIAL_ITEMS.includes(id)) {
+    inventory.special.push(id); // ячейки под них не нужны
+    renderInventory();
+    showToast('Взято: ' + ITEMS[id].name);
+    if (ITEMS[id].onTake) ITEMS[id].onTake();
+    playPickupClick();
+    return true;
+  }
   if (!hasBackpack() && id !== 'backpack' && !ITEMS[id].pocket) {
     showToast('Некуда положить: без рюкзака в карманах только ключи, телефон и кошелек.');
     return false;
@@ -368,6 +380,8 @@ function registerCarKey(car, name) {
 }
 
 function removeItem(id) {
+  const sp = inventory.special.indexOf(id);
+  if (sp >= 0) inventory.special.splice(sp, 1);
   const i = inventory.items.indexOf(id);
   if (i >= 0) inventory.items.splice(i, 1);
   if (typeof dropEquipped === 'function') dropEquipped(id);

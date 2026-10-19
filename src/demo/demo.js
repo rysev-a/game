@@ -429,7 +429,7 @@ if (inLab) {
 // Браслет возврата сразу лежит в инвентаре: открыть инвентарь (I) и кликнуть — он защелкнется на руке
 // и встанет в ячейку «браслет» нижней панели. Всё оружие — тоже с собой. С собой — полный запас эликсира (src/player/equipment.js)
 // Бесконечный рюкзак — сразу с собой: в нем всё оружие и все вещи, место не кончается (src/player/inventory.js)
-if (!hasItem('backpack')) inventory.items.unshift('backpack');
+if (!hasItem('backpack')) inventory.special.push('backpack'); // бесконечный рюкзак — это и есть инвентарь
 if (!hasItem('bracelet')) inventory.items.push('bracelet');
 // Всё оружие сразу с собой: первые восемь — в активных ячейках внизу, остальное — в инвентаре
 for (const id of Object.keys(WEAPONS)) {
