@@ -58,6 +58,8 @@ defineScenario('2.14', {
     { do: [{ start: '2.14' }] },
     { at: 'zarechye.house', expect: 'step:2.14.visit' },
     { talk: 'anna', pick: [0, 0], see: 'Заходи, пирогами накормлю', expect: ['step:2.14.talk', 'fact:Ф39', 'step:2.14.night'] },
-    { fight: '2.14.monsters', expect: ['fight:2.14.monsters', 'count:money>=200', 'done:2.14', 'quest:2.11'] },
+    { fight: '2.14.monsters', expect: ['fight:2.14.monsters', 'count:money>=200', 'step:2.14.defend', '!step:2.14.recall'] },
+    { talk: 'anna', pick: [0], see: 'голова дырявая', expect: 'step:2.14.recall' }, // бабушка случайно вспомнила про пианино Веры
+    { interact: 'station:piano', expect: ['has:arc_discharger', 'has:pulse_laser', 'has:bazooka', 'step:2.14.piano', 'done:2.14', 'quest:2.11'] },
   ],
 });
