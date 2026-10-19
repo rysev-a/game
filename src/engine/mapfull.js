@@ -38,6 +38,14 @@ mapFullStyle.textContent = `
     max-width: min(520px, calc(100% - 140px)); box-sizing: border-box; padding: 8px 14px; border-radius: 10px;
     background: rgba(10, 14, 20, 0.85); border: 1px solid rgba(255, 255, 255, 0.3); color: white; font: var(--fs-text) var(--font);
     pointer-events: none; text-align: center; }
+  #mapFull .places { position: absolute; left: max(10px, env(safe-area-inset-left)); top: max(10px, env(safe-area-inset-top)); width: 232px;
+    max-height: calc(100% - 40px); overflow-y: auto; box-sizing: border-box; padding: 8px; border-radius: 10px; background: rgba(10, 14, 20, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.35); color: white; font: var(--fs-text) var(--font); }
+  #mapFull .places h3 { margin: 0 0 6px; font-size: var(--fs-small); font-weight: 600; opacity: 0.65; letter-spacing: 0.04em; text-transform: uppercase; }
+  #mapFull .places button.place { display: block; width: 100%; height: auto; padding: 6px 8px; margin: 2px 0; text-align: left; border-radius: 6px; border: 1px solid transparent;
+    background: transparent; color: white; font: inherit; cursor: pointer; }
+  #mapFull .places button.place:hover, #mapFull .places button.place.on { background: rgba(143, 208, 255, 0.28); border-color: #8fd0ff; }
+  @media (max-width: 640px) { #mapFull .places { width: 168px; font-size: var(--fs-small); } }
   #mapFull .info .k { font-size: var(--fs-small); opacity: 0.6; }
   #mapFull .info .n { font-size: var(--fs-h2); font-weight: bold; margin: 2px 0; }
   #mapFull .info .d { opacity: 0.85; }
@@ -87,8 +95,8 @@ mapFullEl.innerHTML =
   '<button data-a="left" title="Повернуть">⟲</button>' +
   '<button data-a="right" title="Повернуть">⟳</button>' +
   '<button data-a="north" title="Север всегда сверху">N</button>' +
-  '<button data-a="me" title="К игроку">⌖</button>' +
-  '</div><div class="info"></div>';
+  '<button data-a="me" title="Центрировать: герой в середину карты">⌖</button>' +
+  '</div><div class="places"></div><div class="info"></div>';
 document.body.appendChild(mapFullEl);
 const mapFullCanvas = mapFullEl.querySelector('canvas');
 const mapFullCtx = mapFullCanvas.getContext('2d');
@@ -101,13 +109,61 @@ function mapFullToMe() {
   mapFull.rot = settings.mapNorthUp ? 0 : worldRotation; // как сейчас смотрит камера (север сверху — без поворота)
 }
 
+// ---------- Список важных мест слева ----------
+// Что есть в списке, зависит от локации; навели на строку — место подсвечено на карте (кольцо, а за краем экрана стрелка), клик — карта едет к месту
+const MAP_LIST = {
+  main: [
+    ['village.home', 'Дом Максима'],
+    ['zarechye.house', 'Дом бабушки Веры'],
+    ['zarechye.tree', 'Домик на дереве'],
+    ['city.library', 'Библиотека'],
+    ['mall.entrance', 'Торговый центр'],
+    ['pizza.shop', 'Пиццерия «Тесто»'],
+    ['yard.forge', 'Мастерская Михалыча'],
+    ['yard.garage', 'Автомастерская Рустама'],
+    ['yard.nikolai', 'Заправка Николая Палыча'],
+    ['gas.zarechye', 'Заправка «Заречье»'],
+    ['tower.base', 'Башня'],
+    ['bridge.scene', 'Мост'],
+    ['lab.entrance', 'Лаборатория'],
+    ['track.entrance', 'Гоночный трек'],
+  ],
+  track: [['track.start', 'Старт и финиш'], ['track.salon', 'Автосалон'], ['track.exit', 'Выезд в город']],
+};
+const mapFullPlacesEl = mapFullEl.querySelector('.places');
+function buildMapList() {
+  const reg = typeof Core !== 'undefined' && Core.registry ? Core.registry.places : {}; // в ДЕМО квестов и мест нет: списка нет
+  const list = (MAP_LIST[GAME_LOCATION] || []).filter(([id]) => reg[id] && (reg[id].location || 'main') === GAME_LOCATION);
+  mapFullPlacesEl.replaceChildren();
+  mapFullPlacesEl.style.display = list.length ? '' : 'none';
+  if (!list.length) return;
+  const h = document.createElement('h3');
+  h.textContent = 'Важные места';
+  mapFullPlacesEl.appendChild(h);
+  for (const [id, name] of list) {
+    const b = document.createElement('button');
+    b.className = 'place';
+    b.textContent = name;
+    const at = reg[id];
+    b.addEventListener('mouseenter', () => (mapFull.pin = { x: at.x, z: at.z, name }));
+    b.addEventListener('mouseleave', () => (mapFull.pin = null));
+    b.addEventListener('click', () => {
+      mapFull.cx = at.x;
+      mapFull.cz = at.z;
+    });
+    mapFullPlacesEl.appendChild(b);
+  }
+}
+
 function setMapFullOpen(open) {
   if (open && !mapFull.open) {
     mapFullToMe();
+    buildMapList();
     // Около 500 м по короткой стороне; в здании — весь этаж
     const ci = currentInterior();
     mapFull.scale = Math.min(window.innerWidth, window.innerHeight) / (ci ? ci.def.minimapRange : 500);
     mapFull.hover = null;
+    mapFull.pin = null;
     for (const k of Object.keys(keys)) keys[k] = false; // отпускаем зажатые клавиши
   }
   mapFull.open = open;
@@ -300,6 +356,56 @@ window.addEventListener(
 );
 
 // ---------- Отрисовка ----------
+// Подсветка места из списка: пульсирующее кольцо с названием; если место за краем экрана — стрелка к нему на краю
+function drawMapPin(ctx, W, H, dpr, pin) {
+  const dx = pin.x - mapFull.cx;
+  const dz = pin.z - mapFull.cz;
+  const c = Math.cos(mapFull.rot);
+  const s = Math.sin(mapFull.rot);
+  const u = (c * dx + s * dz) * mapFull.scale * dpr;
+  const v = (-s * dx + c * dz) * mapFull.scale * dpr;
+  const sx = W / 2 + u;
+  const sy = H / 2 + v;
+  const m = 46 * dpr;
+  const t = performance.now() / 1000;
+  const pulse = 1 + 0.25 * Math.sin(t * 6);
+  ctx.save();
+  ctx.lineWidth = 3 * dpr;
+  ctx.strokeStyle = '#ffe27a';
+  ctx.fillStyle = 'rgba(255, 226, 122, 0.25)';
+  if (sx > m && sx < W - m && sy > m && sy < H - m) {
+    ctx.beginPath();
+    ctx.arc(sx, sy, 20 * dpr * pulse, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.font = '700 ' + 14 * dpr + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 4 * dpr;
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+    ctx.strokeText(pin.name, sx, sy - 28 * dpr);
+    ctx.fillStyle = '#ffe27a';
+    ctx.fillText(pin.name, sx, sy - 28 * dpr);
+  } else {
+    // стрелка на краю экрана в сторону места
+    const ang = Math.atan2(v, u);
+    const k = Math.min((W / 2 - m) / Math.max(Math.abs(Math.cos(ang)), 1e-6), (H / 2 - m) / Math.max(Math.abs(Math.sin(ang)), 1e-6));
+    const ax = W / 2 + Math.cos(ang) * k;
+    const ay = H / 2 + Math.sin(ang) * k;
+    ctx.translate(ax, ay);
+    ctx.rotate(ang);
+    ctx.beginPath();
+    ctx.moveTo(18 * dpr * pulse, 0);
+    ctx.lineTo(-10 * dpr, -12 * dpr);
+    ctx.lineTo(-10 * dpr, 12 * dpr);
+    ctx.closePath();
+    ctx.fillStyle = '#ffe27a';
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 let mapFullInfoShown = '';
 function drawMapFull() {
   if (!mapFull.open) return;
@@ -313,6 +419,7 @@ function drawMapFull() {
   }
   const h = mapFull.hover;
   drawMapView(mapFullCtx, W, H, mapFull.cx, mapFull.cz, mapFull.scale * dpr, mapFull.rot, currentInterior(), h && h.box);
+  if (mapFull.pin) drawMapPin(mapFullCtx, W, H, dpr, mapFull.pin);
   const html = h
     ? '<div class="k"></div><div class="n"></div><div class="d"></div>'
     : '';
