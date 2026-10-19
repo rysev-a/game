@@ -32,14 +32,14 @@ defineScenario('2.06-no-card', {
 
 defineScenario('2.08', {
   done: ['1.03'],
-  title: 'Анализатор проходится: Михалыч, медь у Людмилы, горн',
+  title: 'Анализатор проходится: Михалыч, вибраниум у Людмилы, горн',
   steps: [
     { do: [{ start: '2.08' }], expect: ['quest:2.08', 'has:bp_analyzer'] },
     { interact: 'spot:forge', expectNot: 'puzzle:2.08.bellows' }, // горн холодный, пока не договорились
     { at: 'yard.forge' },
-    { talk: 'mihalych', pick: [0, 0, 0], see: 'Без меди никак', expect: ['step:2.08.smith', '!step:2.08.bring'] },
-    { talk: 'lyudmila', pick: [0, 0], see: 'Проволоки у меня навалом', expect: 'has:copper' },
-    { talk: 'mihalych', pick: [0, 0, 0], see: 'раздувай горн', expect: ['step:2.08.bring', '!has:copper', '!has:bp_analyzer'] },
+    { talk: 'mihalych', pick: [0, 0, 0], see: 'Без вибраниума никак', expect: ['step:2.08.smith', '!step:2.08.bring'] },
+    { talk: 'lyudmila', pick: [0, 0], see: 'Заготовки пришли той же партией', expect: 'has:vibranium' },
+    { talk: 'mihalych', pick: [0, 0, 0], see: 'раздувай горн', expect: ['step:2.08.bring', '!has:vibranium', '!has:bp_analyzer'] },
     { talk: 'mihalych', see: 'Горн ждет' },
     { interact: 'spot:forge' },
     { puzzle: '2.08.bellows', picks: [0.5, 0.9, 0.5], expectNot: 'puzzle:2.08.bellows' }, // мимо: ошибка не решает

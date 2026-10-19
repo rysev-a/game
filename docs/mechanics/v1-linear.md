@@ -85,7 +85,7 @@ defineQuest({
   next: '2.11',                              // следующий квест цепочки
   steps: [                                   // идут строго по порядку
     { id: 'find_smith', text: 'Найти, кто сделает корпус', done: 'talked:mihalych' },
-    { id: 'bring',      text: 'Привезти Михалычу чертеж и медь', done: 'step:2.08.bring', marker: 'kamenka.forge' },
+    { id: 'bring',      text: 'Привезти Михалычу чертеж и вибраниум', done: 'step:2.08.bring', marker: 'kamenka.forge' },
     { id: 'forge',      text: 'Помочь у горна', done: 'puzzle:2.08.bellows' },
     { id: 'pick',       text: 'Забрать анализатор', done: 'has:analyzer', marker: 'kamenka.forge' },
   ],

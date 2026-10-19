@@ -212,6 +212,23 @@ const PIXEL_ART = {
       '............',
     ],
   },
+  vibranium: {
+    palette: { d: '#3b2f5c', v: '#7a62b8', L: '#c9bdf0', g: '#8fd0ff', s: '#c8ced6' },
+    rows: [
+      '............',
+      '............',
+      '....dddd....',
+      '..ddvvvvdd..',
+      '.dvLLLLLLvd.',
+      '.dvvgvvvgvd.',
+      '.dsvvvvvvsd.',
+      '.dvvgvvgvvd.',
+      '.dddvvvvddd.',
+      '...dddddd...',
+      '............',
+      '............',
+    ],
+  },
   copper: {
     palette: { c: '#8a4a22', C: '#d98a4a', L: '#f0b27a' },
     rows: [
