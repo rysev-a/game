@@ -23,6 +23,9 @@ definePlace('pizza.c3', { x: 220, z: -20, r: 18, name: 'Заказ 3: библи
 definePlace('pizza.c4', { x: 350, z: -90, r: 20, name: 'Заказ 4: пристань' });
 definePlace('pizza.c5', { x: 398, z: -9, r: 14, name: 'Заказ 5: заправка «Заречье»' });
 
+// Парковка у дома Анны Петровны (src/locations/zarechye/grandma.js): среднее место
+definePlace('zarechye.parking', { x: questBuildingAt('grandma_house').x + 17, z: 87, r: 9, name: 'Парковка у дома Анны Петровны' });
+
 // Заправка «Заречье» за мостом (src/locations/city/gas-station.js): колонки к северу от трассы
 definePlace('gas.zarechye', { x: 398, z: -9, r: 14, name: 'Заправка «Заречье»' });
 

@@ -102,7 +102,7 @@ defineQuest({
       ],
       answer: ['circle', 'star', 'square', 'triangle'],
       mistakesAllowed: 4,
-      onSolve: [{ teleport: 'lab.basement' }, { toast: 'Люк открылся: лестница вниз ведет в цех под лабораторией.' }],
+      onSolve: [{ teleport: 'lab.basement' }, { reveal: 'Ф46' }, { toast: 'Люк открылся. Внизу, в цеху под лабораторией, ряды установок синтеза, такие же, как у Веры в домике: их там множество.' }],
     },
   },
 

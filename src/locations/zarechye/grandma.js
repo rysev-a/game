@@ -31,6 +31,39 @@
   roadV(city.z + cityHalfZ, yardZ1 + 6, gx, 'dirt');
   clearZones.push({ x1: gx - 6, x2: gx + 6, z1: city.z + cityHalfZ, z2: yardZ1 });
 
+  // Парковка у дома: грунтово-щебеночная площадка справа от подъезда к калитке (с востока от грунтовки), три места с белой разметкой и упорами для колес,
+  // знак «P» у въезда. Машину можно оставить здесь, пока герой идет к бабушке и в лес (место zarechye.parking, src/quests/places.js)
+  {
+    const px = gx + 17;
+    const pz = 87;
+    flatRect(20, 14, 0x5c5c5f, 0.014, px, pz);
+    mapObjects.push({ x: px, z: pz, hx: 10, hz: 7, color: '#5c5c5f', ground: true });
+    clearZones.push({ x1: px - 12, x2: px + 12, z1: pz - 9, z2: pz + 9 });
+    for (let i = 0; i < 4; i++) flatRect(0.16, 8.5, 0xe8e8e8, 0.017, px - 8 + i * 5.33, pz - 1); // линии между местами
+    flatRect(16, 0.16, 0xe8e8e8, 0.017, px, pz - 5.2); // передняя линия
+    for (let i = 0; i < 3; i++) {
+      const stop = boxWithEdges(2.6, 0.22, 0.4, 0xd8c030); // упор для колес у забора (юг)
+      stop.position.set(px - 5.33 + i * 5.33, 0.11, pz + 3.2);
+      cityGroup.add(stop);
+    }
+    // Знак: столб и синяя табличка с белой «P»
+    const post = boxWithEdges(0.2, 2.6, 0.2, 0x3a3e44);
+    post.position.set(gx + 7.2, 1.3, pz - 6);
+    cityGroup.add(post);
+    const sign = new THREE.Group();
+    sign.add(boxWithEdges(1.5, 1.5, 0.1, 0x2f6fb0));
+    for (const [w, h, x, y] of [[0.25, 1.0, -0.3, 0], [0.7, 0.24, 0.0, 0.38], [0.7, 0.24, 0.0, 0.02], [0.24, 0.5, 0.3, 0.2]]) {
+      const part = boxWithEdges(w, h, 0.06, 0xf4f4f4);
+      part.position.set(x, y, 0.06);
+      sign.add(part);
+    }
+    sign.position.set(gx + 7.2, 2.9, pz - 6);
+    sign.rotation.y = -Math.PI / 2; // табличка смотрит на подъезжающих по грунтовке
+    cityGroup.add(sign);
+    addHoverInfo(sign, { kind: 'Знак', name: 'Парковка', desc: 'Площадка у дома Анны Петровны: три места. Здесь можно оставить машину.' });
+    addObstacle({ x: gx + 7.2, z: pz - 6, hx: 0.2, hz: 0.2 });
+  }
+
   // Дом Анны Петровны
   placeBuilding('grandma_house', { x: gx, z: houseZ, heading: Math.PI });
 
