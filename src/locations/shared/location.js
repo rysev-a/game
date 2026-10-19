@@ -27,10 +27,10 @@ garage.doorShape = { x: worldCenter.x, z: worldCenter.z - worldRadius - 500, ux:
 {
   const start = LOCATIONS[GAME_LOCATION].start;
   const car = addCar(start.x, start.z - 6, start.heading, {
-    color: 0x1fb3a6,
+    color: 0x22252c, // та же черная Nissan Almera Classic, что в гараже героя (src/player/home.js)
     fuel: 0.65,
     keyId: 'keys',
-    model: { stripeColor: 0xf4f1e6, roofRack: true, plateText: 'ДЕТ 001' },
+    model: { style: 'almera', cabinColor: 0x5d6488, plateText: 'ДЕТ 001' },
   });
   car.isPlayerCar = true;
   markPlayerCar(car);

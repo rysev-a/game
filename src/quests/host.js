@@ -65,6 +65,12 @@ let questTraveling = false;
 function questTravelToLocation(loc, payload) {
   if (questTraveling || !LOCATIONS[loc]) return;
   questTraveling = true;
+  // После квеста 3.05 героя пускают в город на любой машине с трека: она становится его машиной (как подаренная Рустамом: запоминается в сохранении
+  // и встает на новом месте), а бензина на ней хватает в 50 раз дольше. Прежняя машина героя ей заменяется. Мотороллер курьера не в счет
+  if (!payload.load && drivingCar && drivingCar !== garage.car && !drivingCar.questVehicle && drivingCar.kind && VEHICLE_KINDS[drivingCar.kind.id] && questGame.check('done:3.05')) {
+    questGame.state.playerCar = drivingCar.kind.id;
+    questGame.state.fuelEconomy = Math.max(questGame.state.fuelEconomy || 1, 50);
+  }
   const data = payload.load || captureGame();
   try {
     sessionStorage.setItem('game.transit', JSON.stringify({ ...payload, loc, load: !!payload.load, data, hero: { ...heroStats } }));
@@ -102,6 +108,7 @@ const questHost = {
     questToasts.push(text);
     if (!questToastBusy) questShowNextToast();
   },
+  checkpoint: (n, total) => playSuccessChime(n, n === total && n > 0), // звук успеха при проезде контрольной точки
   openDialog: (node) => startDialogue(questNarrator, node),
   openShop: (session) => session && openShopUi(session), // окно магазина: src/quests/shop-ui.js
   openPuzzle: (session) => session && openPuzzleUi(session), // окно головоломки: src/quests/puzzle-ui.js

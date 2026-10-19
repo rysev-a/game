@@ -61,6 +61,33 @@ function updateFootsteps(walking) {
   playStep(stepIndex++ % 2);
 }
 
+// Звук успеха, когда пройдена контрольная точка (src/core/game.js, host.checkpoint): быстрое восходящее арпеджио, ярче с каждой точкой; финиш (big) — длиннее, с аккордом
+function playSuccessChime(step = 0, big = false) {
+  if (muted || !audioUnlocked) return;
+  if (!stepCtx) stepCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (stepCtx.state === 'suspended') stepCtx.resume();
+  const ctx = stepCtx;
+  const out = ctx.createGain();
+  out.gain.value = 0.42 * effectsGain();
+  out.connect(ctx.destination);
+  const base = 523.25 * Math.pow(2, Math.min(step, 8) / 24); // до («ми» в конце круга): чуть выше с каждой точкой
+  const notes = big ? [[0, 1], [0.09, 1.25], [0.18, 1.5], [0.27, 2], [0.27, 1.5], [0.27, 1.25]] : [[0, 1], [0.08, 1.5], [0.16, 2]];
+  for (const [dt, ratio] of notes) {
+    const t = ctx.currentTime + dt;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(base * ratio, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.6, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.001, t + (big && dt > 0.2 ? 0.7 : 0.22));
+    osc.connect(g);
+    g.connect(out);
+    osc.start(t);
+    osc.stop(t + (big && dt > 0.2 ? 0.75 : 0.26));
+  }
+}
+
 // Щелчок, когда вещь взята в инвентарь (addItem в src/player/inventory.js): два коротких
 // высоких «тика» подряд, как застежка. Тот же синтезатор, что и у шагов
 function playPickupClick() {

@@ -119,6 +119,7 @@ defineQuest({
 
   checkpoints: {
     counter: 'cp',
+    intro: 2, // разгон и линия старта — не ворота: счет ворот идет с первой контрольной точки
     order: ['track.pre', 'track.start', 'track.cp1', 'track.cp2', 'track.cp3', 'track.cp4', 'track.cp5', 'track.cp6', 'track.cp7', 'track.cp8', 'track.start'], // разгон и линия старта, ворота, финиш
     when: ['step:3.05.morning', '!step:3.05.race'],
     driving: true,

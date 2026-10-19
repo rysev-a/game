@@ -327,7 +327,11 @@
         if (d === null || d > (def.r || registry.places[id].r || 12)) continue;
         game.state.counters[def.counter] = idx + 1;
         game.bump();
-        if (host.toast) host.toast('Контрольная точка ' + (idx + 1) + ' из ' + def.order.length);
+        // intro — сколько первых мест в order не ворота (разгон и линия старта): для них сообщения нет, номер ворот считается дальше
+        const gate = idx + 1 - (def.intro || 0);
+        const gates = def.order.length - (def.intro || 0);
+        if (host.checkpoint) host.checkpoint(Math.max(gate, 0), gates); // звук успеха
+        if (host.toast && gate > 0) host.toast(gate === gates && def.intro ? 'Финиш! Круг пройден' : 'Контрольная точка ' + gate + ' из ' + gates);
         again = true;
       }
     }
