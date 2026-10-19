@@ -935,6 +935,77 @@ const cockpitArms = [];
   dash.position.set(0, -0.52, -0.45);
   cockpitRig.add(dash);
 }
+// Руль мотороллера (kind.handlebar): вместо автомобильного руля перед глазами — труба руля с рукоятками, зеркала, фара-обтекатель с прибором и руки на рукоятках.
+// Руль поворачивается вокруг вертикальной стойки вслед за рулем машины (steerVis: плюс — налево: левая рукоятка к водителю, правая от него)
+const handlebarRig = new THREE.Group();
+handlebarRig.visible = false;
+const handlebarSpin = new THREE.Group();
+const handlebarArms = [];
+const handlebarLock = 0.75; // на сколько радиан поворачивается руль при полном повороте колес
+{
+  const rubber = new LitMaterial({ color: 0x15161a });
+  const chrome = new LitMaterial({ color: 0xaab2bd });
+  const body = new LitMaterial({ color: 0xc9272a });
+  const dark = new LitMaterial({ color: 0x2a2d33 });
+  const skin = new LitMaterial({ color: 0xd9a066 });
+  const sleeve = new LitMaterial({ color: 0x15171b }); // рукава черной футболки
+  const glow = new THREE.MeshBasicMaterial({ color: 0xfff2b0 });
+  const dial = new THREE.MeshBasicMaterial({ color: 0x5ff0ff });
+  const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.82, 10), chrome);
+  bar.rotation.z = Math.PI / 2;
+  handlebarSpin.add(bar);
+  for (const side of [-1, 1]) {
+    const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.15, 10), rubber);
+    grip.rotation.z = Math.PI / 2;
+    grip.position.x = side * 0.36;
+    handlebarSpin.add(grip);
+    const lever = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.018, 0.13), chrome); // рычаг тормоза перед рукояткой
+    lever.position.set(side * 0.31, 0.015, -0.08);
+    lever.rotation.y = side * 0.12;
+    handlebarSpin.add(lever);
+    const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.17, 6), chrome); // зеркало на стойке
+    stalk.position.set(side * 0.3, 0.085, -0.03);
+    stalk.rotation.z = side * -0.2;
+    handlebarSpin.add(stalk);
+    const mirror = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.05, 0.012), new THREE.MeshBasicMaterial({ color: 0x9fb6c8 }));
+    mirror.position.set(side * 0.325, 0.18, -0.03);
+    mirror.rotation.set(-0.35, side * 0.25, 0);
+    handlebarSpin.add(mirror);
+    const hand = new THREE.Group(); // кисть, обхватившая рукоятку
+    hand.position.set(side * 0.36, 0.0, 0.0);
+    hand.add(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.075, 0.1), skin));
+    const knuckles = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.03, 0.05), skin);
+    knuckles.position.set(0, 0.02, -0.06);
+    hand.add(knuckles);
+    handlebarSpin.add(hand);
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 1), sleeve); // предплечье: от плеча до кисти
+    handlebarRig.add(arm);
+    handlebarArms.push({ arm, hand, side });
+  }
+  // Обтекатель: красная «морда» с фарой спереди и приборной панелью с циферблатом, обращенной к водителю
+  const cowl = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.16, 0.2), body);
+  cowl.position.set(0, 0.01, -0.12);
+  handlebarSpin.add(cowl);
+  const panel = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.09, 0.05), dark);
+  panel.position.set(0, 0.07, 0.0);
+  panel.rotation.x = -0.5;
+  handlebarSpin.add(panel);
+  const gauge = new THREE.Mesh(new THREE.CircleGeometry(0.02, 12), dial);
+  gauge.position.set(0, 0.075, 0.03);
+  gauge.rotation.x = -0.5;
+  handlebarSpin.add(gauge);
+  const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.08, 0.01), glow);
+  lamp.position.set(0, 0.01, -0.225);
+  handlebarSpin.add(lamp);
+  handlebarSpin.position.set(0, -0.33, -0.6);
+  handlebarSpin.rotation.x = 0.18; // верх руля чуть к водителю
+  handlebarRig.add(handlebarSpin);
+  // Колени и передняя панель внизу кадра: красная «ножка» мотороллера под рулем, чтобы руль не висел над землей
+  const leg = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.5, 0.18), body);
+  leg.position.set(0, -0.78, -0.62);
+  leg.rotation.x = 0.35;
+  handlebarRig.add(leg);
+}
 const cockpitShoulder = new THREE.Vector3();
 const cockpitHandPos = new THREE.Vector3();
 const cockpitMid = new THREE.Vector3();
@@ -954,23 +1025,29 @@ function updateCockpit() {
     cockpitHiddenCar = car;
   }
   if (inside && !camera.parent) scene.add(camera); // вещи на камере рисуются, только если она в сцене
-  if (inside !== !!cockpitRig.parent) {
-    if (inside) camera.add(cockpitRig);
-    else if (cockpitRig.parent) cockpitRig.parent.remove(cockpitRig);
+  // Что перед глазами: у мотороллера руль-труба с рукоятками (kind.handlebar), у остальных автомобильный руль
+  const handlebar = inside && !!drivingCar && !!drivingCar.kind && !!drivingCar.kind.handlebar;
+  for (const [r, want] of [[cockpitRig, inside && !handlebar], [handlebarRig, handlebar]]) {
+    if (want !== !!r.parent) {
+      if (want) camera.add(r);
+      else if (r.parent) r.parent.remove(r);
+    }
+    r.visible = want;
   }
-  cockpitRig.visible = inside;
   if (!inside || !drivingCar) return;
+  const rig = handlebar ? handlebarRig : cockpitRig;
   // Руль: угол колес на экране (steerVis) → поворот руля; кисти на ободе, предплечья — от плеч (внизу по краям кадра)
-  cockpitSpin.rotation.z = (drivingCar.steerVis || 0) * (cockpitSteerLock / steerMaxAngle);
-  cockpitRig.updateMatrixWorld(true);
-  for (const a of cockpitArms) {
+  if (handlebar) handlebarSpin.rotation.y = (drivingCar.steerVis || 0) * (handlebarLock / steerMaxAngle);
+  else cockpitSpin.rotation.z = (drivingCar.steerVis || 0) * (cockpitSteerLock / steerMaxAngle);
+  rig.updateMatrixWorld(true);
+  for (const a of handlebar ? handlebarArms : cockpitArms) {
     cockpitHandPos.setFromMatrixPosition(a.hand.matrixWorld);
-    cockpitRig.worldToLocal(cockpitHandPos);
+    rig.worldToLocal(cockpitHandPos);
     cockpitShoulder.set(a.side * 0.42, -0.62, 0.15);
     cockpitMid.addVectors(cockpitHandPos, cockpitShoulder).multiplyScalar(0.5);
     a.arm.position.copy(cockpitMid);
     a.arm.scale.set(1, 1, cockpitHandPos.distanceTo(cockpitShoulder));
-    a.arm.lookAt(cockpitRig.localToWorld(cockpitHandPos.clone()));
+    a.arm.lookAt(rig.localToWorld(cockpitHandPos.clone()));
   }
 }
 // Положение и взгляд камеры из салона (зовет updateCamera, src/player/player.js): глаза водителя в системе кузова, взгляд — по носу с наклоном

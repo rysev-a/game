@@ -87,6 +87,7 @@ const VEHICLE_KINDS = {
     desc: 'Мотороллер доставщика пиццы с термобоксом сзади: юркий и неторопливый, бензина берет мало.',
     half: { w: 0.5, l: 0.95 },
     cockpit: [0, 1.65, 0.3], // глаза водителя в салоне (вид от первого лица, src/player/driving.js)
+    handlebar: true, // перед глазами руль-труба мотороллера, а не автомобильный руль (updateCockpit)
     acc: [60, 3.5], accel: 0.03, brake: 0.05, drag: 0.007, maxSpeed: 0.62, maxReverse: -0.2, turnRate: 0.06, drift: 0.45,
     launch: 0.5, launchUntil: 0.3, sound: 'race', pitch: 1.4,
   },
