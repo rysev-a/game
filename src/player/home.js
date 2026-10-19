@@ -211,7 +211,9 @@ addInteriorStairs(homeInterior, homeStairs);
 // навести (вещь подсветится) и кликнуть — на том же этаже дома (src/engine/interact.js)
 // Прибор (DEVICES) не кладется в инвентарь, а надевается (src/player/devices.js)
 const pickupName = (id) => (DEVICES[id] || ITEMS[id]).name;
-const pickupTaken = (id) => (DEVICES[id] ? isWorn(id) : hasItem(id));
+// Ключи, вставленные в машину (флаг carOpen), пропали насовсем: на столе они больше не лежат
+const keysUsed = () => typeof questGame !== 'undefined' && !!questGame && !!questGame.state.flags.carOpen;
+const pickupTaken = (id) => (DEVICES[id] ? isWorn(id) : hasItem(id) || (id === 'keys' && keysUsed()));
 
 function takeHomePickup(p) {
   if (DEVICES[p.id] ? !wearDevice(p.id) : !addItem(p.id)) return;
