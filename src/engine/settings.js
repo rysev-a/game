@@ -195,6 +195,7 @@ const settingsTabs = [
   {
     id: 'drive',
     name: 'Вождение',
+    compact: true, // пункты в одну строку, описания — в подсказках у значка «?»
     items: [
       { type: 'range', key: 'driftLevel', label: 'Глубина заноса', min: 0.01, max: 1, step: 0.01, log: true, show: pct,
         note: 'Ручник на ходу (Space) — машину заносит, на дороге остаются следы. На гоночных газ с ручником (W+Space) — дрифт: машина едет боком, задним ходом — задом' },
@@ -226,6 +227,7 @@ const settingsTabs = [
   {
     id: 'physics',
     name: 'Физика',
+    compact: true,
     items: [
       { type: 'range', key: 'tireGrip', label: 'Сцепление шин', min: 0.05, max: 5, step: 0.05, log: true, show: pct,
         note: 'Обычная езда: чем меньше, тем скользче шины — машину сильнее сносит в поворотах, а после заноса она выравнивается дольше. Больше — как на рельсах' },
@@ -270,6 +272,18 @@ settingsStyle.textContent = `
   #settingsMenu .item.muted input[type='range'] { opacity: 0.4; }
   #settingsMenu .item > .check { margin-top: 0; }
   #settingsMenu .note { font-size: var(--fs-small); opacity: 0.6; margin-top: 3px; }
+  /* Компактные вкладки (вождение, физика): пункт в одну строку, описание — в подсказке у значка «?» справа */
+  #settingsMenu .item.compact { display: grid; grid-template-columns: minmax(120px, 36%) 1fr 92px 18px; align-items: center; column-gap: 8px; margin-bottom: 3px; }
+  #settingsMenu .item.compact .lbl { font-size: var(--fs-text); line-height: 1.25; }
+  #settingsMenu .item.compact input[type='range'] { width: 100%; margin: 0; }
+  #settingsMenu .item.compact .val { text-align: right; opacity: 0.85; white-space: nowrap; font-variant-numeric: tabular-nums; font-size: var(--fs-text); }
+  #settingsMenu .item.compact label.check { grid-column: 1 / 4; margin: 0; }
+  #settingsMenu .item.compact select { grid-column: 2 / 4; margin-top: 0; }
+  #settingsMenu .help { width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.4); font: 700 10px/14px var(--font);
+    text-align: center; opacity: 0.65; cursor: help; user-select: none; justify-self: end; }
+  #settingsMenu .help:hover { opacity: 1; background: rgba(143, 208, 255, 0.28); border-color: rgba(143, 208, 255, 0.8); }
+  #settingTip { position: fixed; z-index: 120; max-width: 300px; padding: 8px 10px; border-radius: 8px; background: rgba(12, 16, 22, 0.97);
+    border: 1px solid rgba(255, 255, 255, 0.3); color: #f1f3f5; font: var(--fs-small) var(--font); line-height: 1.45; pointer-events: none; display: none; }
   #settingsMenu select { width: 100%; margin-top: 4px; padding: 4px; border-radius: 6px; background: #1d222c; color: white;
     border: 1px solid rgba(255, 255, 255, 0.3); font: var(--fs-text) var(--font); }
   #settingsMenu .keycols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
@@ -422,14 +436,40 @@ fillSetupChips(setupBarChips);
   requestAnimationFrame(showSetupBar);
 })();
 
-function buildSettingItem(it) {
+// Подсказка к значку «?» (одна на все окно): появляется слева от значка, пока на него наведена мышь
+const settingTip = document.createElement('div');
+settingTip.id = 'settingTip';
+document.body.appendChild(settingTip);
+document.addEventListener('mouseover', (e) => {
+  const h = e.target.closest && e.target.closest('.help[data-tip]');
+  if (!h) return;
+  settingTip.textContent = h.dataset.tip;
+  settingTip.style.display = 'block';
+  const r = h.getBoundingClientRect();
+  const w = settingTip.offsetWidth;
+  const hgt = settingTip.offsetHeight;
+  settingTip.style.left = Math.max(8, r.left - w - 8) + 'px';
+  settingTip.style.top = Math.max(8, Math.min(window.innerHeight - hgt - 8, r.top + r.height / 2 - hgt / 2)) + 'px';
+});
+document.addEventListener('mouseout', (e) => {
+  if (e.target.closest && e.target.closest('.help')) settingTip.style.display = 'none';
+});
+
+function buildSettingItem(it, compact = false) {
   const el = document.createElement('div');
-  el.className = 'item' + (it.desk ? ' desk' : '');
+  el.className = 'item' + (it.desk ? ' desk' : '') + (compact && it.type !== 'setups' && it.type !== 'html' ? ' compact' : '');
   if (it.type === 'html') {
     el.innerHTML = it.html;
     return el;
   }
-  const note = it.note ? '<div class="note">' + it.note + '</div>' : '';
+  const isCompact = el.classList.contains('compact');
+  // В компактном виде описание не пишется под пунктом, а прячется в подсказку у значка «?» справа
+  const note = it.note && !isCompact ? '<div class="note">' + it.note + '</div>' : '';
+  const helpIcon = () => (isCompact ? '<span class="help"' + (it.note ? '>?' : ' style="visibility:hidden">?') + '</span>' : '');
+  const armHelp = () => {
+    const h = el.querySelector('.help');
+    if (h && it.note) h.dataset.tip = it.note.replace(/<[^>]+>/g, '');
+  };
   if (it.type === 'setups') {
     el.className = 'item setups';
     el.innerHTML = '<div class="row"><span>Сетапы вождения</span></div>' +
@@ -459,7 +499,8 @@ function buildSettingItem(it) {
     return el;
   }
   if (it.type === 'check') {
-    el.innerHTML = '<label class="check"><input type="checkbox" /> ' + it.label + '</label>' + note;
+    el.innerHTML = '<label class="check"><input type="checkbox" /> ' + it.label + '</label>' + (isCompact ? helpIcon() : note);
+    armHelp();
     const input = el.querySelector('input');
     input.addEventListener('change', () => {
       setSetting(it.key, input.checked);
@@ -467,9 +508,9 @@ function buildSettingItem(it) {
     });
     settingsRefresh.push(() => (input.checked = settings[it.key]));
   } else if (it.type === 'select') {
-    el.innerHTML =
-      '<div class="row"><span>' + it.label + '</span></div><select>' +
-      it.options.map(([v, t]) => '<option value="' + v + '">' + t + '</option>').join('') + '</select>' + note;
+    el.innerHTML = (isCompact ? '<span class="lbl">' + it.label + '</span>' : '<div class="row"><span>' + it.label + '</span></div>') + '<select>' +
+      it.options.map(([v, t]) => '<option value="' + v + '">' + t + '</option>').join('') + '</select>' + (isCompact ? helpIcon() : note);
+    armHelp();
     const sel = el.querySelector('select');
     sel.addEventListener('change', () => {
       setSetting(it.key, sel.value);
@@ -482,12 +523,14 @@ function buildSettingItem(it) {
     const logK = it.log ? Math.log(it.max / it.min) : 0;
     const toPos = (v) => (it.log ? Math.log(Math.max(it.min, Math.min(it.max, v)) / it.min) / logK : v);
     const fromPos = (t) => (it.log ? Math.round(it.min * Math.exp(t * logK) * 1000) / 1000 : t);
-    el.innerHTML =
-      '<div class="row"><span>' + it.label + '</span><span class="val"></span>' +
-      (it.mute ? '<button class="mute" title="Без звука"></button>' : '') + '</div>' +
-      (it.log
-        ? '<input type="range" min="0" max="1" step="0.001" />'
-        : '<input type="range" min="' + it.min + '" max="' + it.max + '" step="' + it.step + '" />') + note;
+    const slider = it.log
+      ? '<input type="range" min="0" max="1" step="0.001" />'
+      : '<input type="range" min="' + it.min + '" max="' + it.max + '" step="' + it.step + '" />';
+    el.innerHTML = isCompact
+      ? '<span class="lbl">' + it.label + '</span>' + slider + '<span class="val"></span>' + helpIcon()
+      : '<div class="row"><span>' + it.label + '</span><span class="val"></span>' +
+        (it.mute ? '<button class="mute" title="Без звука"></button>' : '') + '</div>' + slider + note;
+    armHelp();
     const input = el.querySelector('input');
     const val = el.querySelector('.val');
     const mute = el.querySelector('.mute');
@@ -526,7 +569,7 @@ for (const tab of settingsTabs) {
   tabsEl.appendChild(b);
   const panel = document.createElement('div');
   panel.className = 'panel';
-  for (const it of tab.items) panel.appendChild(buildSettingItem(it));
+  for (const it of tab.items) panel.appendChild(buildSettingItem(it, !!tab.compact));
   panelsEl.appendChild(panel);
   settingsPanels[tab.id] = panel;
 }
