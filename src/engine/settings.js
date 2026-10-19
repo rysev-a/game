@@ -38,6 +38,7 @@ const SETTINGS_DEFAULTS = {
   bounceLoss: 0.6, // 0..1 — сколько скорости в сторону препятствия гаснет при ударе о покрышки (остальное — отскок назад)
   bounceSoft: 1, // 0.5..2 — мягкость: как долго длится отталкивание
   cockpitView: false, // вид от первого лица за рулем: камера в салоне, перед ней руль и руки (src/player/driving.js; клавиша V)
+  maxSpeedKmh: 0, // 0..1000 км/ч: предел скорости любой машины героя; 0 — у каждой машины свой (effectiveKind, src/player/driving.js)
   infiniteFuel: false, // бак всегда полный (кнопка ⛽∞ за рулем и галочка во вкладке «Вождение»)
   tireGrip: 1, // 0.2..2 — сцепление шин в обычной езде и скорость, с которой они его возвращают после заноса
   handbrakeGrip: 1, // 0..2 — сцепление задних колес на ручнике и в дрифте (меньше — скользят сильнее, можно развернуться)
@@ -207,6 +208,8 @@ const settingsTabs = [
       { type: 'range', key: 'bounceSoft', label: 'Мягкость отскока', min: 0.25, max: 4, step: 0.05, log: true, show: pct,
         note: 'Как долго длится отталкивание: больше — машина отплывает плавно и долго, меньше — резкий толчок' },
       { type: 'check', key: 'cockpitView', label: 'Вид от первого лица', note: 'За рулем камера — в салоне, перед ней руль и руки героя: руль поворачивается вслед за колесами. V — переключить прямо за рулем' },
+      { type: 'range', key: 'maxSpeedKmh', label: 'Максимальная скорость машины', min: 0, max: 1000, step: 10, show: (v) => (v ? v + ' км/ч' : 'как у машины'),
+        note: 'Предел скорости любой машины, на которой вы едете, в км/ч (от 10 до 1000). 0 — у каждой машины свой, как задумано: у обычной около 130, у гоночных до 400. Разгон подстраивается под новый предел' },
       { type: 'check', key: 'infiniteFuel', label: 'Бесконечный бензин', note: 'Бак всегда полный, бензин не кончается. То же — кнопка ⛽∞ над указателем топлива за рулем' },
       { type: 'range', key: 'coastInertia', label: 'Накат (инерция без газа)', min: 0.1, max: 10, step: 0.1, log: true, show: pct,
         note: 'Отпустили газ — машина не встает сразу, а катится и плавно теряет скорость; больше — катится дольше. Тормоз (S) гасит скорость быстро, как раньше' },
@@ -341,7 +344,7 @@ function showSettingsTab(id) {
 // ---------- Сетапы вождения ----------
 // Удачно настроенное вождение (занос, сцепление, резкость, накат, отскок) сохраняется под названием; список сетапов — в «Вождение» и
 // «Физика» и полосой внизу экрана за рулем: клик — применить. Хранятся в браузере (game.driveSetups).
-const SETUP_KEYS = ['driftLevel', 'driftInertia', 'nitroPower', 'brakeSharp', 'accelSharp', 'steerSens', 'reverseSpeed', 'coastInertia', 'tireGrip',
+const SETUP_KEYS = ['maxSpeedKmh', 'driftLevel', 'driftInertia', 'nitroPower', 'brakeSharp', 'accelSharp', 'steerSens', 'reverseSpeed', 'coastInertia', 'tireGrip',
   'handbrakeGrip', 'handbrakePower', 'slideLoss', 'spinInertia', 'bounce', 'bounceLoss', 'bounceSoft', 'tireKnock'];
 let driveSetups = [];
 try {

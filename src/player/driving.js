@@ -15,6 +15,24 @@ const carMaxReverse = -0.3;
 const carTurnRate = 0.045;
 // Езда обычной легковушки; у гоночной, джипа, трактора и БТР — свои числа (VEHICLE_KINDS, src/world/vehicles.js)
 // drift — насколько машину заносит на ручнике (1 — как гоночную)
+// МАКСИМАЛЬНАЯ СКОРОСТЬ из настроек (вкладка «Вождение», settings.maxSpeedKmh, 0–1000 км/ч): 0 — у каждой машины свой предел, как задумано,
+// иначе предел скорости любой машины, на которой едет герой, — это число (разгон подстраивается под новый предел). Для каждой скорости копия
+// вида хранится в kind._fast, чтобы кривая разгона (accelScale) не пересчитывалась каждый кадр
+function effectiveKind(kind) {
+  const kmh = settings.maxSpeedKmh;
+  if (!(kmh > 0)) return kind;
+  if (!kind._fast || kind._fast.kmh !== kmh) {
+    const ms = kmh / kmhPerSpeed;
+    // Выше прежнего предела сопротивление воздуха (drag) падает как квадрат отношения, иначе машина не дотянет до заданной скорости
+    const up = Math.max(1, ms / kind.maxSpeed); // во сколько раз новый предел выше прежнего
+    const copy = { ...kind, maxSpeed: ms, accScale: undefined, drag: kind.drag / (up * up), accel: kind.accel * up };
+    // Выше прежнего предела разгон быстрее в той же мере (до сотни не 10 секунд, а меньше), иначе до 600–1000 км/ч ехать минутами
+    if (kind.acc) copy.acc = [kind.acc[0], kind.acc[1] / up];
+    delete copy._fast;
+    kind._fast = { kmh, kind: copy };
+  }
+  return kind._fast.kind;
+}
 const carDrive = { acc: [100, 10], accel: carAccel, brake: carBrake, drag: carDrag, maxSpeed: carMaxSpeed, maxReverse: carMaxReverse, turnRate: carTurnRate, drift: 0.6 };
 
 // ЗАНОС. Space на компьютере (на телефоне — кнопка «ручник», src/engine/touch-drive.js) на ходу — ручник: задние колеса скользят, тормозит он слабее обычного тормоза,
@@ -232,7 +250,7 @@ function updateDriving(c) {
   carTime += 1 / 60;
   if (!drivingCar) return;
   const car = drivingCar;
-  const base = car.kind || carDrive;
+  const base = effectiveKind(car.kind || carDrive);
   // Резкость разгона, торможения и руля — множители из настроек (src/engine/settings.js)
   // Уклон под машиной вдоль носа: плюс — в гору. В гору предел скорости ниже, под гору — выше
   car.y = car.y || 0;
@@ -787,7 +805,7 @@ function updateCarMeshes() {
       c.steerVis = (c.steerVis || 0) + (target - (c.steerVis || 0)) * 0.3;
       c.mesh.steerWheels(c.steerVis);
     }
-    c.mesh.updateCar(carTime, Math.abs(c.speed) / (c.kind || carDrive).maxSpeed);
+    c.mesh.updateCar(carTime, Math.min(1, Math.abs(c.speed) / effectiveKind(c.kind || carDrive).maxSpeed));
     if (c.update) c.update(c); // дым подбитого БТР и т. п. (src/world/vehicles.js)
   }
   if (typeof updateVehicleFx === 'function') updateVehicleFx();
@@ -809,7 +827,7 @@ const fuelFill = document.getElementById('fuelFill');
 // на пределе дает 250 км/ч, остальные — свои максимумы: обычная легковушка ~133, трактор ~53
 // Скорость машины в км/ч (спидометр здесь и на телефоне, src/engine/touch-drive.js)
 function carSpeedKmh(car) {
-  return Math.min(450, Math.round(Math.abs(car.speed) * kmhPerSpeed));
+  return Math.min(1200, Math.round(Math.abs(car.speed) * kmhPerSpeed));
 }
 const speedoEl = document.getElementById('speedo');
 // Кнопка «⛽∞» (бесконечный бензин) рядом со спидометром; то же — галочка в настройках

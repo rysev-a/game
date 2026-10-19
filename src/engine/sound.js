@@ -87,7 +87,7 @@ function updateSound() {
   mix.rain = rainOn ? (insideBuilding() ? rainVolumeInside : rainVolume) : 0;
   // Двигатель: звучит, только пока машина едет; быстрее — громче и выше тоном
   const kind = drivingCar && drivingCar.kind;
-  const speedNow = drivingCar ? Math.min(1, Math.abs(drivingCar.speed) / ((kind && kind.maxSpeed) || carMaxSpeed)) : 0;
+  const speedNow = drivingCar ? Math.min(1, Math.abs(drivingCar.speed) / effectiveKind(kind || carDrive).maxSpeed) : 0;
   engineLevel += (speedNow - engineLevel) * engineFollow;
   const carSpeed = drivingCar ? engineLevel : 0;
   const engine = engineSounds[(kind && (kind.sound || kind.id)) || 'car'] || engineSounds.car;

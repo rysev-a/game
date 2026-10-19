@@ -35,6 +35,33 @@ const resetMinimapPan = () => {
   mmPan.x = mmPan.z = 0;
 };
 
+// Кнопка ⌖ на миникарте: появляется, когда карту сдвинули вручную, и возвращает героя в центр карты
+const mmCenterBtn = document.createElement('button');
+mmCenterBtn.id = 'mmCenter';
+mmCenterBtn.title = 'К игроку: вернуть героя в центр карты';
+mmCenterBtn.textContent = '⌖';
+mmCenterBtn.style.display = 'none';
+const mmCenterStyle = document.createElement('style');
+mmCenterStyle.textContent = `
+  #mmCenter { position: absolute; top: 6px; left: 42px; width: 30px; height: 30px; padding: 0; z-index: 11; border-radius: 7px;
+    border: 1px solid rgba(255, 255, 255, 0.45); background: rgba(10, 14, 20, 0.7); color: white; font-size: var(--fs-h2); line-height: 1;
+    cursor: pointer; pointer-events: auto; }
+  #mmCenter:hover { background: rgba(60, 60, 60, 0.85); }
+  body.touch #mmCenter { width: 26px; height: 26px; top: 4px; left: 34px; }
+`;
+document.head.appendChild(mmCenterStyle);
+document.getElementById('minimapWrap').appendChild(mmCenterBtn);
+mmCenterBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  resetMinimapPan();
+});
+for (const ev of ['touchstart', 'mousedown']) mmCenterBtn.addEventListener(ev, (e) => e.stopPropagation(), { passive: true });
+const syncMinimapCenterBtn = () => {
+  const panned = Math.abs(mmPan.x) + Math.abs(mmPan.z) > 1;
+  mmCenterBtn.style.display = panned && !currentInterior() ? '' : 'none';
+};
+setInterval(syncMinimapCenterBtn, 150);
+
 minimap.addEventListener('mousedown', (e) => {
   if (e.button !== 1) return;
   e.preventDefault(); // без «автопрокрутки» браузера
@@ -229,6 +256,22 @@ function drawMapView(ctx, W, H, cx, cz, mmScale, rot, ci, highlight) {
   const carGrow = Math.max(1, (3.5 * px) / carSize.w);
   for (const c of cars) {
     if (!near(c.x, c.z)) continue;
+    // Машина героя, пока он не в ней: от нее плавно расходятся круги, чтобы находилась на карте сразу
+    if (c.isPlayerCar && drivingCar !== c) {
+      const t = performance.now() / 1000;
+      ctx.save();
+      ctx.translate(c.x - cx, c.z - cz);
+      for (let k = 0; k < 3; k++) {
+        const ph = (t * 0.45 + k / 3) % 1; // 0..1: круг рождается у машины и растет, растворяясь
+        const fade = Math.sin(Math.min(1, ph * 1.15) * Math.PI) * (1 - ph);
+        ctx.beginPath();
+        ctx.arc(0, 0, (7 + ph * 34) * px, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(79, 240, 224,' + (0.9 * fade).toFixed(3) + ')';
+        ctx.lineWidth = (2.4 - ph * 1.2) * px;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
     ctx.save();
     ctx.translate(c.x - cx, c.z - cz);
     ctx.rotate(-c.heading);
