@@ -19,6 +19,16 @@ function questTransitArrive() {
   } catch (e) {
     return;
   }
+  // Герой едет на своей машине: ставим ее сразу на место прибытия. Иначе подаренная машина (questSwapPlayerCar) не встанет на старые координаты
+  // другой локации — они вне ее мира, — и на треке остается прежняя Almera
+  const dest = !t.load && t.to && t.opts && t.opts.car ? Core.registry.places[t.to] : null;
+  if (dest) {
+    t.data.car.x = dest.x;
+    t.data.car.z = dest.z;
+    if (t.opts.heading !== undefined) t.data.car.heading = t.opts.heading;
+    t.data.player.x = dest.x;
+    t.data.player.z = dest.z;
+  }
   t.data.arriving = true; // applyGame (src/quests/common-hooks.js): уже на нужной странице, переходить не надо
   t.data.location = GAME_LOCATION;
   applyGame(t.data);
