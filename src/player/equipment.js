@@ -26,7 +26,7 @@
 //   heroArmorFactor()      — множитель урона от надетой брони (1 — без брони)
 //   addItemUse(item, use)  — что делает вещь, примененная с нижней панели (см. ITEM_USES ниже)
 
-const heroStats = { hp: 100, maxHp: 100, elixir: 0, maxElixir: 100 };
+const heroStats = { hp: 100, maxHp: 100, elixir: 0, maxElixir: 900 }; // шкала эликсира — до 900
 const WEAPON_SLOTS = 8; // активных ячеек на нижней панели
 const heroEquip = { jacket: null, armor: null, boots: null, weapons: Array(WEAPON_SLOTS).fill(null), active: 0 };
 const WEAR_SLOTS = ['jacket', 'armor', 'boots'];
