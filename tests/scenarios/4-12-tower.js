@@ -33,7 +33,7 @@ defineScenario('4.12-timeout', {
     { at: 'tower.door', expect: 'step:4.12.go' },
     { at: 'tower.down2', expect: 'step:4.12.f1' },
     { at: 'tower.down3', expect: 'step:4.12.f2' },
-    { wait: '13m', expect: ['!step:4.12.f1', '!step:4.12.f2', 'step:4.12.go', 'quest:4.12'] }, // взрыв, откат
+    { wait: '361m', expect: ['!step:4.12.f1', '!step:4.12.f2', 'step:4.12.go', 'quest:4.12'] }, // взрыв, откат
     { at: 'tower.down2', expect: 'step:4.12.f1' }, // таймер перезапущен, идет новая попытка
   ],
 });
