@@ -6,10 +6,11 @@
 // ЗВУК. Браузер разрешает воспроизведение только после действия пользователя,
 // поэтому звук включается по первому нажатию клавиши или клику.
 // Каждый файл — <audio loop>; играет только пока слышен, громкость плавно меняется
-const soundNames = ['birds', 'birds_2', 'city', 'city_2', 'forest_birds', 'river', 'river_2', 'rain', 'shop', 'car'];
+const soundNames = ['birds', 'birds_2', 'city', 'city_2', 'forest_birds', 'river', 'river_2', 'rain', 'shop'];
 // Двигатели и занос — audio/cars/*.wav (см. engineSounds ниже): бесшовные круги — конец записи плавно
-// перетекает в начало, а wav, в отличие от mp3, не дает щелчка тишины на стыке
-const carSoundNames = ['jeep', 'tractor', 'sportcar_1', 'sportcar_3', 'stop'];
+// перетекает в начало, а wav, в отличие от mp3, не дает щелчка тишины на стыке. engine.wav — короткий ровный цикл обычной легковушки (CC0, audio/cars/LICENSE-engine.txt):
+// старая длинная запись audio/car.mp3 начиналась с запуска мотора, и он повторялся при каждом круге
+const carSoundNames = ['engine', 'jeep', 'tractor', 'sportcar_1', 'sportcar_3', 'stop'];
 const soundTracks = {};
 for (const name of [...soundNames, ...carSoundNames]) {
   const el = new Audio('audio/' + (carSoundNames.includes(name) ? 'cars/' + name + '.wav' : name + '.mp3'));
@@ -39,14 +40,14 @@ window.addEventListener('keydown', (e) => {
 
 const carVolumeMin = 0.25;
 const carVolumeMax = 0.8;
-const carRateMin = 0.85; // тон двигателя на малой скорости
-const carRateMax = 1.5; // и на полной
+const carRateMin = 0.7; // тон двигателя на малой скорости
+const carRateMax = 1.4; // и на полной
 // Звук двигателя по виду транспорта (VEHICLE_KINDS, src/world/vehicles.js); обычная легковушка — car.
 // Каждый слой: файл, тон на малой и полной скорости (rate) и в какой доле скорости слой слышен (from: [a, b] —
 // нарастает от a к b; out: [a, b] — от a к b стихает до четверти). Гоночная — смесь двух записей: ровный рев
 // внизу плавно переходит в высокий визг на скорости
 const engineSounds = {
-  car: [{ track: 'car', rate: [carRateMin, carRateMax] }],
+  car: [{ track: 'engine', rate: [carRateMin, carRateMax] }],
   jeep: [{ track: 'jeep', rate: [0.8, 1.35] }],
   tractor: [{ track: 'tractor', rate: [0.85, 1.25] }],
   apc: [{ track: 'jeep', rate: [0.6, 1.0] }], // своей записи нет — джип ниже тоном
