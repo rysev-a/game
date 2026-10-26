@@ -317,7 +317,7 @@
     (e) => {
       if (e.code === 'KeyJ' && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.stopImmediatePropagation();
-        if (!open && !hasItem('phone')) showToast('Телефон остался на столике в гостиной.', 2500);
+        if (!open && !hasItem('phone')) showToast('Телефон остался на тумбочке у кровати, на втором этаже.', 2500);
         else setOpen(!open);
         return;
       }
