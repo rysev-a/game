@@ -22,7 +22,7 @@
 // стекла полосой чуть шире салона, лобовое и заднее — наклонные пластины по скатам.
 function buildAlmeraBody(body, o, part, edgeMat) {
   const ALM = 0.0082;
-  const glassMat = new LitMaterial({ color: o.cabinColor });
+  const glassMat = new LitMaterial({ color: o.cabinColor, shininess: 90, specular: 0x8896aa }); // стекло с бликом солнца
   const chrome = 0xc8ced6;
   const black = 0x0e0f12;
   // Точка модели (z вперед, y вверх, в единицах оригинала) → точка игры [z, y]
@@ -36,7 +36,7 @@ function buildAlmeraBody(body, o, part, edgeMat) {
     const geo = new THREE.ExtrudeGeometry(shape, { depth: width, bevelEnabled: false });
     geo.rotateY(-Math.PI / 2); // профиль в плоскости ZY, выдавливание — вдоль X
     geo.translate(width / 2, 0, 0);
-    const mesh = new THREE.Mesh(geo, new LitMaterial({ color }));
+    const mesh = new THREE.Mesh(geo, new LitMaterial({ color, shininess: 40, specular: 0x2a2d33 })); // лак: легкий блик
     mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 25), edgeMat));
     body.add(mesh);
     return mesh;
@@ -49,7 +49,7 @@ function buildAlmeraBody(body, o, part, edgeMat) {
   };
   const basic = (w, h, d, color) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color }));
   // Наклонная пластина между двумя точками профиля (лобовое и заднее стекло): ширина w, чуть выше поверхности
-  const slab = (z1, y1, z2, y2, w, mat, lift = 0.012) => {
+  const slab = (z1, y1, z2, y2, w, mat, lift = 0.035) => {
     const [a, b] = [P(z1, y1), P(z2, y2)];
     const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.03, len), mat);
@@ -127,6 +127,24 @@ function buildAlmeraBody(body, o, part, edgeMat) {
   put(ant, 0.42, Yg(165) + 0.2, Zg(-85), 0, -0.25);
   const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.14, 8), new THREE.MeshBasicMaterial({ color: 0x9aa2ad }));
   put(pipe, -0.46, 0.27, Zg(-282), 0, Math.PI / 2);
+  // Накладки на колесные арки: полукольцо над каждым колесом даёт крылу объём, а не плоский бок
+  for (const sx of [-1, 1]) {
+    for (const zm of [145, -152]) {
+      const flare = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.028, 5, 18, Math.PI), new LitMaterial({ color: 0x14161a }));
+      flare.position.set(sx * 0.812, 0.36, Zg(zm));
+      flare.rotation.y = Math.PI / 2;
+      body.add(flare);
+    }
+  }
+  // Скругление бамперов: боковые «скулы» перед и зад, чтобы углы не были прямоугольными
+  for (const sx of [-1, 1]) {
+    const cheek = (zm, y, w, h) => {
+      const m = part(w, h, 0.34, o.bodyColor);
+      put(m, sx * 0.76, Yg(y), Zg(zm), sx * 0.45);
+    };
+    cheek(250, 52, 0.22, 0.34);
+    cheek(-268, 74, 0.22, 0.34);
+  }
   // Колесные арки: темные диски на боку за колесами
   for (const sx of [-1, 1]) {
     for (const zm of [145, -152]) {
@@ -261,7 +279,7 @@ function createCar(options = {}) {
 
   // Колеса: цилиндр осью вдоль X внутри группы-ступицы, крутим группу
   const wheelR = almera ? 0.34 : 0.38;
-  const wheelGeo = new THREE.CylinderGeometry(wheelR, wheelR, almera ? 0.24 : 0.3, 14);
+  const wheelGeo = new THREE.CylinderGeometry(wheelR, wheelR, almera ? 0.24 : 0.3, almera ? 28 : 14); // у машины героя шина гладкая
   const wheelMat = new LitMaterial({ color: o.wheelColor });
   const wheels = [];
   const frontPivots = [];
@@ -276,11 +294,18 @@ function createCar(options = {}) {
     cyl.rotation.z = Math.PI / 2;
     hub.add(cyl);
     if (almera) {
+      // Скругленные плечи шины: тонкие кольца по краям протектора
+      for (const f of [-1, 1]) {
+        const shoulder = new THREE.Mesh(new THREE.TorusGeometry(wheelR - 0.02, 0.025, 6, 28), wheelMat);
+        shoulder.rotation.y = Math.PI / 2;
+        shoulder.position.x = f * 0.115;
+        hub.add(shoulder);
+      }
       // Литой диск: темная шайба на обеих сторонах колеса, восемь светлых спиц и колпачок, как на обложке; крутится вместе с колесом
       const rimMat = new THREE.MeshBasicMaterial({ color: 0x4d525c }); // фон диска темнее спиц, как на обложке
       const darkMat = new THREE.MeshBasicMaterial({ color: 0xc4cad4 }); // спицы и колпачок светлые
       for (const f of [-1, 1]) {
-        const rim = new THREE.Mesh(new THREE.CircleGeometry(wheelR * 0.68, 16), rimMat);
+        const rim = new THREE.Mesh(new THREE.CircleGeometry(wheelR * 0.68, 28), rimMat);
         rim.rotation.y = (f * Math.PI) / 2;
         rim.position.x = f * 0.125;
         hub.add(rim);

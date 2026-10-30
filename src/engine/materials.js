@@ -10,3 +10,12 @@ class LitMaterial extends THREE.MeshPhongMaterial {
     super({ flatShading: true, shininess: 0, specular: 0x000000, ...params });
   }
 }
+
+// Мешы с LitMaterial отбрасывают и принимают тень солнца (src/engine/scene.js). Светящиеся (MeshBasicMaterial) и прозрачные — нет
+const BaseMesh = THREE.Mesh;
+THREE.Mesh = class extends BaseMesh {
+  constructor(geometry, material) {
+    super(geometry, material);
+    if (material instanceof LitMaterial && !material.transparent) this.castShadow = this.receiveShadow = true;
+  }
+};
