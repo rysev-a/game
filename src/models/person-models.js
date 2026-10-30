@@ -65,7 +65,7 @@ function attachPersonModel(man, type) {
     holder.rotation.y = def.yaw || 0;
     holder.add(model);
     model.traverse((o) => {
-      if (o.isMesh) o.frustumCulled = false; // у skinned-моделей рамка не следует за анимацией
+      if (o.isMesh) { o.frustumCulled = false; o.castShadow = true; } // у skinned-моделей рамка не следует за анимацией
     });
 
     const rig = man.userData.rig;

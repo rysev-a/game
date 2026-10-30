@@ -38,7 +38,7 @@ function animate(now = performance.now()) {
   if (typeof gameFrozen === 'function' && gameFrozen()) {
     updateMouseLook();
     updateSound();
-    renderer.render(scene, camera);
+    renderFrame();
     return;
   }
 
@@ -61,6 +61,7 @@ function animate(now = performance.now()) {
   updatePrompt();
 
   applyWorldTransform();
+  updateSunShadow();
   updatePlayerBody(move);
   updateWeapons(); // после тела: корпус к цели, заряды, нагрев
   updateCombat(); // цели: полоски здоровья, вспышки, состояния
@@ -78,13 +79,13 @@ function animate(now = performance.now()) {
   updateTravelHud();
   updatePickHover(pickMouse); // вещь под мышью подсвечивается
   updateHoverInfo(pickMouse); // что под мышью — в панели справа
-  renderer.render(scene, camera);
+  renderFrame();
 }
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  resizeRender();
 });
 
 animate();
