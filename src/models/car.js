@@ -22,7 +22,8 @@
 // стекла полосой чуть шире салона, лобовое и заднее — наклонные пластины по скатам.
 function buildAlmeraBody(body, o, part, edgeMat) {
   const ALM = 0.0082;
-  const glassMat = new LitMaterial({ color: o.cabinColor, shininess: 90, specular: 0x8896aa }); // стекло с бликом солнца
+  const glassColor = new THREE.Color(o.cabinColor).multiplyScalar(0.5).getHex(); // стекло темнее салона
+  const glassMat = new LitMaterial({ color: glassColor, shininess: 90, specular: 0x8896aa }); // стекло с бликом солнца
   const chrome = 0xc8ced6;
   const black = 0x0e0f12;
   // Точка модели (z вперед, y вверх, в единицах оригинала) → точка игры [z, y]
@@ -48,16 +49,24 @@ function buildAlmeraBody(body, o, part, edgeMat) {
     return mesh;
   };
   const basic = (w, h, d, color) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color }));
-  // Наклонная пластина между двумя точками профиля (лобовое и заднее стекло): ширина w, чуть выше поверхности
-  const slab = (z1, y1, z2, y2, w, mat, lift = 0.035) => {
+  // Стекло на скате: четырехугольник по двум точкам профиля, ширина внизу wa и вверху wb совпадает с сужением салона, чуть над поверхностью
+  const slab = (z1, y1, z2, y2, wa, wb, mat, lift = 0.012) => {
     const [a, b] = [P(z1, y1), P(z2, y2)];
     const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.03, len), mat);
-    const ang = Math.atan2(b[1] - a[1], b[0] - a[0]); // наклон к горизонту
-    m.position.set(0, (a[1] + b[1]) / 2 + lift, (a[0] + b[0]) / 2);
-    m.rotation.x = Math.atan2(b[1] - a[1], a[0] - b[0]);
-    body.add(m);
-    return m;
+    let nz = -(b[1] - a[1]) / len, ny = (b[0] - a[0]) / len; // нормаль к скату
+    if (ny < 0) { nz = -nz; ny = -ny; } // наружу, вверх
+    const v = (pt, x) => [x, pt[1] + ny * lift, pt[0] + nz * lift];
+    const pos = [...v(a, -wa / 2), ...v(a, wa / 2), ...v(b, wb / 2), ...v(b, -wb / 2)];
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setIndex([0, 1, 2, 0, 2, 3]);
+    geo.computeVertexNormals();
+    const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0 })); // нужен только для проверки ориентации ниже
+    const upFacing = m.geometry.attributes.normal.getY(0) + m.geometry.attributes.normal.getZ(0) * nz; // нормаль геометрии против нормали ската — перевернуть
+    if (upFacing < 0) geo.setIndex([0, 2, 1, 0, 3, 2]);
+    const mesh = new THREE.Mesh(geo, mat);
+    body.add(mesh);
+    return mesh;
   };
 
   // Нижняя часть: перед и капот, пояс по бокам, палуба багажника и зад
@@ -80,10 +89,10 @@ function buildAlmeraBody(body, o, part, edgeMat) {
     o.bodyColor,
   );
   // Боковые стекла: полоса шире салона, видна только по бокам; перед ней — наклон A-стойки, за ней — C-стойка
-  extrude([P(66, 108), P(34, 150), P(-103, 160), P(-135, 153), P(-149, 147), P(-149, 112), P(-48, 109)], 1.4, o.cabinColor);
+  extrude([P(66, 108), P(34, 150), P(-103, 160), P(-135, 153), P(-149, 147), P(-149, 112), P(-48, 109)], 1.4, glassColor);
   // Лобовое и заднее стекла
-  slab(101, 112.5, 30, 154, 1.28, glassMat);
-  slab(-127, 157, -188, 128, 1.2, glassMat);
+  slab(101, 112.5, 30, 154, 1.3, 1.22, glassMat);
+  slab(-127, 157, -188, 128, 1.16, 1.28, glassMat);
   // Стойки: B (между дверями) и по краям боковых стекол
   put(part(1.43, 0.46, 0.09, o.bodyColor), 0, Yg(130), Zg(-47));
   for (const sx of [-1, 1]) put(part(0.06, 0.4, 0.07, o.bodyColor), sx * 0.69, Yg(130), Zg(-150));
@@ -127,28 +136,10 @@ function buildAlmeraBody(body, o, part, edgeMat) {
   put(ant, 0.42, Yg(165) + 0.2, Zg(-85), 0, -0.25);
   const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.14, 8), new THREE.MeshBasicMaterial({ color: 0x9aa2ad }));
   put(pipe, -0.46, 0.27, Zg(-282), 0, Math.PI / 2);
-  // Накладки на колесные арки: полукольцо над каждым колесом даёт крылу объём, а не плоский бок
-  for (const sx of [-1, 1]) {
-    for (const zm of [145, -152]) {
-      const flare = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.028, 5, 18, Math.PI), new LitMaterial({ color: 0x14161a }));
-      flare.position.set(sx * 0.812, 0.36, Zg(zm));
-      flare.rotation.y = Math.PI / 2;
-      body.add(flare);
-    }
-  }
-  // Скругление бамперов: боковые «скулы» перед и зад, чтобы углы не были прямоугольными
-  for (const sx of [-1, 1]) {
-    const cheek = (zm, y, w, h) => {
-      const m = part(w, h, 0.34, o.bodyColor);
-      put(m, sx * 0.76, Yg(y), Zg(zm), sx * 0.45);
-    };
-    cheek(250, 52, 0.22, 0.34);
-    cheek(-268, 74, 0.22, 0.34);
-  }
   // Колесные арки: темные диски на боку за колесами
   for (const sx of [-1, 1]) {
     for (const zm of [145, -152]) {
-      const arch = new THREE.Mesh(new THREE.CircleGeometry(0.43, 16), new THREE.MeshBasicMaterial({ color: black, side: THREE.DoubleSide }));
+      const arch = new THREE.Mesh(new THREE.CircleGeometry(0.41, 16, 0, Math.PI), new THREE.MeshBasicMaterial({ color: black, side: THREE.DoubleSide }));
       arch.position.set(sx * 0.812, 0.36, Zg(zm));
       arch.rotation.y = Math.PI / 2;
       body.add(arch);
@@ -219,8 +210,19 @@ function createCar(options = {}) {
     doorGroup.position.set(almera ? -0.82 : -0.98, almera ? 0.73 : 0.85, almera ? -0.88 : -0.3);
     const panel = part(0.05, almera ? 0.62 : 0.85, almera ? 1.16 : 1.1, o.bodyColor);
     panel.position.set(0, 0, almera ? 0.58 : 0.55);
-    const glass = part(0.06, almera ? 0.4 : 0.36, almera ? 1.0 : 0.9, o.cabinColor);
-    glass.position.set(0, almera ? 0.5 : 0.33, almera ? 0.55 : 0.55);
+    let glass;
+    if (almera) {
+      // Стекло двери по проему окна: нижний край у пояса, скос у A-стойки и ровный верх у B-стойки (координаты от шарнира: z вперед→назад, y от пояса двери)
+      const shape = new THREE.Shape();
+      [[0.24, 0.27], [0.48, 0.62], [1.1, 0.68], [1.1, 0.27]].forEach(([z, y], k) => (k ? shape.lineTo(z, y) : shape.moveTo(z, y)));
+      const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.04, bevelEnabled: false });
+      geo.rotateY(-Math.PI / 2);
+      geo.translate(0.02, 0, 0);
+      glass = new THREE.Mesh(geo, new LitMaterial({ color: new THREE.Color(o.cabinColor).multiplyScalar(0.5).getHex(), shininess: 90, specular: 0x8896aa }));
+    } else {
+      glass = part(0.06, 0.36, 0.9, o.cabinColor);
+      glass.position.set(0, 0.33, 0.55);
+    }
     doorGroup.add(panel);
     doorGroup.add(glass);
     body.add(doorGroup);
